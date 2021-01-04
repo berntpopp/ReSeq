@@ -438,6 +438,8 @@ class Simulator {
                                            SimBlock& block, uintRefSeqId ref_seq_id, uintSeqLen end_pos,
                                            const Reference& ref, const DataStats& stats,
                                            const ProbabilityEstimates& estimates);
+    void SkipSequencesShorterThanMinFragLen(uintRefSeqId& ref_id, const Reference& ref,
+                                            const Vect<uintFragCount>& frag_len);
     bool CreateBlock(Reference& ref, const DataStats& stats, const ProbabilityEstimates& estimates);
     bool GetNextBlock(Reference& ref, const DataStats& stats, const ProbabilityEstimates& estimates, SimBlock*& block,
                       SimUnit*& unit);

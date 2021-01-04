@@ -189,7 +189,7 @@ void SimulatorTest::TestVariationInInnerLoopOfSimulateFromGivenBlock(
                         << " Variant position: " << bias_mod.start_variant_pos_ << " Allele: " << allele << std::endl;
 
                     cur_end_position = cur_start_position + fragment_length + bias_mod.end_pos_shift_.at(allele);
-                    if (cur_end_position < species_reference_.SequenceLength(ref_seq_id)) {
+                    if (cur_end_position <= species_reference_.SequenceLength(ref_seq_id)) {
                         // Determine how many read pairs are generated for this strand and allele at this position with
                         // this fragment_length
                         gc_perc = test_->GetGCPercent(bias_mod, ref_seq_id, species_reference_, cur_end_position,
