@@ -188,6 +188,7 @@ bool Simulator::Flush() {
 
 bool Simulator::WriteSingleReads(uintFragCount cur_block, StringSet<CharString>& output_ids,
                                  StringSet<Dna5String>& output_seqs, StringSet<CharString>& output_quals) {
+    // Make sure we write the reads in the correct order
     unique_lock<mutex> lk(output_mutex_);
     if (written_blocks_ < cur_block) {
         output_cv_.wait(lk, [this, cur_block] { return written_blocks_ >= cur_block || simulation_error_; });
@@ -196,6 +197,9 @@ bool Simulator::WriteSingleReads(uintFragCount cur_block, StringSet<CharString>&
     bool success = false;
     if (!simulation_error_) {
         success = FlushWriteValues(0, &output_ids, &output_seqs, &output_quals);
+    }
+    if (success) {
+        ++written_blocks_;
     }
     lk.unlock();
     output_cv_.notify_all();
