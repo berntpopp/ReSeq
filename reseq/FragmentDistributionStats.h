@@ -696,6 +696,7 @@ class FragmentDistributionStats {
     void PreparePlotting();
 
     bool WriteRefSeqBias(const std::string& bias_file, const Reference& reference);
+    bool WriteFragLenBias(const std::string& bias_file);
 };
 } // namespace reseq
 
