@@ -32,7 +32,10 @@ class CoverageStats {
         uintPercent reference_gc_;
         uintSeqLen fragment_length_;
 
-        FullRecord() : from_ref_pos_(0), to_ref_pos_(0) {}
+        FullRecord()
+            : from_ref_pos_(0), to_ref_pos_(0),
+              sequence_quality_(255) { // Mark them as completely unprocessed (pair not found yet)
+        }
     };
 
     struct CoveragePosition {
@@ -181,43 +184,32 @@ class CoverageStats {
         tmp_error_coverage_percent_stranded_min_strand_cov_20_;
 
     // Collected variables for simulation
-    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4>
-        dominant_errors_by_distance_; // dominant_errors_by_distance_[refBase][previousRefBase][domRefBaseLast5][(distanceToStartOfErrorRegion+9)/10][dominantError]
-                                      // = #refBases
-    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4>
-        dominant_errors_by_gc_; // dominant_errors_by_gc_[refBase][previousRefBase][domRefBaseLast5][GClastHalfAverageReadLength][dominantError]
-                                // = #refBases
-    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4>
-        gc_by_distance_de_; // gc_by_distance_de_[refBase][previousRefBase][domRefBaseLast5][(distanceToStartOfErrorRegion+9)/10][GClastHalfAverageReadLength]
-                            // = #refBases
+    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4> dominant_errors_by_distance_; // dominant_errors_by_distance_[refBase][previousRefBase][domRefBaseLast5][(distanceToStartOfErrorRegion+9)/10][dominantError]
+                                                                                                        // = #refBases
+    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4> dominant_errors_by_gc_; // dominant_errors_by_gc_[refBase][previousRefBase][domRefBaseLast5][GClastHalfAverageReadLength][dominantError]
+                                                                                                  // = #refBases
+    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4> gc_by_distance_de_; // gc_by_distance_de_[refBase][previousRefBase][domRefBaseLast5][(distanceToStartOfErrorRegion+9)/10][GClastHalfAverageReadLength]
+                                                                                              // = #refBases
     std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4>
         dominant_errors_by_start_rates_; // dominant_errors_by_start_rates_[refBase][previousRefBase][domRefBaseLast5][errorRateStart][dominantError]
                                          // = #refBases
-    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4>
-        start_rates_by_distance_de_; // start_rates_by_distance_de_[refBase][previousRefBase][domRefBaseLast5][(distanceToStartOfErrorRegion+9)/10][errorRateStart]
-                                     // = #refBases
-    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4>
-        start_rates_by_gc_de_; // start_rates_by_gc_de_[refBase][previousRefBase][domRefBaseLast5][(distanceToStartOfErrorRegion+9)/10][errorRateStart]
-                               // = #refBases
+    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4> start_rates_by_distance_de_; // start_rates_by_distance_de_[refBase][previousRefBase][domRefBaseLast5][(distanceToStartOfErrorRegion+9)/10][errorRateStart]
+                                                                                                       // = #refBases
+    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4> start_rates_by_gc_de_; // start_rates_by_gc_de_[refBase][previousRefBase][domRefBaseLast5][(distanceToStartOfErrorRegion+9)/10][errorRateStart]
+                                                                                                 // = #refBases
 
-    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4>
-        error_rates_by_distance_; // error_rates_by_distance_[refBase][dominantError][(distanceToStartOfErrorRegion+9)/10][errorRate]
-                                  // = #refBases
-    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4>
-        error_rates_by_gc_; // error_rates_by_gc_[refBase][dominantError][GClastHalfAverageReadLength][errorRate]
-                            // = #refBases
-    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4>
-        gc_by_distance_er_; // gc_by_distance_er_[refBase][dominantError][(distanceToStartOfErrorRegion+9)/10][GClastHalfAverageReadLength]
-                            // = #refBases
-    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4>
-        error_rates_by_start_rates_; // error_rates_by_start_rates_[refBase][dominantError][errorRateStart][errorRate]
-                                     // = #refBases
-    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4>
-        start_rates_by_distance_er_; // start_rates_by_distance_[refBase][dominantError][(distanceToStartOfErrorRegion+9)/10][errorRateStart]
-                                     // = #refBases
-    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4>
-        start_rates_by_gc_er_; // start_rates_by_gc_[refBase][dominantError][GClastHalfAverageReadLength][errorRateStart]
-                               // = #refBases
+    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4> error_rates_by_distance_; // error_rates_by_distance_[refBase][dominantError][(distanceToStartOfErrorRegion+9)/10][errorRate]
+                                                                                     // = #refBases
+    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4> error_rates_by_gc_; // error_rates_by_gc_[refBase][dominantError][GClastHalfAverageReadLength][errorRate]
+                                                                               // = #refBases
+    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4> gc_by_distance_er_; // gc_by_distance_er_[refBase][dominantError][(distanceToStartOfErrorRegion+9)/10][GClastHalfAverageReadLength]
+                                                                               // = #refBases
+    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4> error_rates_by_start_rates_; // error_rates_by_start_rates_[refBase][dominantError][errorRateStart][errorRate]
+                                                                                        // = #refBases
+    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4> start_rates_by_distance_er_; // start_rates_by_distance_[refBase][dominantError][(distanceToStartOfErrorRegion+9)/10][errorRateStart]
+                                                                                        // = #refBases
+    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4> start_rates_by_gc_er_; // start_rates_by_gc_[refBase][dominantError][GClastHalfAverageReadLength][errorRateStart]
+                                                                                  // = #refBases
 
     // Collected variables for plotting
     Vect<uintSurBlockId> block_error_rate_;
@@ -256,9 +248,8 @@ class CoverageStats {
                                                             // #reverseErrorsAtReferencePosition/coverage*100 ] = #bases
 
     // Calculated variables for plotting
-    Vect<Vect<uintNucCount>>
-        error_rates_by_distance_sum_; // error_rates_by_distance_sum_[(distanceToStartOfErrorRegion+9)/10][errorRate]
-                                      // = #refBases
+    Vect<Vect<uintNucCount>> error_rates_by_distance_sum_; // error_rates_by_distance_sum_[(distanceToStartOfErrorRegion+9)/10][errorRate]
+                                                           // = #refBases
     Vect<Vect<uintNucCount>>
         error_rates_by_gc_sum_; // error_rates_by_gc_sum_[GClastHalfAverageReadLength][errorRate] = #refBases
 
