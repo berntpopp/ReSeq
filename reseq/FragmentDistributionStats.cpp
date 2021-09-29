@@ -1711,7 +1711,9 @@ bool InsertLengthSpline::GetSamplePositions(const Vect<uintFragCount>& insert_le
     }
 
     if (2 > num_samples) {
-        printErr << "Sampling insert lengths did not find at least two usable lengths." << std::endl;
+        printErr << "Sampling insert lengths did not find at least two usable lengths. This normally happens if a "
+                    "dataset with very few reads has been used in the training step."
+                 << std::endl;
         return false;
     }
 
@@ -3878,26 +3880,24 @@ bool FragmentDistributionStats::WriteRefSeqBias(const std::string& bias_file, co
     return true;
 }
 
-bool FragmentDistributionStats::WriteFragLenBias(const std::string &bias_file){
-	if(bias_file.empty()){
-		for( uintSeqLen frag_len = 0; frag_len < insert_lengths_bias_.to(); ++frag_len ){
-			std::cout << frag_len << '\t' << insert_lengths_bias_[frag_len] << '\n';
-		}
-	}
-	else{
-		ofstream fbias(bias_file);
-		if( !fbias.is_open() ){
-			printErr << "Unable to open fragment length bias file " << bias_file << std::endl;
-			return false;
-		}
-		else{
-			for( uintSeqLen frag_len = 0; frag_len < insert_lengths_bias_.to(); ++frag_len ){
-				fbias << frag_len << '\t' << insert_lengths_bias_[frag_len] << '\n';
-			}
+bool FragmentDistributionStats::WriteFragLenBias(const std::string& bias_file) {
+    if (bias_file.empty()) {
+        for (uintSeqLen frag_len = 0; frag_len < insert_lengths_bias_.to(); ++frag_len) {
+            std::cout << frag_len << '\t' << insert_lengths_bias_[frag_len] << '\n';
+        }
+    } else {
+        ofstream fbias(bias_file);
+        if (!fbias.is_open()) {
+            printErr << "Unable to open fragment length bias file " << bias_file << std::endl;
+            return false;
+        } else {
+            for (uintSeqLen frag_len = 0; frag_len < insert_lengths_bias_.to(); ++frag_len) {
+                fbias << frag_len << '\t' << insert_lengths_bias_[frag_len] << '\n';
+            }
 
-			fbias.close();
-		}
-	}
+            fbias.close();
+        }
+    }
 
-	return true;
+    return true;
 }
