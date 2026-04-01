@@ -109,14 +109,16 @@ configure_file(
 	"${PROJECT_BINARY_DIR}/CMakeConfig.h"
 )
 
+# Build options (declared before add_subdirectory so they are available)
+option(RESEQ_BUILD_PYTHON "Build Python bindings (requires SWIG 3+ and python3-dev)" OFF)
+option(CODE_COVERAGE "Enable code coverage instrumentation (GCC only)" OFF)
+
 # Enable CTest (must be in root CMakeLists.txt for ctest to discover tests)
 enable_testing()
 
 # Subdirectories
 add_subdirectory(skewer)
 add_subdirectory(reseq)
-option(RESEQ_BUILD_PYTHON "Build Python bindings (requires SWIG 3+ and python3-dev)" OFF)
-option(CODE_COVERAGE "Enable code coverage instrumentation (GCC only)" OFF)
 if(RESEQ_BUILD_PYTHON)
   add_subdirectory(python)
 endif()
