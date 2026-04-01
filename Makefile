@@ -20,7 +20,7 @@ build: configure
 	cmake --build $(BUILD_DIR) -j$$(nproc)
 
 test: build
-	$(BUILD_DIR)/bin/reseq test
+	cd $(BUILD_DIR) && ctest --output-on-failure
 
 format:
 	clang-format -i $(CXX_SOURCES)
