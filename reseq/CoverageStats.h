@@ -32,7 +32,10 @@ class CoverageStats {
         uintPercent reference_gc_;
         uintSeqLen fragment_length_;
 
-        FullRecord() : from_ref_pos_(0), to_ref_pos_(0) {}
+        FullRecord()
+            : from_ref_pos_(0), to_ref_pos_(0),
+              sequence_quality_(255) { // Mark them as completely unprocessed (pair not found yet)
+        }
     };
 
     struct CoveragePosition {

@@ -203,7 +203,14 @@ void CoverageStats::EvalRead(FullRecord* record, CoverageStats::CoverageBlock* c
         }
     }
 
-    delete record;
+    if (255 > record->sequence_quality_) { // 255 marks reads that have not yet been processed by DataStats::EvalRecord
+                                           // (because the other read of the pair has not been found yet)
+        delete record;
+    } else {
+        printWarn << "Did not yet find the paired read for:\n(ReferenceSequence:StartPosition): "
+                  << reference.ReferenceIdFirstPart(record->record_.rID) << ":" << record->record_.beginPos
+                  << "\nRead name: " << record->record_.qName << std::endl;
+    }
 }
 
 inline void CoverageStats::ApplyZeroCoverageRegion() {
@@ -245,16 +252,20 @@ double CoverageStats::GetPositionProbabilities(CoverageBlock* block, const Refer
             correct_bases += block->coverage_.at(pos).coverage_forward_.at(ref_base) +
                              block->coverage_.at(pos).coverage_reverse_.at(rev_base);
 
-            thread.error_rates_sorted_.emplace_back(
-                static_cast<double>(thread.block_coverage_.at(pos).at(0) -
-                                    block->coverage_.at(pos).coverage_forward_.at(ref_base)) /
-                    thread.block_coverage_.at(pos).at(0),
-                thread.block_coverage_.at(pos).at(0));
-            thread.error_rates_sorted_.emplace_back(
-                static_cast<double>(thread.block_coverage_.at(pos).at(1) -
-                                    block->coverage_.at(pos).coverage_reverse_.at(rev_base)) /
-                    thread.block_coverage_.at(pos).at(1),
-                thread.block_coverage_.at(pos).at(1));
+            if (thread.block_coverage_.at(pos).at(0)) {
+                thread.error_rates_sorted_.emplace_back(
+                    static_cast<double>(thread.block_coverage_.at(pos).at(0) -
+                                        block->coverage_.at(pos).coverage_forward_.at(ref_base)) /
+                        thread.block_coverage_.at(pos).at(0),
+                    thread.block_coverage_.at(pos).at(0));
+            }
+            if (thread.block_coverage_.at(pos).at(1)) {
+                thread.error_rates_sorted_.emplace_back(
+                    static_cast<double>(thread.block_coverage_.at(pos).at(1) -
+                                        block->coverage_.at(pos).coverage_reverse_.at(rev_base)) /
+                        thread.block_coverage_.at(pos).at(1),
+                    thread.block_coverage_.at(pos).at(1));
+            }
         }
     }
 

@@ -457,14 +457,15 @@ int main(int argc, char* argv[]) {
     }
 
     if (general_opts_map.count("version")) { // Check if user only wants to know version
-        cerr << "ReSeq version " << RESEQ_VERSION << " (" << RESEQ_GIT_VERSION << ")" << std::endl;
+        cerr << "ReSeq version " << RESEQ_VERSION_MAJOR << '.' << RESEQ_VERSION_MINOR << std::endl;
         return 0;
     }
 
     string general_usage =
-        string("\nProgram: reseq (REal SEQuence replicator)\n") + "Version: " RESEQ_VERSION "\n" +
-        "Contact: Stephan Schmeing <stephan.schmeing@uzh.ch>\n\n" + "Usage:  reseq <command> [options]\n" +
-        "Commands:\n" + "  illuminaPE\t\t" + "simulates illumina paired-end data\n" + "  queryProfile\t\t" +
+        string("\nProgram: reseq (REal SEQuence replicator)\n") + "Version: " + to_string(RESEQ_VERSION_MAJOR) + '.' +
+        to_string(RESEQ_VERSION_MINOR) + '\n' + "Contact: Stephan Schmeing <stephan.schmeing@uzh.ch>\n\n" +
+        "Usage:  reseq <command> [options]\n" + "Commands:\n" + "  illuminaPE\t\t" +
+        "simulates illumina paired-end data\n" + "  queryProfile\t\t" +
         "queries reseq statistic files for information\n" + "  replaceN\t\t" + "replaces N's in reference\n" +
         "  seqToIllumina\t\t" + "applies illumina quality and error model to input sequences\n" + "  test\t\t\t" +
         "tests the program\n";
@@ -473,7 +474,8 @@ int main(int argc, char* argv[]) {
     if (0 == unrecognized_opts.size()) {
         cerr << general_usage << std::endl;
     } else {
-        printInfo << "Running ReSeq version " << RESEQ_VERSION;
+        printInfo << "Running ReSeq version " << RESEQ_VERSION_MAJOR << '.'
+                  << RESEQ_VERSION_MINOR; // Always show version
 
         if ("queryProfile" == unrecognized_opts.at(0)) {
             if (2 < kVerbosityLevel) {
@@ -483,7 +485,8 @@ int main(int argc, char* argv[]) {
 
             options_description opt_desc("queryProfile");
             opt_desc.add_options() // Returns a special object with defined operator ()
-                ("maxLenDeletion", "Output lengths of longest detected deletion to stdout")(
+                ("fragLenBias", value<string>(), "Output fragment length bias to file (tsv format; - for stdout)")(
+                    "maxLenDeletion", "Output lengths of longest detected deletion to stdout")(
                     "maxReadLength", "Output lengths of longest detected read to stdout")(
                     "ref,r", value<string>(), "Reference sequences in fasta format (gz and bz2 supported)")(
                     "refSeqBias", value<string>(), "Output reference sequence bias to file (tsv format; - for stdout)")(
@@ -537,6 +540,18 @@ int main(int argc, char* argv[]) {
                     auto stats_file = it_stats->second.as<string>();
                     printInfo << "Reading reference sequence biases from " << stats_file << std::endl;
 
+                    string fraglen_bias_file = "";
+                    auto it_fraglen_bias = opts_map.find("fragLenBias");
+                    if (opts_map.end() != it_fraglen_bias) {
+                        fraglen_bias_file = it_fraglen_bias->second.as<string>();
+                        if ("-" == fraglen_bias_file) {
+                            fraglen_bias_file = "";
+                            printInfo << "Writing fragment length biases to stdout" << std::endl;
+                        } else {
+                            printInfo << "Writing fragment length biases to " << fraglen_bias_file << std::endl;
+                        }
+                    }
+
                     string refseq_bias_file = "";
                     if (opts_map.end() != it_refseq_bias) {
                         refseq_bias_file = it_refseq_bias->second.as<string>();
@@ -562,6 +577,16 @@ int main(int argc, char* argv[]) {
                         bool error = false;
                         bool no_output = true;
 
+                        if (opts_map.end() != it_fraglen_bias) {
+                            if ("" == fraglen_bias_file) {
+                                cout << "fragLenBias:" << std::endl;
+                            }
+                            if (!real_data_stats.FragmentDistribution().WriteFragLenBias(fraglen_bias_file)) {
+                                error = true;
+                            }
+                            no_output = false;
+                        }
+
                         if (opts_map.count("maxLenDeletion")) {
                             real_data_stats.CalculateMaxLenDeletion();
                             cout << "maxLenDeletion: " << real_data_stats.Errors().MaxLenDeletion() << std::endl;
@@ -576,6 +601,9 @@ int main(int argc, char* argv[]) {
                         }
 
                         if (opts_map.end() != it_refseq_bias) {
+                            if ("" == refseq_bias_file) {
+                                cout << "refSeqBias:" << std::endl;
+                            }
                             if (!real_data_stats.FragmentDistribution().WriteRefSeqBias(refseq_bias_file,
                                                                                         species_reference)) {
                                 error = true;

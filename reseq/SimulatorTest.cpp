@@ -5,10 +5,20 @@ using reseq::SimulatorTest;
 using std::max;
 // include <array>
 using std::array;
+#include <atomic>
+using std::atomic;
 #include <bitset>
 using std::bitset;
+#include <chrono>
+#include <condition_variable>
+using std::condition_variable;
+#include <mutex>
+using std::mutex;
+using std::unique_lock;
 #include <string>
 using std::string;
+#include <thread>
+using std::thread;
 // include <vector>
 using std::vector;
 
@@ -189,7 +199,7 @@ void SimulatorTest::TestVariationInInnerLoopOfSimulateFromGivenBlock(
                         << " Variant position: " << bias_mod.start_variant_pos_ << " Allele: " << allele << std::endl;
 
                     cur_end_position = cur_start_position + fragment_length + bias_mod.end_pos_shift_.at(allele);
-                    if (cur_end_position < species_reference_.SequenceLength(ref_seq_id)) {
+                    if (cur_end_position <= species_reference_.SequenceLength(ref_seq_id)) {
                         // Determine how many read pairs are generated for this strand and allele at this position with
                         // this fragment_length
                         gc_perc = test_->GetGCPercent(bias_mod, ref_seq_id, species_reference_, cur_end_position,
@@ -455,12 +465,81 @@ void SimulatorTest::TestVariationInSimulateFromGivenBlock() {
     EXPECT_EQ(0, bias_mod.start_variant_pos_);
 }
 
+void SimulatorTest::TestWrittenBlocksSynchronization() {
+    // Test that written_blocks_ is properly incremented so that threads
+    // waiting to write later blocks are unblocked. This is the core fix
+    // for the 10k read hang (GitHub issue #24).
+    //
+    // Without the ++written_blocks_ after successful flush, the condition
+    // variable wait in WriteSingleReads would never be satisfied for
+    // block 1+, causing a deadlock after the first block (10,000 reads).
+
+    const uintFragCount num_blocks = 5; // Enough to test multi-block ordering
+    atomic<uintFragCount> completed_blocks(0);
+    atomic<bool> deadlock_detected(false);
+
+    // Reset state
+    test_->written_blocks_ = 0;
+    test_->simulation_error_ = false;
+    test_->written_records_ = 0;
+
+    // Open a temp output file so FlushWriteValues has somewhere to write
+    string tmp_file = "/tmp/reseq_sync_test.fq";
+    seqan::open(test_->dest_.at(0), tmp_file.c_str());
+
+    // Launch threads that call WriteSingleReads with increasing block numbers.
+    // Each thread writes a small batch. If written_blocks_ is not incremented,
+    // threads for block >= 1 will wait forever (deadlock).
+    vector<thread> threads;
+    for (uintFragCount block = 0; block < num_blocks; ++block) {
+        threads.emplace_back([this, block, &completed_blocks, &deadlock_detected]() {
+            seqan::StringSet<seqan::CharString> ids;
+            seqan::StringSet<seqan::Dna5String> seqs;
+            seqan::StringSet<seqan::CharString> quals;
+
+            // Add one read per block
+            seqan::appendValue(ids, "test_read");
+            seqan::Dna5String seq = "ACGT";
+            seqan::appendValue(seqs, seq);
+            seqan::appendValue(quals, "IIII");
+
+            bool success = test_->WriteSingleReads(block, ids, seqs, quals);
+            if (success) {
+                ++completed_blocks;
+            }
+        });
+    }
+
+    // Wait with a timeout to detect deadlocks
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+    for (auto& t : threads) {
+        if (t.joinable()) {
+            // We can't do a timed join in standard C++, so we join and rely
+            // on the test framework's timeout. But we track completion count.
+            t.join();
+        }
+    }
+
+    seqan::close(test_->dest_.at(0));
+    std::remove(tmp_file.c_str());
+
+    // All blocks must have completed
+    EXPECT_EQ(num_blocks, completed_blocks)
+        << "Not all blocks completed - written_blocks_ synchronization is broken (10k hang bug)";
+    EXPECT_EQ(num_blocks, test_->written_blocks_) << "written_blocks_ counter does not match expected count";
+}
+
 namespace reseq {
 TEST_F(SimulatorTest, BasicFunctonality) {
     CreateTestObject();
 
     TestCoverageConversion();
     TestSelectAllele();
+}
+
+TEST_F(SimulatorTest, WrittenBlocksSynchronization) {
+    CreateTestObject();
+    TestWrittenBlocksSynchronization();
 }
 
 TEST_F(SimulatorTest, Variants) {

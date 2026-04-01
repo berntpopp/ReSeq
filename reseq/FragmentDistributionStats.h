@@ -544,6 +544,7 @@ class FragmentDistributionStats {
     const std::vector<double>& RefSeqBias() const { return ref_seq_bias_; }
     const Vect<double>& InsertLengthsBias() const { return insert_lengths_bias_; }
     const Vect<double>& GCFragmentContentBias() const { return gc_fragment_content_bias_; }
+    const SurroundingBias& FragmentSurroundingBias() const { return fragment_surroundings_bias_; }
 
     const Vect<uintFragCount>& OutskirtContent(uintTempSeq direction, uintBaseCall nucleotide) const {
         return outskirt_content_.at(direction).at(nucleotide);
@@ -698,6 +699,7 @@ class FragmentDistributionStats {
     void PreparePlotting();
 
     bool WriteRefSeqBias(const std::string& bias_file, const Reference& reference);
+    bool WriteFragLenBias(const std::string& bias_file);
 };
 } // namespace reseq
 

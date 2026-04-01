@@ -424,11 +424,11 @@ void BiasCalculationVectors::PrepareSplines(array<T, 3>& lin_comb_splines, S& x,
     auto& b = lin_comb_splines.at(0); // b[i][a_index]: i=[0, n-1]
     auto& d = lin_comb_splines.at(2); // d[i][a_index]: i=[0, n-1]
 
-    for (uintPercent i = 0; i < h.size(); ++i) {
+    for (uintSeqLen i = 0; i < h.size(); ++i) {
         h.at(i) = x.at(i + 1) - x.at(i);
     }
 
-    for (uintPercent k = 1; k < beta.size(); ++k) {
+    for (uintSeqLen k = 1; k < beta.size(); ++k) {
         // beta.at(k).fill(0.0);
         beta.at(k).at(k + 1) = 3 / h.at(k);
         beta.at(k).at(k) = -3 / h.at(k) - 3 / h.at(k - 1);
@@ -439,10 +439,10 @@ void BiasCalculationVectors::PrepareSplines(array<T, 3>& lin_comb_splines, S& x,
     mu.at(0) = 0.0;
     // z.at(0).fill(0.0);
 
-    for (uintPercent k = 1; k < beta.size(); ++k) {
+    for (uintSeqLen k = 1; k < beta.size(); ++k) {
         l.at(k) = 2 * (x.at(k + 1) - x.at(k - 1)) - h.at(k - 1) * mu.at(k - 1);
         mu.at(k) = h.at(k) / l.at(k);
-        for (uintPercent ai = 0; ai < x.size(); ++ai) {
+        for (uintSeqLen ai = 0; ai < x.size(); ++ai) {
             z.at(k).at(ai) = (beta.at(k).at(ai) - h.at(k - 1) * z.at(k - 1).at(ai)) / l.at(k);
         }
     }
@@ -451,8 +451,8 @@ void BiasCalculationVectors::PrepareSplines(array<T, 3>& lin_comb_splines, S& x,
     // z.at(z.size()-1).fill(0.0);
     // c.at(c.size()-1).fill(0.0);
 
-    for (uintPercent i = h.size(); i--;) {
-        for (uintPercent ai = 0; ai < x.size(); ++ai) {
+    for (uintSeqLen i = h.size(); i--;) {
+        for (uintSeqLen ai = 0; ai < x.size(); ++ai) {
             c.at(i).at(ai) = z.at(i).at(ai) - mu.at(i) * c.at(i + 1).at(ai);
             b.at(i).at(ai) = -h.at(i) * (c.at(i + 1).at(ai) + 2 * c.at(i).at(ai)) / 3;
             d.at(i).at(ai) = (c.at(i + 1).at(ai) - c.at(i).at(ai)) / 3 / h.at(i);
@@ -464,8 +464,8 @@ void BiasCalculationVectors::PrepareSplines(array<T, 3>& lin_comb_splines, S& x,
 
     // Store values from c in lin_comb_gc_splines_ (as c needs to be one larger for the calculation it is not a
     // reference like b and d)
-    for (uintPercent i = h.size(); i--;) {
-        for (uintPercent ai = 0; ai < x.size(); ++ai) {
+    for (uintSeqLen i = h.size(); i--;) {
+        for (uintSeqLen ai = 0; ai < x.size(); ++ai) {
             lin_comb_splines.at(1).at(i).at(ai) = c.at(i).at(ai);
         }
     }
@@ -496,7 +496,7 @@ void BiasCalculationVectors::GetSplineCoefficients(double& a, double& b, double&
     c = 0.0;
     d = 0.0;
 
-    for (uintPercent ai = 1; ai < spline_pars.size(); ++ai) {
+    for (uintSeqLen ai = 1; ai < spline_pars.size(); ++ai) {
         b += spline_pars.at(ai) * lin_comb_splines.at(0).at(k).at(ai - 1);
         c += spline_pars.at(ai) * lin_comb_splines.at(1).at(k).at(ai - 1);
         d += spline_pars.at(ai) * lin_comb_splines.at(2).at(k).at(ai - 1);
@@ -1304,7 +1304,7 @@ void InsertLengthSpline::PrepareInsertLengthSpline() {
     vector<vector<double>> c, z; // c[j][a_index]: j=[0, n]
     c.resize(knots_.size());
     z.resize(knots_.size());
-    for (uintPercent k = 0; k < c.size(); ++k) {
+    for (uintSeqLen k = 0; k < c.size(); ++k) {
         c.at(k).resize(knots_.size(), 0.0);
         z.at(k).resize(knots_.size(), 0.0);
     }
@@ -1315,7 +1315,7 @@ void InsertLengthSpline::PrepareInsertLengthSpline() {
 
     vector<vector<double>> beta; // beta[k][a_index]: k=[1, n-1]
     beta.resize(knots_.size() - 1);
-    for (uintPercent k = 1; k < beta.size(); ++k) {
+    for (uintSeqLen k = 1; k < beta.size(); ++k) {
         beta.at(k).resize(knots_.size(), 0.0);
     }
 
@@ -1711,7 +1711,9 @@ bool InsertLengthSpline::GetSamplePositions(const Vect<uintFragCount>& insert_le
     }
 
     if (2 > num_samples) {
-        printErr << "Sampling insert lengths did not find at least two usable lengths." << std::endl;
+        printErr << "Sampling insert lengths did not find at least two usable lengths. This normally happens if a "
+                    "dataset with very few reads has been used in the training step."
+                 << std::endl;
         return false;
     }
 
@@ -2263,7 +2265,7 @@ void FragmentDistributionStats::FillParams(vector<BiasCalculationParams>& params
 
 void FragmentDistributionStats::FillParamsSimulation(vector<BiasCalculationParams>& params, const Reference& reference,
                                                      const vector<uintSeqLen>& sample_frag_length) const {
-    params.reserve(insert_lengths_.size() * abundance_.size());
+    params.reserve(insert_lengths_.size() * ref_seq_bias_.size());
 
     for (uintRefSeqId ref_id = ref_seq_bias_.size(); ref_id--;) {
         if (0.0 != ref_seq_bias_.at(ref_id)) {
@@ -3092,7 +3094,6 @@ void FragmentDistributionStats::BiasNormalizationThread(
     atomic<uintNumFits>& current_param, vector<double>& norm, mutex& result_mutex,
     const vector<uintRefSeqId>& coverage_groups, vector<vector<array<double, 2>>>& max_bias) {
     decltype(params.size()) cur_par(current_param++);
-
     vector<double> tmp_norm;
     tmp_norm.resize(norm.size(), 0.0);
     vector<vector<double>> tmp_max_bias;
@@ -3870,6 +3871,28 @@ bool FragmentDistributionStats::WriteRefSeqBias(const std::string& bias_file, co
         } else {
             for (uintRefSeqId ref_seq = 0; ref_seq < ref_seq_bias_.size(); ++ref_seq) {
                 fbias << reference.ReferenceIdFirstPart(ref_seq) << '\t' << ref_seq_bias_.at(ref_seq) << '\n';
+            }
+
+            fbias.close();
+        }
+    }
+
+    return true;
+}
+
+bool FragmentDistributionStats::WriteFragLenBias(const std::string& bias_file) {
+    if (bias_file.empty()) {
+        for (uintSeqLen frag_len = 0; frag_len < insert_lengths_bias_.to(); ++frag_len) {
+            std::cout << frag_len << '\t' << insert_lengths_bias_[frag_len] << '\n';
+        }
+    } else {
+        ofstream fbias(bias_file);
+        if (!fbias.is_open()) {
+            printErr << "Unable to open fragment length bias file " << bias_file << std::endl;
+            return false;
+        } else {
+            for (uintSeqLen frag_len = 0; frag_len < insert_lengths_bias_.to(); ++frag_len) {
+                fbias << frag_len << '\t' << insert_lengths_bias_[frag_len] << '\n';
             }
 
             fbias.close();

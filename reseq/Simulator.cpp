@@ -188,6 +188,7 @@ bool Simulator::Flush() {
 
 bool Simulator::WriteSingleReads(uintFragCount cur_block, StringSet<CharString>& output_ids,
                                  StringSet<Dna5String>& output_seqs, StringSet<CharString>& output_quals) {
+    // Make sure we write the reads in the correct order
     unique_lock<mutex> lk(output_mutex_);
     if (written_blocks_ < cur_block) {
         output_cv_.wait(lk, [this, cur_block] { return written_blocks_ >= cur_block || simulation_error_; });
@@ -196,6 +197,9 @@ bool Simulator::WriteSingleReads(uintFragCount cur_block, StringSet<CharString>&
     bool success = false;
     if (!simulation_error_) {
         success = FlushWriteValues(0, &output_ids, &output_seqs, &output_quals);
+    }
+    if (success) {
+        ++written_blocks_;
     }
     lk.unlock();
     output_cv_.notify_all();
@@ -945,11 +949,16 @@ bool Simulator::CreateUnit(uintRefSeqId ref_id, uintRefSeqBin first_block_id, Re
     // Additional stuff in case a variant file has been specified
     if (ref.VariantsLoaded()) {
         // Make sure the variation for this unit is already loaded
+
         if (!ref.VariantsLoadedForSequence(ref_id)) {
+            uintSeqLen max_del_shift = 0;
             lock_guard<mutex> lock(var_read_mutex_);
-            if (!ref.ReadVariants(ref_id + 1)) { // End is specified, so to get the current one +1
+            if (!ref.ReadVariants(
+                    max_del_shift, ref_id + 1,
+                    2 * stats.MaxReadLenOnReference())) { // End is specified, so to get the current one +1
                 return false;
             }
+            RequestBufferSize(max_del_shift);
         }
 
         // Assign last variant (first in reverse direction) to each reverse block
@@ -1181,6 +1190,17 @@ void Simulator::SetSystematicErrorVariantsForward(uintSeqLen& start_dist_error_r
     }
 }
 
+void Simulator::SkipSequencesShorterThanMinFragLen(uintRefSeqId& ref_id, const Reference& ref,
+                                                   const Vect<uintFragCount>& frag_len) {
+    uintSeqLen min_frag_len = max(static_cast<size_t>(1), frag_len.from());
+    while (min_frag_len < frag_len.size() && frag_len.at(min_frag_len) == 0) {
+        ++min_frag_len;
+    }
+    while (ref.NumberSequences() > ref_id && ref.SequenceLength(ref_id) < min_frag_len) {
+        ++ref_id;
+    }
+}
+
 bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const ProbabilityEstimates& estimates) {
     SimBlock* block;
     SimUnit* unit;
@@ -1191,10 +1211,7 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
         if (ref.NumberSequences()) {
             // Take first reference sequence that is long enough
             uintRefSeqId ref_id = 0;
-            while (ref.NumberSequences() > ref_id &&
-                   ref.SequenceLength(ref_id) < stats.FragmentDistribution().InsertLengths().to()) {
-                ++ref_id;
-            }
+            SkipSequencesShorterThanMinFragLen(ref_id, ref, stats.FragmentDistribution().InsertLengths());
             if (ref.NumberSequences() > ref_id) {
                 if (!CreateUnit(ref_id, 0, ref, stats, estimates, block, unit)) {
                     return false;
@@ -1213,18 +1230,20 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
                          << stats.FragmentDistribution().InsertLengths().to() << " bases" << std::endl;
                 return false;
             }
+        } else {
+            // There is no reference sequence
+            printErr << "No reference sequences are found" << std::endl;
+            return false;
         }
     } else {
         if (last_unit_->last_block_->start_pos_ + kBlockSize >= ref.SequenceLength(last_unit_->ref_seq_id_)) {
             // Create next unit as the current one is completed: Go to the next reference sequence that is long enough
             // if exists
             uintRefSeqId ref_id = last_unit_->ref_seq_id_ + 1;
-            while (ref.NumberSequences() > ref_id &&
-                   ref.SequenceLength(ref_id) < stats.FragmentDistribution().InsertLengths().to()) {
-                ++ref_id;
-            }
+            SkipSequencesShorterThanMinFragLen(ref_id, ref, stats.FragmentDistribution().InsertLengths());
             if (ref.NumberSequences() > ref_id) {
                 if (!CreateUnit(ref_id, last_unit_->last_block_->id_ + 1, ref, stats, estimates, block, unit)) {
+                    current_unit_ = NULL;
                     return false;
                 }
                 block = new SimBlock(last_unit_->last_block_->id_ + 1, 0, block, block_seed_gen_());
@@ -1295,6 +1314,7 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
             } else {
                 printErr << "Ran out of simulation blocks, but simulation is not complete.";
                 simulation_error_ = true;
+                current_unit_ = NULL;
                 return false;
             }
 
@@ -1305,6 +1325,7 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
 
         return true;
     } else {
+        current_unit_ = NULL;
         return false;
     }
 }
@@ -1315,11 +1336,16 @@ bool Simulator::GetNextBlock(Reference& ref, const DataStats& stats, const Proba
     if (!ref.VariantsCompletelyLoaded() && current_unit_ &&
         !ref.VariantsLoadedForSequence(current_unit_->ref_seq_id_ + 2)) {
         if (var_read_mutex_.try_lock()) {
-            if (!ref.ReadVariants(current_unit_->ref_seq_id_ + 2)) {
+            uintSeqLen max_del_shift = 0;
+            if (!ref.ReadVariants(
+                    max_del_shift, current_unit_->ref_seq_id_ + 2,
+                    2 * stats.MaxReadLenOnReference())) { // Use twice the read length to be absolutely sure, because
+                                                          // the InDel distribution in the simulation is not necessary
+                                                          // exactly the same as in the real data
                 var_read_mutex_.unlock();
                 return false;
             }
-
+            RequestBufferSize(max_del_shift);
             var_read_mutex_.unlock();
         }
     }
@@ -1339,9 +1365,8 @@ bool Simulator::GetNextBlock(Reference& ref, const DataStats& stats, const Proba
     lock_guard<mutex> lock(block_creation_mutex_);
 
     // Create a new block to keep the buffer for long fragments
-    if (!CreateBlock(ref, stats, estimates)) {
-        return false;
-    }
+    CreateBlock(ref, stats, estimates);
+    CheckDeletionBuffer(ref, stats, estimates);
 
     if (!current_unit_) {
         // No new reference sequence anymore: Simulation is complete
@@ -2363,11 +2388,9 @@ bool Simulator::SimulateFromGivenBlock(const SimBlock& block, // forward block
     chosen_allele_ids.reserve(2 * ref.NumAlleles()); // Twice the number of alleles to also choose strand
     vector<bool> reverse_selection;
     reverse_selection.reserve(2 * ref.NumAlleles());
-
     // Take the surrounding shifted by 1 as the first thing the loop does is shifting it back
     ref.ForwardSurrounding(surrounding_start, unit.ref_seq_id_,
                            (0 < block.start_pos_ ? block.start_pos_ - 1 : ref.SequenceLength(unit.ref_seq_id_) - 1));
-
     for (auto cur_start_position = block.start_pos_; cur_start_position < block.start_pos_ + kBlockSize &&
                                                      cur_start_position < ref.SequenceLength(unit.ref_seq_id_);
          ++cur_start_position) {
@@ -2394,6 +2417,7 @@ bool Simulator::SimulateFromGivenBlock(const SimBlock& block, // forward block
                     auto non_zero_strands = stats.FragmentDistribution().DrawNumberNonZeroStrands(
                         possible_alleles.size(), NonZeroThreshold(unit.ref_seq_id_, fragment_length),
                         probability_chosen);
+
                     if (non_zero_strands) {
                         ChooseAlleles(chosen_allele_ids, reverse_selection, non_zero_strands,
                                       2 * possible_alleles.size(), rdist, rgen);
@@ -2407,7 +2431,7 @@ bool Simulator::SimulateFromGivenBlock(const SimBlock& block, // forward block
                             cur_end_position =
                                 cur_start_position + fragment_length + bias_mod.end_pos_shift_.at(allele);
 
-                            if (cur_end_position < ref.SequenceLength(unit.ref_seq_id_)) {
+                            if (cur_end_position <= ref.SequenceLength(unit.ref_seq_id_)) {
                                 gc_perc = GetGCPercent(bias_mod, unit.ref_seq_id_, ref, cur_end_position,
                                                        fragment_length, allele);
 
@@ -2710,7 +2734,9 @@ bool Simulator::WriteOutSystematicErrorProfile(const string& id, vector<pair<Dna
     return true;
 }
 
-Simulator::Simulator() : written_records_(0), last_unit_(NULL), rdist_zero_to_one_(0, 1) {}
+Simulator::Simulator() : written_records_(0), last_unit_(NULL), deletion_buffer_(0), rdist_zero_to_one_(0, 1) {
+    req_deletion_buffer_ = 0;
+}
 
 bool Simulator::CreateSystematicErrorProfile(const char* destination_file, const Reference& ref, const DataStats& stats,
                                              const ProbabilityEstimates& estimates, uintSeed seed) {
@@ -2856,8 +2882,10 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
             // Prepare vcf file handle if needed
             if (!var_file.empty()) {
                 if (ref.PrepareVariantFile(var_file)) {
-                    if (ref.ReadFirstVariants()) {
+                    uintSeqLen max_del_shift = 0;
+                    if (ref.ReadFirstVariants(max_del_shift, 2 * stats.MaxReadLenOnReference())) {
                         sys_dom_base_per_allele_.resize(ref.NumAlleles());
+                        RequestBufferSize(max_del_shift);
                     } else {
                         simulation_error_ = true;
                     }
@@ -2937,6 +2965,7 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
                     for (auto n_blocks = stats.FragmentDistribution().InsertLengths().to() / kBlockSize; n_blocks--;) {
                         CreateBlock(ref, stats, estimates);
                     }
+                    CheckDeletionBuffer(ref, stats, estimates);
 
                     printInfo << "Starting read generation" << std::endl;
 
