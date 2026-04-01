@@ -11,5 +11,5 @@ select = ["E", "F", "W", "I", "B", "SIM"]
 # NOTE: UP (pyupgrade) omitted — would push syntax beyond py36 floor
 
 [tool.ruff.lint.per-file-ignores]
-# plotDataStats.py has long lines in matplotlib calls
-"python/plotDataStats.py" = ["E501"]
+# plotDataStats.py has long lines in matplotlib calls and a try/except/pass pattern
+"python/plotDataStats.py" = ["E501", "SIM105"]

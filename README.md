@@ -179,7 +179,7 @@ This call creates a fastq file with two sequences per reference sequence (one fo
 | `--writeSysError` | None    | Write the randomly drawn systematic errors to file in fastq format (seq=dominant error, qual=error percentage) |
 
  `reseq queryProfile [options]`
- 
+
 | Parameter         | Default | Description |
 |-------------------|---------|-------------|
 | **General**       |
