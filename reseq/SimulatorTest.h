@@ -28,6 +28,7 @@ class SimulatorTest : public BasicTestClassWithReference {
 
     void TestCoverageConversion();
     void TestSelectAllele();
+    void TestWrittenBlocksSynchronization();
 
     void TestVariationInInnerLoopOfSimulateFromGivenBlock(
         Simulator::VariantBiasVarModifiers& bias_mod, uintRefSeqId ref_seq_id, uintSeqLen cur_start_position,
