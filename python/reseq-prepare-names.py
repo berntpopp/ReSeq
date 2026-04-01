@@ -3,11 +3,10 @@
 
 import getopt
 import gzip
-import string
 import sys
 
 # Ignore broken pipe error
-from signal import signal, SIGPIPE, SIG_DFL
+from signal import SIG_DFL, SIGPIPE, signal
 
 signal(SIGPIPE, SIG_DFL)
 
@@ -24,10 +23,10 @@ def modName(name, num_spaces, num_colons):
 
 
 def prepareNames(file1, file2):
-    with gzip.open(file2, "rt") if "gz" == file2.split(".")[-1] else open(file2, "r") as f2:
+    with gzip.open(file2, "rt") if file2.split(".")[-1] == "gz" else open(file2, "r") as f2:
         first_line2 = f2.readline()
 
-    with gzip.open(file1, "rt") if "gz" == file1.split(".")[-1] else open(file1, "r") as f1:
+    with gzip.open(file1, "rt") if file1.split(".")[-1] == "gz" else open(file1, "r") as f1:
         # Find the space and the semicolon where to separate
         first_line1 = f1.readline()
 
@@ -38,13 +37,13 @@ def prepareNames(file1, file2):
         while (
             read_pos < min(len(first_line1), len(first_line2))
             and first_line1[read_pos] == first_line2[read_pos]
-            and (2 > num_colons or " " != first_line1[read_pos])
+            and (num_colons < 2 or first_line1[read_pos] != " ")
         ):
-            if " " == first_line1[read_pos]:
+            if first_line1[read_pos] == " ":
                 num_spaces += 1
                 last_num_colons = num_colons
                 num_colons = 0
-            if ":" == first_line1[read_pos]:
+            if first_line1[read_pos] == ":":
                 num_colons += 1
 
             read_pos += 1
@@ -61,7 +60,7 @@ def prepareNames(file1, file2):
         print(modName(first_line1, num_spaces, num_colons))
         n_lines = 1  # We already have the first line
         for line in f1:
-            if 0 == n_lines % 4:
+            if n_lines % 4 == 0:
                 print(modName(line, num_spaces, num_colons))
             else:
                 print(line[:-1])  # Remove the line break from line before printing
@@ -74,7 +73,8 @@ def prepareNames(file1, file2):
 def usage():
     print("Usage: python reseq-prepare-names.py [OPTIONS] File1 File2")
     print(
-        "Returns File1 in stdout with changed read names, so that pairs have identical names and tiles are not stripped of during the mapping"
+        "Returns File1 in stdout with changed read names, so that pairs have"
+        " identical names and tiles are not stripped of during the mapping"
     )
     print("  -h, --help            display this help and exit")
     return
@@ -88,12 +88,12 @@ def main(argv):
         usage()
         sys.exit(2)
 
-    for opt, par in optlist:
+    for opt, _par in optlist:
         if opt in ("-h", "--help"):
             usage()
             sys.exit()
 
-    if 2 != len(args):
+    if len(args) != 2:
         print("Wrong number of files. Exactly two are required.\n")
         usage()
         sys.exit(2)

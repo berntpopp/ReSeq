@@ -2,19 +2,20 @@
 
 import getopt
 from math import ceil
+
 import matplotlib as mpl
 
 mpl.use("Agg")
-from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.collections import PatchCollection
-from matplotlib.colorbar import ColorbarBase
-from matplotlib.colors import LinearSegmentedColormap, LogNorm, Normalize
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
-import numpy as np
 import os
 import sys
 from time import clock
+
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.colorbar import ColorbarBase
+from matplotlib.colors import LinearSegmentedColormap, LogNorm, Normalize
 
 if "RESEQ_PYMODS" in os.environ and os.path.isdir(os.path.realpath(os.environ["RESEQ_PYMODS"])):
     sys.path.append(os.path.realpath(os.environ["RESEQ_PYMODS"]))
@@ -49,7 +50,6 @@ def getMinMaxX(hists, zero_padding=True, cov_plot=False):
         max_x = hists[0][0] + len(hists[0][1])
 
         # Cut at 5 times the mean
-        val = 0
         quantile_count = sum(hists[0][1]) * cov_plot
         count = 0
         quantile = -1
@@ -93,7 +93,7 @@ def getMinMaxY(hists, ignore_zero_for_y_scale=False):
 
 
 def padList(data, min_x, max_x, normalize=False, normVector=False):
-    if 0 == len(data[1]):
+    if len(data[1]) == 0:
         return [0] * (max_x - min_x)
     else:
         if normalize:
@@ -142,7 +142,7 @@ def finalizePlot(xtitle, ytitle, title):
 
     try:
         plt.tight_layout()
-    except:
+    except Exception:
         pass  # Just ignore if the tight layout does not work
 
     return
@@ -224,7 +224,7 @@ def plotMinimal(
 
     # Plot lines
     for name, hist, col, norm in zip(names, hists, colour_scheme, normVectors):
-        if 0 == len(hist[1]) or 0 == max(hist[1]):
+        if len(hist[1]) == 0 or max(hist[1]) == 0:
             if rmempty:
                 continue  # Do not plot the empty stats
             log = False
@@ -233,10 +233,9 @@ def plotMinimal(
 
     # Plot markers
     if marker_dist and (bool(marker_max) == (marker_max >= max_x)):
-        for name, hist, col, norm, mark in zip(names, hists, colour_scheme, normVectors, markers):
-            if 0 == len(hist[1]) or 0 == max(hist[1]):
-                if rmempty:
-                    continue  # Do not plot the empty stats
+        for _name, hist, col, norm, mark in zip(names, hists, colour_scheme, normVectors, markers):
+            if (len(hist[1]) == 0 or max(hist[1]) == 0) and rmempty:
+                continue  # Do not plot the empty stats
             y_vals = padList(hist, min_x, max_x, normalize=normalize, normVector=norm)
             ax.plot(
                 [val for val in x_vals if val % marker_dist == 0],
@@ -249,13 +248,7 @@ def plotMinimal(
                 markeredgewidth=4,
             )
 
-    if yrange:
-        ylimits = yrange
-    else:
-        if ignore_zero_for_y_scale:
-            ylimits = getMinMaxY(hists, ignore_zero_for_y_scale=True)
-        else:
-            ylimits = None
+    ylimits = yrange or (getMinMaxY(hists, ignore_zero_for_y_scale=True) if ignore_zero_for_y_scale else None)
 
     if log and not normalize:
         setAxis(ax, "symlog", ylimits)
@@ -288,7 +281,7 @@ def plotBackend(
 ):
     (min_x, max_x) = getMinMaxX(hists, zero_padding, cov_plot=cov_plot)
 
-    if 1 < max_x - min_x:  # Otherwise the plot has only one data point and no lines can be plotted
+    if max_x - min_x > 1:  # Otherwise the plot has only one data point and no lines can be plotted
         x_vals = [x * multiply_x for x in np.arange(min_x + shift_x, max_x + shift_x)]
 
         if baseline:
@@ -452,14 +445,14 @@ def plotTileAbundance(pdf, xtitle, ytitle, names, abundances, tiles, plot_legend
     common_tiles = {}
     for n, single_tiles in enumerate(tiles):
         for tile, ab_value in zip(single_tiles, abundances[n]):
-            if tile not in common_tiles.keys():
+            if tile not in common_tiles:
                 common_tiles[tile] = [0] * len(names)
                 pass
             common_tiles[tile][n] = ab_value
             pass
         pass
 
-    if 1 < len(common_tiles):  # Do not plot if it is just one tile
+    if len(common_tiles) > 1:  # Do not plot if it is just one tile
         tile_list = []
         sorted_abundances = [[] for x in range(0, len(names))]
         for tile, abundance in common_tiles.items():
@@ -512,10 +505,10 @@ def plotTileQuality(pdf, xtitle, ytitle, ztitle, names, tile_dicts):
         pass
     tile_names = sorted(tile_names)
 
-    if 1 < len(tile_names):
+    if len(tile_names) > 1:
         # Equalize min_z and max_z (except of the sign), so that 0 is in the middle and white
         min_z = -max_z
-        z_value_range = 2 * max_z
+        2 * max_z
 
         x_width = float(1)  # Read position is spaced in integeres
         y_width = float(1)  # The spacing between tiles is the spacing between there ids which is 1
@@ -531,10 +524,10 @@ def plotTileQuality(pdf, xtitle, ytitle, ztitle, names, tile_dicts):
         subplot_x = 0
         subplot_y = 0
         for dict, name in zip(tile_dicts, names):
-            if 1 == len(tile_dicts):
+            if len(tile_dicts) == 1:
                 ax = axs
                 pass
-            elif 2 == len(tile_dicts):
+            elif len(tile_dicts) == 2:
                 ax = axs[subplot_x]
                 pass
             else:
@@ -574,7 +567,7 @@ def plotTileQuality(pdf, xtitle, ytitle, ztitle, names, tile_dicts):
             ax.imshow(z_vals, interpolation="nearest", aspect="auto", norm=z_axis_norm, cmap=RdWeGn)  #
 
             ax.set_yticks(range(0, len(tile_names)))
-            if 0 == subplot_x:
+            if subplot_x == 0:
                 ax.set_yticklabels(reversed(tile_names))
                 pass
 
@@ -663,7 +656,7 @@ def plot2dQuality(pdf, xtitle, ytitle, names, quals, axis_lable_dist=5):
                 # y_offset = qual[0]-min_y
                 y_offset = max_y - qual[0] - len(qual[1])  # Offset is reversed
                 for y, q in enumerate(reversed(qual[1])):
-                    if 0 == q:
+                    if q == 0:
                         q = zero_log_val  # Overwrite all zeros with a super small value, that cannot be a normal count
                         pass
                     z_vals[y + y_offset][x + x_offset] = q
@@ -682,10 +675,10 @@ def plot2dQuality(pdf, xtitle, ytitle, names, quals, axis_lable_dist=5):
         subplot_x = 0
         subplot_y = 0
         for map, name in zip(qual_maps, names):
-            if 1 == len(qual_maps):
+            if len(qual_maps) == 1:
                 ax = axs
                 pass
-            elif 2 == len(qual_maps):
+            elif len(qual_maps) == 2:
                 ax = axs[subplot_x]
                 pass
             else:
@@ -700,7 +693,7 @@ def plot2dQuality(pdf, xtitle, ytitle, names, quals, axis_lable_dist=5):
 
             # y Ticks have to be reversed so they increase from bottom to top and shifted since they always start at 0 and should start at the first multiple of axis_lable_dist above min_y
             ax.set_yticks(range((max_y - 1) % axis_lable_dist, max_y - min_y, axis_lable_dist))
-            if 0 == subplot_x:
+            if subplot_x == 0:
                 ax.set_yticklabels(
                     reversed(range(((min_y - 1) // axis_lable_dist + 1) * axis_lable_dist, max_y, axis_lable_dist))
                 )
@@ -766,7 +759,7 @@ def nucleotidePlot(
     elif pos_normalize:
         # Update max_x to remove fluctuations at the end due to indels
         max_total = 0
-        while max_x >= min_x and 50 > max_total:
+        while max_x >= min_x and max_total < 50:
             max_x -= 1
             max_total = 0
             for dataset in range(len(names)):
@@ -789,9 +782,8 @@ def nucleotidePlot(
         for nuc_hists in hists:
             normed_hists.append([])
 
-            for hist in nuc_hists:
+            for _hist in nuc_hists:
                 normed_hists[-1].append((min_x, [0.0] * (max_x - min_x)))
-                pass
             pass
         pass
 
@@ -805,7 +797,7 @@ def nucleotidePlot(
                     pass
 
                 for hist, n_hist in zip(hists, normed_hists):
-                    if x >= hist[dataset][0] and x < hist[dataset][0] + len(hist[dataset][1]) and 0 < total:
+                    if x >= hist[dataset][0] and x < hist[dataset][0] + len(hist[dataset][1]) and total > 0:
                         n_hist[dataset][1][x - min_x] = float(hist[dataset][1][x - hist[dataset][0]]) * 100 / total
                         pass
                     pass
@@ -816,7 +808,7 @@ def nucleotidePlot(
         normed_hists = hists
         pass
 
-    if 1 < max_x - min_x:  # Otherwise the plot is empty
+    if max_x - min_x > 1:  # Otherwise the plot is empty
         # Pad the hists with a zero at the beginning and the end
         if zero_padding:
             min_x -= 1
@@ -851,7 +843,7 @@ def nucleotidePlot(
 
         finalizeMultiPlot(fig, axs.flatten, xtitle, ytitle)
         if plot_legend:
-            if "" == legend:
+            if legend == "":
                 axs[Nlegend // 2, Nlegend % 2].legend(bbox_to_anchor=(1.1, 1.1))
                 pass
             else:
@@ -898,7 +890,7 @@ def plotCalledBases(pdf, xtitle, ytitle, names, called_bases, total_bases, inclu
 
             # Replace all 0 by 1 to avoid division by zero as 0 values should anyways just stay 0
             for i in range(len(total)):
-                if 0 == total[i]:
+                if total[i] == 0:
                     total[i] = 1
                     pass
                 pass
@@ -928,7 +920,7 @@ def plotCalledBases(pdf, xtitle, ytitle, names, called_bases, total_bases, inclu
 
             # Replace all 0 by 1 to avoid division by zero as 0 values should anyways just stay 0
             for i in range(len(total)):
-                if 0 == total[i]:
+                if total[i] == 0:
                     total[i] = 1
                     pass
                 pass
@@ -944,7 +936,7 @@ def plotCalledBases(pdf, xtitle, ytitle, names, called_bases, total_bases, inclu
     for stats in normed_called_bases:
         for base in range(4):
             for val in stats[base][base]:
-                if val < min_y_value and 0 != val:
+                if val < min_y_value and val != 0:
                     min_y_value = val
                     pass
                 pass
@@ -967,7 +959,7 @@ def plotCalledBases(pdf, xtitle, ytitle, names, called_bases, total_bases, inclu
             for call_base in reversed(
                 [ref_base] + list(range(ref_base)) + list(range(ref_base + 1, 5))
             ):  # Put current ref_base at last position on call_base
-                if 0 == n:  # First stats taken as reference and plotted as filled
+                if n == 0:  # First stats taken as reference and plotted as filled
                     ax.fill_between(x_vals, np.repeat(total, 2), color=nucleotide_colour_scheme[call_base])
                     pass
                 else:  # Other stats only plotted as lines
@@ -992,7 +984,7 @@ def plotCalledBases(pdf, xtitle, ytitle, names, called_bases, total_bases, inclu
 def plotDataStats(statsFiles, oFile, plot_legend=True, title="", plot_markers=False):
     names = []
     for sf in statsFiles:
-        if "gz" == sf.split(".")[-1]:
+        if sf.split(".")[-1] == "gz":
             names.append(sf.split(".", 2)[0])
             pass
         else:
@@ -1243,7 +1235,7 @@ def plotDataStats(statsFiles, oFile, plot_legend=True, title="", plot_markers=Fa
 
             print("Plotted coverage information: ", clock())
 
-            if 2 < len(names):
+            if len(names) > 2:
                 # Set same quality range for first and second reads
                 max_qual = 0
                 min_qual = 255
@@ -1846,8 +1838,8 @@ def plotDataStats(statsFiles, oFile, plot_legend=True, title="", plot_markers=Fa
                 "Adapters (first)",
                 "# adapters",
                 names,
-                [[counts for counts in st.AdapterCount(0) if 0 < counts] for st in stats],
-                [[st.AdapterName(0, i) for i, counts in enumerate(st.AdapterCount(0)) if 0 < counts] for st in stats],
+                [[counts for counts in st.AdapterCount(0) if counts > 0] for st in stats],
+                [[st.AdapterName(0, i) for i, counts in enumerate(st.AdapterCount(0)) if counts > 0] for st in stats],
                 plot_legend,
                 title,
             )
@@ -1856,8 +1848,8 @@ def plotDataStats(statsFiles, oFile, plot_legend=True, title="", plot_markers=Fa
                 "Adapters (second)",
                 "# adapters",
                 names,
-                [[counts for counts in st.AdapterCount(1) if 0 < counts] for st in stats],
-                [[st.AdapterName(1, i) for i, counts in enumerate(st.AdapterCount(1)) if 0 < counts] for st in stats],
+                [[counts for counts in st.AdapterCount(1) if counts > 0] for st in stats],
+                [[st.AdapterName(1, i) for i, counts in enumerate(st.AdapterCount(1)) if counts > 0] for st in stats],
                 plot_legend,
                 title,
             )
@@ -1913,7 +1905,7 @@ def main(argv):
             pass
         pass
 
-    if 1 > len(args) or len(args) > 8:
+    if len(args) < 1 or len(args) > 8:
         print("Wrong number of arguments. Only one to eight files are supported.\n")
         usage()
         sys.exit(2)
