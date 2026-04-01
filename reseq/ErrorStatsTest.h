@@ -8,27 +8,24 @@
 
 #include "BasicTestClass.hpp"
 
-namespace reseq{
-	class ErrorStatsTest : public BasicTestClass{
-	protected:
-		ErrorStats *test_;
+namespace reseq {
+class ErrorStatsTest : public BasicTestClass {
+  protected:
+    ErrorStats* test_;
 
-		void CreateTestObject();
-		void DeleteTestObject();
+    void CreateTestObject();
+    void DeleteTestObject();
 
-		virtual void TearDown();
+    virtual void TearDown();
 
-	public:
-		ErrorStatsTest():
-			test_(NULL)
-			{
-		}
+  public:
+    ErrorStatsTest() : test_(NULL) {}
 
-		static void TestSrr490124Equality(const ErrorStats &test, const char *context);
-		static void TestDuplicates(const ErrorStats &test);
-		static void TestVariants(const ErrorStats &test);
-		static void TestAdapters(const ErrorStats &test, const char *context, bool bwa=false);
-	};
-}
+    static void TestSrr490124Equality(const ErrorStats& test, const char* context);
+    static void TestDuplicates(const ErrorStats& test);
+    static void TestVariants(const ErrorStats& test);
+    static void TestAdapters(const ErrorStats& test, const char* context, bool bwa = false);
+};
+} // namespace reseq
 
 #endif // ERRORSTATSTEST_H

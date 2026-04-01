@@ -1,0 +1,15 @@
+[tool.ruff]
+target-version = "py37"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "SIM"]
+# E/F/W = pycodestyle + pyflakes
+# I = isort
+# B = flake8-bugbear
+# SIM = flake8-simplify
+# NOTE: UP (pyupgrade) omitted — would push syntax beyond py36 floor
+
+[tool.ruff.lint.per-file-ignores]
+# plotDataStats.py has long lines in matplotlib calls and a try/except/pass pattern
+"python/plotDataStats.py" = ["E501", "SIM105"]
