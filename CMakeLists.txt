@@ -56,11 +56,23 @@ if(NOT $ENV{BOOST_LIBRARYDIR} STREQUAL "")
 	link_directories($ENV{BOOST_LIBRARYDIR})
 endif()
 
-# Add NLopt
-SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wdeprecated-declarations" )
-LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/nlopt/cmake/")
-add_subdirectory(nlopt)
-include_directories("${CMAKE_BINARY_DIR}/nlopt/src/api/")
+# NLopt via FetchContent (or system install)
+find_package(NLopt QUIET)
+if(NOT NLopt_FOUND)
+  FetchContent_Declare(
+    nlopt
+    GIT_REPOSITORY https://github.com/stevengj/nlopt.git
+    GIT_TAG v2.9.1
+  )
+  set(NLOPT_PYTHON OFF CACHE BOOL "" FORCE)
+  set(NLOPT_OCTAVE OFF CACHE BOOL "" FORCE)
+  set(NLOPT_MATLAB OFF CACHE BOOL "" FORCE)
+  set(NLOPT_GUILE OFF CACHE BOOL "" FORCE)
+  set(NLOPT_SWIG OFF CACHE BOOL "" FORCE)
+  set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+  set(NLOPT_TESTS OFF CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(nlopt)
+endif()
 
 # Add SeqAn
 SET(SEQAN_INCLUDE_PATH "${PROJECT_SOURCE_DIR}/seqan/include")
