@@ -6,7 +6,7 @@ CMAKE_FLAGS ?=
 CXX_SOURCES = $(shell git ls-files 'reseq/*.cpp' 'reseq/*.h' 'reseq/*.hpp')
 PY_SOURCES  = $(shell git ls-files 'python/*.py')
 
-.PHONY: all configure build test format format-check lint clean install help
+.PHONY: all configure build test format format-check lint clean install changelog help
 
 all: build
 
@@ -40,6 +40,9 @@ clean:
 install: build
 	cmake --install $(BUILD_DIR)
 
+changelog:
+	git-cliff --output CHANGELOG.md
+
 help:
 	@echo "Targets:"
 	@echo "  build        Configure and build (default)"
@@ -47,6 +50,7 @@ help:
 	@echo "  format       Format C++ and Python files in-place"
 	@echo "  format-check Dry-run format check (CI use)"
 	@echo "  lint         Run clang-tidy and ruff"
+	@echo "  changelog    Generate CHANGELOG.md from git history"
 	@echo "  clean        Remove build directory"
 	@echo "  install      Build and install"
 	@echo ""
