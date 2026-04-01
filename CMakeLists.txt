@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.16)
 
 # Read version from VERSION file (single source of truth)
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" RESEQ_VERSION_RAW)
@@ -17,8 +17,8 @@ RelWithDebInfo MinSizeRel."
       FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
-# Require C++14
-set(CMAKE_CXX_STANDARD 14)
+# Require C++20
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Export compile commands for clang-tidy
