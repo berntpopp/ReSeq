@@ -96,8 +96,10 @@ configure_file(
 )
 
 # Compiler flags
-SET(GCC_COVERAGE_COMPILE_FLAGS "-fPIC -fext-numeric-literals")
-SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}" )
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fext-numeric-literals")
+endif()
 link_libraries(rt)
 
 # Include directories
