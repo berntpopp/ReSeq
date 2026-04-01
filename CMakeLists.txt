@@ -109,6 +109,9 @@ configure_file(
 	"${PROJECT_BINARY_DIR}/CMakeConfig.h"
 )
 
+# Enable CTest (must be in root CMakeLists.txt for ctest to discover tests)
+enable_testing()
+
 # Subdirectories
 add_subdirectory(skewer)
 add_subdirectory(reseq)

@@ -50,3 +50,20 @@ install(TARGETS reseq
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
+
+option(RESEQ_BUILD_TESTS "Build test binary" ON)
+if(RESEQ_BUILD_TESTS)
+  add_executable(reseq_test
+    test_main.cpp
+    AdapterStatsTest.cpp CoverageStatsTest.cpp DataStatsTest.cpp
+    ErrorStatsTest.cpp FragmentDistributionStatsTest.cpp
+    FragmentDuplicationStatsTest.cpp ProbabilityEstimatesTest.cpp
+    QualityStatsTest.cpp ReferenceTest.cpp SeqQualityStatsTest.cpp
+    SimulatorTest.cpp SurroundingTest.cpp TileStatsTest.cpp
+    utilitiesTest.cpp VectTest.cpp
+  )
+  target_link_libraries(reseq_test PRIVATE reseq_lib GTest::gtest)
+  target_compile_options(reseq_test PRIVATE ${PRIVATE_COMPILE_OPTIONS})
+  include(GoogleTest)
+  gtest_discover_tests(reseq_test)
+endif()
