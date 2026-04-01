@@ -42,7 +42,7 @@ jobs:
         run: cmake --build build -j$(nproc)
 
       - name: Test
-        run: build/bin/reseq test
+        run: cd build && ctest --output-on-failure
 
   format-check:
     runs-on: ubuntu-24.04
