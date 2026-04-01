@@ -42,19 +42,6 @@ find_package(BZip2 REQUIRED)
 # Add boost
 cmake_policy(SET CMP0057 NEW)
 find_package(Boost 1.48.0 REQUIRED filesystem math_c99 math_c99f math_c99l math_tr1 math_tr1f math_tr1l program_options serialization system)
-include_directories(${Boost_INCLUDE_DIRS})
-link_directories(${Boost_LIBRARY_DIRS})
-SET( BOOST_LIBRARY_FLAGS "-lboost_serialization -lboost_program_options -lboost_filesystem -lboost_system" )
-# Suppress warnings of deprecated std::auto_ptr used in boost
-SET( BOOST_LIBRARY_FLAGS "${BOOST_LIBRARY_FLAGS} -Wno-deprecated-declarations" )
-SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${BOOST_LIBRARY_FLAGS}" )
-# Fix FindBoost issue with not giving ${Boost_LIBRARY_DIRS}
-if(NOT $ENV{BOOST_ROOT} STREQUAL "")
-	link_directories("$ENV{BOOST_ROOT}/lib/")
-endif()
-if(NOT $ENV{BOOST_LIBRARYDIR} STREQUAL "")
-	link_directories($ENV{BOOST_LIBRARYDIR})
-endif()
 
 # NLopt via FetchContent (or system install)
 find_package(NLopt QUIET)
@@ -74,15 +61,24 @@ if(NOT NLopt_FOUND)
   FetchContent_MakeAvailable(nlopt)
 endif()
 
-# Add SeqAn
-SET(SEQAN_INCLUDE_PATH "${PROJECT_SOURCE_DIR}/seqan/include")
-include_directories(${SEQAN_INCLUDE_PATH})
-
+# Add SeqAn as INTERFACE target
 LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/seqan/util/cmake/")
 find_package(SeqAn REQUIRED)
-include_directories(${SEQAN_INCLUDE_DIRS})
-add_definitions(${SEQAN_DEFINITIONS})
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
+add_library(vendored_seqan INTERFACE)
+target_include_directories(vendored_seqan SYSTEM INTERFACE
+  "${PROJECT_SOURCE_DIR}/seqan/include"
+  ${SEQAN_INCLUDE_DIRS}
+)
+target_compile_definitions(vendored_seqan INTERFACE ${SEQAN_DEFINITIONS})
+separate_arguments(SEQAN_CXX_FLAGS_LIST NATIVE_COMMAND "${SEQAN_CXX_FLAGS}")
+target_compile_options(vendored_seqan INTERFACE ${SEQAN_CXX_FLAGS_LIST})
+target_link_libraries(vendored_seqan INTERFACE ${SEQAN_LIBRARIES})
+
+# Vendored ROOTPWA utilities as INTERFACE target
+add_library(vendored_rootpwa INTERFACE)
+target_include_directories(vendored_rootpwa SYSTEM INTERFACE
+  "${PROJECT_SOURCE_DIR}/2016-05-15_ROOTPWA/utilities"
+)
 
 # Output directories
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -112,19 +108,6 @@ configure_file(
 	"${PROJECT_SOURCE_DIR}/CMakeConfig.h.in"
 	"${PROJECT_BINARY_DIR}/CMakeConfig.h"
 )
-
-# Compiler flags
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fext-numeric-literals")
-endif()
-link_libraries(rt)
-
-# Include directories
-include_directories("${PROJECT_BINARY_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/reseq")
-include_directories("${PROJECT_SOURCE_DIR}/2016-05-15_ROOTPWA/utilities")
 
 # Subdirectories
 add_subdirectory(skewer)
