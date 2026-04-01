@@ -54,7 +54,7 @@ endif()
 SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wdeprecated-declarations" )
 LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/nlopt/cmake/")
 add_subdirectory(nlopt)
-include_directories("${PROJECT_SOURCE_DIR}/build/nlopt/src/api/")
+include_directories("${CMAKE_BINARY_DIR}/nlopt/src/api/")
 
 # Add SeqAn
 SET(SEQAN_INCLUDE_PATH "${PROJECT_SOURCE_DIR}/seqan/include")
@@ -96,8 +96,9 @@ configure_file(
 )
 
 # Compiler flags
-SET(GCC_COVERAGE_COMPILE_FLAGS "-std=c++14 -fPIC -lrt -fext-numeric-literals")
+SET(GCC_COVERAGE_COMPILE_FLAGS "-fPIC -fext-numeric-literals")
 SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}" )
+link_libraries(rt)
 
 # Include directories
 include_directories("${PROJECT_BINARY_DIR}")
