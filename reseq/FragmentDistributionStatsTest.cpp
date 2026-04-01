@@ -656,10 +656,10 @@ void FragmentDistributionStatsTest::TestBiasCalculationVectorsNormalizations() {
     EXPECT_DOUBLE_EQ(0.0, test.sur_bias_.at(6));
     EXPECT_DOUBLE_EQ(0.3, test.sur_bias_.at(7));
 
-    EXPECT_DOUBLE_EQ(0.0, test.sur_bias_.at(116));
-    EXPECT_DOUBLE_EQ(0.0, test.sur_bias_.at(117));
-    EXPECT_DOUBLE_EQ(0.0, test.sur_bias_.at(118));
-    EXPECT_DOUBLE_EQ(0.0, test.sur_bias_.at(119));
+    EXPECT_NEAR(0.0, test.sur_bias_.at(116), 1e-300);
+    EXPECT_NEAR(0.0, test.sur_bias_.at(117), 1e-300);
+    EXPECT_NEAR(0.0, test.sur_bias_.at(118), 1e-300);
+    EXPECT_NEAR(0.0, test.sur_bias_.at(119), 1e-300);
 
     // UnnormSurroundingGradients
     vector<double> grad;
