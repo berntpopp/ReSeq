@@ -133,25 +133,32 @@ class QualityStats {
     std::array<Vect<Vect<Vect<uintFragCount>>>, 2>
         sequence_quality_mean_for_fragment_length_per_tile_reference_; // sequence_quality_mean_for_fragment_length_per_tile_reference_[first/second][tileId][fragmentLength][qualityMean]
                                                                        // = #reads
-    std::array<Vect<Vect<Vect<uintFragCount>>>, 2> mean_error_rate_for_gc_per_tile_reference_; // mean_error_rate_for_gc_per_tile_reference_[first/second][tileId][percentageGC][meanErrorRate]
-                                                                                               // = #reads
-    std::array<Vect<Vect<Vect<uintFragCount>>>, 2> mean_error_rate_for_fragment_length_per_tile_reference_; // mean_error_rate_for_fragment_length_per_tile_reference_[first/second][tileId][fragmentLength][meanErrorRate]
-                                                                                                            // = #reads
-    std::array<Vect<Vect<Vect<uintFragCount>>>, 2> gc_for_fragment_length_per_tile_reference_; // gc_for_fragment_length_per_tile_reference_[first/second][tileId][fragmentLength][percentageGC]
-                                                                                               // = #reads
+    std::array<Vect<Vect<Vect<uintFragCount>>>, 2>
+        mean_error_rate_for_gc_per_tile_reference_; // mean_error_rate_for_gc_per_tile_reference_[first/second][tileId][percentageGC][meanErrorRate]
+                                                    // = #reads
+    std::array<Vect<Vect<Vect<uintFragCount>>>, 2>
+        mean_error_rate_for_fragment_length_per_tile_reference_; // mean_error_rate_for_fragment_length_per_tile_reference_[first/second][tileId][fragmentLength][meanErrorRate]
+                                                                 // = #reads
+    std::array<Vect<Vect<Vect<uintFragCount>>>, 2>
+        gc_for_fragment_length_per_tile_reference_; // gc_for_fragment_length_per_tile_reference_[first/second][tileId][fragmentLength][percentageGC]
+                                                    // = #reads
 
     // Collected variables for plotting (based on raw reads)
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 2> base_quality_for_sequence_per_tile_; // base_quality_for_sequence_per_tile_[first/second][base][tileId][qualityProbabilityMeanOfSequence][baseQuality]
-                                                                                                      // = #bases
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 2>
+        base_quality_for_sequence_per_tile_; // base_quality_for_sequence_per_tile_[first/second][base][tileId][qualityProbabilityMeanOfSequence][baseQuality]
+                                             // = #bases
     std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 2>
         base_quality_for_preceding_quality_per_tile_; // base_quality_for_preceding_quality_per_tile_[first/second][base][tileId][qualityOfPrecedingBase][baseQuality]
                                                       // = #bases
-    std::array<std::array<Vect<Vect<SeqQualityStats<uintNucCount>>>, 5>, 2> base_quality_stats_per_tile_; // base_quality_stats_per_tile_[first/second][base][tileId][readPosition][quality]
-                                                                                                          // = #reads
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 2> preceding_quality_for_sequence_per_tile_; // preceding_quality_for_sequence_per_tile_[first/second][currentBase][tileId][qualityProbabilityMeanOfSequence][precedingQuality]
-                                                                                                           // = #bases
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 2> preceding_quality_for_position_per_tile_; // preceding_quality_for_position_per_tile_[first/second][currentBase][tileId][currentPosition][precedingQuality]
-                                                                                                           // = #bases
+    std::array<std::array<Vect<Vect<SeqQualityStats<uintNucCount>>>, 5>, 2>
+        base_quality_stats_per_tile_; // base_quality_stats_per_tile_[first/second][base][tileId][readPosition][quality]
+                                      // = #reads
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 2>
+        preceding_quality_for_sequence_per_tile_; // preceding_quality_for_sequence_per_tile_[first/second][currentBase][tileId][qualityProbabilityMeanOfSequence][precedingQuality]
+                                                  // = #bases
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 2>
+        preceding_quality_for_position_per_tile_; // preceding_quality_for_position_per_tile_[first/second][currentBase][tileId][currentPosition][precedingQuality]
+                                                  // = #bases
     std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 2>
         sequence_quality_for_position_per_tile_; // sequence_quality_for_position_per_tile_[first/second][base][tileId][position][sequenceQualityProbabilityMean];
 
@@ -161,20 +168,25 @@ class QualityStats {
     std::array<std::array<Vect<Vect<SeqQualityStats<uintFragCount>>>, 5>, 2>
         sequence_quality_for_base_per_tile_; // sequence_quality_for_base_per_tile_[first/second][nucleotide][tileId][percentageNucleotide][qualityProbabilityMean]
                                              // = #reads
-    Vect<Vect<Vect<uintFragCount>>> sequence_quality_mean_paired_per_tile_; // sequence_quality_mean_paired_per_tile_[tileId][qualityMeanFirst][qualityMeanSecond]
-                                                                            // = #reads
-    std::array<Vect<Vect<SeqQualityStats<uintFragCount>>>, 2> sequence_quality_mean_for_gc_per_tile_; // sequence_quality_mean_for_gc_per_tile_[first/second][tileId][percentageGC][qualityMean]
-                                                                                                      // = #reads
-    std::array<Vect<uintFragCount>, 2> sequence_quality_probability_mean_; // sequence_quality_probability_mean_[first/second][errorProbabilityMeanAsQuality]
-                                                                           // = #reads
+    Vect<Vect<Vect<uintFragCount>>>
+        sequence_quality_mean_paired_per_tile_; // sequence_quality_mean_paired_per_tile_[tileId][qualityMeanFirst][qualityMeanSecond]
+                                                // = #reads
+    std::array<Vect<Vect<SeqQualityStats<uintFragCount>>>, 2>
+        sequence_quality_mean_for_gc_per_tile_; // sequence_quality_mean_for_gc_per_tile_[first/second][tileId][percentageGC][qualityMean]
+                                                // = #reads
+    std::array<Vect<uintFragCount>, 2>
+        sequence_quality_probability_mean_; // sequence_quality_probability_mean_[first/second][errorProbabilityMeanAsQuality]
+                                            // = #reads
     std::array<Vect<uintFragCount>, 2>
         sequence_quality_minimum_; // sequence_quality_minimum_[first/second][qualityMinimum] = #reads
-    std::array<Vect<uintFragCount>, 2> sequence_quality_first_quartile_; // sequence_quality_first_quartile_[first/second][qualitySecondQuartile]
-                                                                         // = #reads
+    std::array<Vect<uintFragCount>, 2>
+        sequence_quality_first_quartile_; // sequence_quality_first_quartile_[first/second][qualitySecondQuartile]
+                                          // = #reads
     std::array<Vect<uintFragCount>, 2>
         sequence_quality_median_; // sequence_quality_median_[first/second][qualityMedian] = #reads
-    std::array<Vect<uintFragCount>, 2> sequence_quality_third_quartile_; // sequence_quality_third_quartile_[first/second][qualityThirdQuartile]
-                                                                         // = #reads
+    std::array<Vect<uintFragCount>, 2>
+        sequence_quality_third_quartile_; // sequence_quality_third_quartile_[first/second][qualityThirdQuartile]
+                                          // = #reads
     std::array<Vect<uintFragCount>, 2>
         sequence_quality_maximum_; // sequence_quality_maximum_[first/second][qualityMaximum] = #reads
     std::array<Vect<Vect<uintFragCount>>, 2>
@@ -200,19 +212,25 @@ class QualityStats {
         base_quality_stats_reference_; // base_quality_stats_reference_[first/second][readPosition][quality] = #bases
     std::array<Vect<double>, 2>
         base_quality_mean_reference_; // base_quality_mean_reference_[first/second][readPosition] = baseQualityMean
-    std::array<Vect<uintQual>, 2> base_quality_minimum_reference_; // base_quality_minimum_reference_[first/second][readPosition]
-                                                                   // = baseQualityMinimum
-    std::array<Vect<uintQual>, 2> base_quality_first_quartile_reference_; // base_quality_first_quartile_reference_[first/second][readPosition]
-                                                                          // = baseQualityFirstQuartile
-    std::array<Vect<uintQual>, 2> base_quality_median_reference_; // base_quality_median_reference_[first/second][readPosition]
-                                                                  // = baseQualityMedian
-    std::array<Vect<uintQual>, 2> base_quality_third_quartile_reference_; // base_quality_third_quartile_reference_[first/second][readPosition]
-                                                                          // = baseQualityThirdQuartile
-    std::array<Vect<uintQual>, 2> base_quality_maximum_reference_; // base_quality_maximum_reference_[first/second][readPosition]
-                                                                   // = baseQualityMaximum
+    std::array<Vect<uintQual>, 2>
+        base_quality_minimum_reference_; // base_quality_minimum_reference_[first/second][readPosition]
+                                         // = baseQualityMinimum
+    std::array<Vect<uintQual>, 2>
+        base_quality_first_quartile_reference_; // base_quality_first_quartile_reference_[first/second][readPosition]
+                                                // = baseQualityFirstQuartile
+    std::array<Vect<uintQual>, 2>
+        base_quality_median_reference_; // base_quality_median_reference_[first/second][readPosition]
+                                        // = baseQualityMedian
+    std::array<Vect<uintQual>, 2>
+        base_quality_third_quartile_reference_; // base_quality_third_quartile_reference_[first/second][readPosition]
+                                                // = baseQualityThirdQuartile
+    std::array<Vect<uintQual>, 2>
+        base_quality_maximum_reference_; // base_quality_maximum_reference_[first/second][readPosition]
+                                         // = baseQualityMaximum
 
-    std::array<Vect<uintQual>, 2> average_sequence_quality_for_gc_; // average_sequence_quality_for_gc_[first/second][percentageGC]
-                                                                    // = averageSequenceQualityProbabilityMean
+    std::array<Vect<uintQual>, 2>
+        average_sequence_quality_for_gc_; // average_sequence_quality_for_gc_[first/second][percentageGC]
+                                          // = averageSequenceQualityProbabilityMean
 
     // Calculated variables for plotting (based on raw reads)
     std::array<Vect<SeqQualityStats<uintNucCount>>, 2>
@@ -220,23 +238,28 @@ class QualityStats {
     std::array<Vect<double>, 2> base_quality_mean_; // base_quality_mean_[first/second][readPosition] = baseQualityMean
     std::array<Vect<uintQual>, 2>
         base_quality_minimum_; // base_quality_minimum_[first/second][readPosition] = baseQualityMinimum
-    std::array<Vect<uintQual>, 2> base_quality_first_quartile_; // base_quality_first_quartile_[first/second][readPosition]
-                                                                // = baseQualityFirstQuartile
+    std::array<Vect<uintQual>, 2>
+        base_quality_first_quartile_; // base_quality_first_quartile_[first/second][readPosition]
+                                      // = baseQualityFirstQuartile
     std::array<Vect<uintQual>, 2>
         base_quality_median_; // base_quality_median_[first/second][readPosition] = baseQualityMedian
-    std::array<Vect<uintQual>, 2> base_quality_third_quartile_; // base_quality_third_quartile_[first/second][readPosition]
-                                                                // = baseQualityThirdQuartile
+    std::array<Vect<uintQual>, 2>
+        base_quality_third_quartile_; // base_quality_third_quartile_[first/second][readPosition]
+                                      // = baseQualityThirdQuartile
     std::array<Vect<uintQual>, 2>
         base_quality_maximum_; // base_quality_maximum_[first/second][readPosition] = baseQualityMaximum
-    std::array<Vect<Vect<intQualDiff>>, 2> tile_quality_mean_difference_; // tile_quality_mean_difference_[first/second][tile][readPosition]
-                                                                          // = meanDifferenceToTotalQualityMean
+    std::array<Vect<Vect<intQualDiff>>, 2>
+        tile_quality_mean_difference_; // tile_quality_mean_difference_[first/second][tile][readPosition]
+                                       // = meanDifferenceToTotalQualityMean
     std::array<Vect<double>, 2>
         base_quality_mean_per_strand_; // base_quality_mean_per_strand_[+/-][readPosition] = baseQualityMean
 
-    std::array<Vect<Vect<uintNucCount>>, 2> base_quality_for_sequence_; // base_quality_for_sequence_[first/second][qualityProbabilityMeanOfSequence][baseQuality]
-                                                                        // = #bases
-    std::array<Vect<Vect<uintNucCount>>, 2> base_quality_for_preceding_quality_; // base_quality_for_preceding_quality_[first/second][qualityOfPrecedingBase][baseQuality]
-                                                                                 // = #bases
+    std::array<Vect<Vect<uintNucCount>>, 2>
+        base_quality_for_sequence_; // base_quality_for_sequence_[first/second][qualityProbabilityMeanOfSequence][baseQuality]
+                                    // = #bases
+    std::array<Vect<Vect<uintNucCount>>, 2>
+        base_quality_for_preceding_quality_; // base_quality_for_preceding_quality_[first/second][qualityOfPrecedingBase][baseQuality]
+                                             // = #bases
 
     std::array<Vect<uintFragCount>, 2>
         sequence_quality_mean_; // sequence_quality_mean_[first/second][qualityMean] = #reads
@@ -244,10 +267,12 @@ class QualityStats {
         sequence_quality_mean_per_tile_; // sequence_quality_mean_per_tile_[first/second][tileId][qualityMean] = #reads
     Vect<Vect<uintFragCount>>
         sequence_quality_mean_paired_; // sequence_quality_mean_paired_[qualityMeanFirst][qualityMeanSecond] = #reads
-    std::array<Vect<uintQual>, 2> mean_sequence_quality_mean_by_fragment_length_; // mean_sequence_quality_mean_by_fragment_length_[first/second][fragmentLength]
-                                                                                  // = meanQualityMean
-    std::array<std::array<Vect<uintQual>, 5>, 2> average_sequence_quality_for_base_; // average_sequence_quality_for_base_[first/second][nucleotide][percentageNucleotide]
-                                                                                     // = averageSequenceQualityMean
+    std::array<Vect<uintQual>, 2>
+        mean_sequence_quality_mean_by_fragment_length_; // mean_sequence_quality_mean_by_fragment_length_[first/second][fragmentLength]
+                                                        // = meanQualityMean
+    std::array<std::array<Vect<uintQual>, 5>, 2>
+        average_sequence_quality_for_base_; // average_sequence_quality_for_base_[first/second][nucleotide][percentageNucleotide]
+                                            // = averageSequenceQualityMean
 
     // Helper functions
     size_t MeanErrorRateCorrectionIndex(uintPercent mean_error_rate, uintPercent rate_threshold,

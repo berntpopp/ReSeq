@@ -99,8 +99,9 @@ class ErrorStats {
     uintReadLen max_len_deletion_; // max_deletion_[first/second] = Maximum length of deletion
 
     // Calculated variables for plotting from variables for estimation
-    std::array<std::array<std::array<Vect<uintNucCount>, 5>, 4>, 2> called_bases_by_base_quality_; // called_bases_by_base_quality_[first/second][refBase][calledBase][baseQuality]
-                                                                                                   // = #bases
+    std::array<std::array<std::array<Vect<uintNucCount>, 5>, 4>, 2>
+        called_bases_by_base_quality_; // called_bases_by_base_quality_[first/second][refBase][calledBase][baseQuality]
+                                       // = #bases
     std::array<std::array<std::array<Vect<uintNucCount>, 5>, 4>, 2>
         called_bases_by_position_; // called_bases_by_position_[first/second][refBase][calledBase][position] = #bases
 

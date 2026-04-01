@@ -128,7 +128,7 @@ class Vect { // std::vector that removes 0s at the beginning and has an offset v
     typename std::vector<T>::size_type from() const { return vec_.first; } // Returns the id of the first element
     typename std::vector<T>::size_type to() const {
         return vec_.first + vec_.second.size();
-    }                                                       // Returns the id of the last element + 1
+    } // Returns the id of the last element + 1
     void Shift(int64_t shift_by) {                          // Shift all ids by shift_by
         if (-shift_by > static_cast<int64_t>(vec_.first)) { // In case we would get below 0 offset
             vec_.first = 0;

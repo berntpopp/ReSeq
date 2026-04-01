@@ -35,8 +35,9 @@ class AdapterStats {
 
     std::vector<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>>
         tmp_counts_; // counts_[AdapterID][secondAdapterID][firstAdapterLength][secondAdapterLength] = #adapters
-    std::array<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>, 2> tmp_start_cut_; // start_cut_[templateSegment][AdapterID][basesCutFromTheBeginningOfTheAdapterAtPos0]
-                                                                                                    // = #adapters
+    std::array<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>, 2>
+        tmp_start_cut_; // start_cut_[templateSegment][AdapterID][basesCutFromTheBeginningOfTheAdapterAtPos0]
+                        // = #adapters
     std::vector<utilities::VectorAtomic<uintFragCount>>
         tmp_polya_tail_length_; // polya_tail_length_[lengthOfPolyATailAfterAdapter] = #adapters
     std::array<std::atomic<uintNucCount>, 5>

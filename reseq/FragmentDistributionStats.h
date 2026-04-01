@@ -341,8 +341,9 @@ class FragmentDistributionStats {
         fragment_sites_by_ref_seq_bin_; // fragment_sites_by_ref_seq_bin_[ReferenceSequenceBinId][UniqueId] =
                                         // {startPositionCorrectedForExcludedRegionsRelativeToBinStart*2 +
                                         // 0/1(forward/reverse),fragment_length}
-    std::vector<utilities::VectorAtomic<uintFragCount>> fragment_sites_by_ref_seq_bin_cur_id_; // fragment_sites_by_ref_seq_bin_cur_id_[ReferenceSequenceBinId]
-                                                                                               // = CurrentUniqueId
+    std::vector<utilities::VectorAtomic<uintFragCount>>
+        fragment_sites_by_ref_seq_bin_cur_id_; // fragment_sites_by_ref_seq_bin_cur_id_[ReferenceSequenceBinId]
+                                               // = CurrentUniqueId
 
     std::vector<std::vector<std::vector<uintSeqLen>>>
         fragment_sites_by_ref_seq_bin_by_insert_length_; // fragment_sites_by_ref_seq_bin_by_insert_length_[ReferenceSequenceBinId][FragmentLength][UniqueId]
@@ -356,13 +357,15 @@ class FragmentDistributionStats {
     std::vector<std::vector<uintSeqLen>>
         lowq_site_start_by_ref_seq_bin_; // lowq_site_start_by_ref_seq_bin_[ReferenceSequenceBinId][UniqueId] =
                                          // startPositionCorrectedForExcludedRegionsRelativeToBinStart
-    std::vector<utilities::VectorAtomic<uintFragCount>> lowq_site_start_by_ref_seq_bin_cur_id_; // lowq_site_start_by_ref_seq_bin_cur_id_[ReferenceSequenceBinId]
-                                                                                                // = CurrentUniqueId
+    std::vector<utilities::VectorAtomic<uintFragCount>>
+        lowq_site_start_by_ref_seq_bin_cur_id_; // lowq_site_start_by_ref_seq_bin_cur_id_[ReferenceSequenceBinId]
+                                                // = CurrentUniqueId
     std::vector<std::vector<uintSeqLen>>
         lowq_site_end_by_ref_seq_bin_; // lowq_site_end_by_ref_seq_bin_[ReferenceSequenceBinId][UniqueId] =
                                        // endPositionCorrectedForExcludedRegionsRelativeToBinStart
-    std::vector<utilities::VectorAtomic<uintFragCount>> lowq_site_end_by_ref_seq_bin_cur_id_; // lowq_site_end_by_ref_seq_bin_cur_id_[ReferenceSequenceBinId]
-                                                                                              // = CurrentUniqueId
+    std::vector<utilities::VectorAtomic<uintFragCount>>
+        lowq_site_end_by_ref_seq_bin_cur_id_; // lowq_site_end_by_ref_seq_bin_cur_id_[ReferenceSequenceBinId]
+                                              // = CurrentUniqueId
     std::vector<std::vector<std::pair<uintSeqLen, uintSeqLen>>> lowq_site_start_exclusion_;
     std::vector<std::vector<std::pair<uintSeqLen, uintSeqLen>>> lowq_site_end_exclusion_;
 

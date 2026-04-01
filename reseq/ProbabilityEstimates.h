@@ -641,8 +641,9 @@ template <uintMarginId N> class LogIPF {
     std::array<std::vector<uintMatrixIndex>, N>
         dim_indices_; // dim_indices_[Dimension][IndexInFullDataVector] = IndexInOriginalVectFromStats : Set in
                       // DataStorage.SetUp and later used for LogArrayResult.GetResult
-    std::array<std::vector<uintMatrixIndex>, N> initial_dim_indices_reduced_; // initial_dim_indices_reduced_[Dimension][IndexInFullDataVector]
-                                                                              // = IndexInInitiallyReducedVector
+    std::array<std::vector<uintMatrixIndex>, N>
+        initial_dim_indices_reduced_; // initial_dim_indices_reduced_[Dimension][IndexInFullDataVector]
+                                      // = IndexInInitiallyReducedVector
     std::array<std::vector<uintMatrixIndex>, N>
         dim_indices_reduced_; // dim_indices_reduced_[Dimension][IndexInInitiallyReducedVector] = IndexInReducedVector
 
