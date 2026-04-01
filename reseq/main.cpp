@@ -16,8 +16,6 @@ using std::to_string;
 #include <vector>
 using std::vector;
 
-#include "gtest/gtest.h"
-
 namespace reseq {
 uint16_t kVerbosityLevel = 99;
 bool kNoDebugOutput = false;
@@ -36,8 +34,6 @@ using boost::program_options::value;
 using boost::program_options::variable_value;
 using boost::program_options::variables_map;
 
-#include "BasicTestClass.hpp"
-using reseq::BasicTestClass;
 #include "CMakeConfig.h"
 #include "DataStats.h"
 using reseq::DataStats;
@@ -60,19 +56,6 @@ using reseq::utilities::DeleteFile;
 using reseq::utilities::FileExists;
 using reseq::utilities::GetReSeqDir;
 using reseq::utilities::TrueRandom;
-
-#include "AdapterStatsTest.h"
-#include "DataStatsTest.h"
-#include "FragmentDistributionStatsTest.h"
-#include "FragmentDuplicationStatsTest.h"
-#include "ProbabilityEstimatesTest.h"
-#include "ReferenceTest.h"
-#include "SeqQualityStatsTest.h"
-#include "SimulatorTest.h"
-#include "SurroundingTest.h"
-#include "TileStatsTest.h"
-#include "utilitiesTest.h"
-#include "VectTest.h"
 
 // Definitions so that referencing a const static is valid
 seqan::FunctorComplement<seqan::Dna5> reseq::utilities::Complement::Dna5;
@@ -420,16 +403,6 @@ void PrepareSimulation(string& sim_output_first, string& sim_output_second, cons
     printInfo << "Storing simulated data in " << sim_output_first << " and " << sim_output_second << std::endl;
 }
 
-int RunGoogleTests(const string& new_test, string& tests_already_run) {
-    if (!tests_already_run.empty()) {
-        tests_already_run += ":";
-    }
-    tests_already_run += new_test;
-
-    ::testing::GTEST_FLAG(filter) = new_test;
-    return RUN_ALL_TESTS();
-}
-
 // Main
 int main(int argc, char* argv[]) {
     uintNumThreads num_threads;
@@ -467,8 +440,7 @@ int main(int argc, char* argv[]) {
         "Usage:  reseq <command> [options]\n" + "Commands:\n" + "  illuminaPE\t\t" +
         "simulates illumina paired-end data\n" + "  queryProfile\t\t" +
         "queries reseq statistic files for information\n" + "  replaceN\t\t" + "replaces N's in reference\n" +
-        "  seqToIllumina\t\t" + "applies illumina quality and error model to input sequences\n" + "  test\t\t\t" +
-        "tests the program\n";
+        "  seqToIllumina\t\t" + "applies illumina quality and error model to input sequences\n";
 
     int return_code = 0;
     if (0 == unrecognized_opts.size()) {
@@ -1174,68 +1146,6 @@ int main(int argc, char* argv[]) {
                             return 1;
                         }
                     }
-                }
-            }
-        } else if ("test" == unrecognized_opts.at(0)) {
-            if (2 < kVerbosityLevel) {
-                cerr << " in test mode" << std::endl;
-            }
-
-            string usage_str = "Usage: reseq test [options]\n";
-
-            if (general_opts_map.count("help")) {
-                cerr << usage_str;
-                cerr << opt_desc_full << std::endl;
-            } else if (AutoDetectThreads(num_threads, opt_desc_full, usage_str)) {
-                string test_dir;
-                if (!BasicTestClass::GetTestDir(test_dir)) {
-                    return 1; // We cannot find the test folder and don't want every individual test failing because of
-                              // this
-                }
-
-                reseq::AdapterStatsTest::Register();
-                reseq::DataStatsTest::Register();
-                reseq::FragmentDistributionStatsTest::Register(num_threads);
-                reseq::FragmentDuplicationStatsTest::Register();
-                reseq::ProbabilityEstimatesTest::Register();
-                reseq::ReferenceTest::Register();
-                reseq::SeqQualityStatsTest::Register();
-                reseq::SimulatorTest::Register();
-                reseq::TileStatsTest::Register();
-                reseq::VectTest::Register();
-                reseq::utilitiesTest::Register();
-
-                bool all_tests_run = false;
-
-                // Setup google test
-                unrecognized_opts.at(0) = (*argv)[0]; // Restore proper argv array with program call as first parameter
-                int new_argc = unrecognized_opts.size();
-                ::testing::InitGoogleTest(&new_argc, reinterpret_cast<char**>(&unrecognized_opts.at(0)));
-
-                // Run tests in dependency levels
-                string tests_already_run;
-                return_code = RunGoogleTests("utilitiesTest.*:VectTest.*", tests_already_run);
-
-                if (0 == return_code) {
-                    return_code =
-                        RunGoogleTests("SeqQualityStatsTest.*:ReferenceTest.*:SurroundingTest.*", tests_already_run);
-
-                    if (0 == return_code) {
-                        // Test all remaining classes
-                        ::testing::GTEST_FLAG(filter) = string("-") + tests_already_run;
-                        return_code = RUN_ALL_TESTS();
-                        all_tests_run = true;
-
-                        if (0 == return_code) {
-                            printSucc << "All tests have succeeded" << std::endl;
-                        }
-                    }
-                }
-
-                if (0 != return_code && !all_tests_run) {
-                    printErr << "Previous class tests have failed and later classes depend on them in a way that they "
-                                "will definitively fail their test, so the test is aborted here."
-                             << std::endl;
                 }
             }
         } else {

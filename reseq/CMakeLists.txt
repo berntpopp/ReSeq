@@ -34,16 +34,8 @@ target_link_libraries(reseq_lib PUBLIC
 target_compile_options(reseq_lib PRIVATE ${PRIVATE_COMPILE_OPTIONS})
 
 # Production executable
-add_executable(reseq
-  main.cpp
-  AdapterStatsTest.cpp CoverageStatsTest.cpp DataStatsTest.cpp
-  ErrorStatsTest.cpp FragmentDistributionStatsTest.cpp
-  FragmentDuplicationStatsTest.cpp ProbabilityEstimatesTest.cpp
-  QualityStatsTest.cpp ReferenceTest.cpp SeqQualityStatsTest.cpp
-  SimulatorTest.cpp SurroundingTest.cpp TileStatsTest.cpp
-  utilitiesTest.cpp VectTest.cpp
-)
-target_link_libraries(reseq PRIVATE reseq_lib GTest::gtest)
+add_executable(reseq main.cpp)
+target_link_libraries(reseq PRIVATE reseq_lib)
 target_compile_options(reseq PRIVATE ${PRIVATE_COMPILE_OPTIONS})
 
 install(TARGETS reseq
