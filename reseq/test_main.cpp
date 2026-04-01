@@ -22,8 +22,8 @@ bool kNoDebugOutput = false;
 #include "SimulatorTest.h"
 #include "SurroundingTest.h"
 #include "TileStatsTest.h"
-#include "VectTest.h"
 #include "utilitiesTest.h"
+#include "VectTest.h"
 
 #include "BasicTestClass.hpp"
 
