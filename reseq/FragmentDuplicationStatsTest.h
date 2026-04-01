@@ -8,29 +8,26 @@
 
 #include "BasicTestClass.hpp"
 
-namespace reseq{
-	class FragmentDuplicationStatsTest : public BasicTestClassWithReference{
-	public: 
-		static void Register();
+namespace reseq {
+class FragmentDuplicationStatsTest : public BasicTestClassWithReference {
+  public:
+    static void Register();
 
-	protected:
-		FragmentDuplicationStats *test_;
+  protected:
+    FragmentDuplicationStats* test_;
 
-		void CreateTestObject();
-		void DeleteTestObject();
+    void CreateTestObject();
+    void DeleteTestObject();
 
-		virtual void TearDown();
+    virtual void TearDown();
 
-	public:
-		FragmentDuplicationStatsTest():
-			test_(NULL)
-			{
-		}
+  public:
+    FragmentDuplicationStatsTest() : test_(NULL) {}
 
-		static void TestSrr490124Equality(const FragmentDuplicationStats &test, const char *context);
-		static void TestDuplicates(const FragmentDuplicationStats &test);
-		static void TestCrossDuplicates(const FragmentDuplicationStats &test);
-	};
-}
+    static void TestSrr490124Equality(const FragmentDuplicationStats& test, const char* context);
+    static void TestDuplicates(const FragmentDuplicationStats& test);
+    static void TestCrossDuplicates(const FragmentDuplicationStats& test);
+};
+} // namespace reseq
 
 #endif // FRAGMENTDUPLICATIONSTATSTEST_H
