@@ -114,17 +114,20 @@ class DataStats {
 
     std::vector<uintFragCount>
         reads_per_frag_len_bin_; // reads_per_frag_len_bin_[BinOfReferenceSequenceBinnedInBinsOfFragmentLength] = #Reads
-    std::vector<uintFragCount> lowq_reads_per_frag_len_bin_; // lowq_reads_per_frag_len_bin_[BinOfReferenceSequenceBinnedInBinsOfFragmentLength]
-                                                             // = #LowQReads
+    std::vector<uintFragCount>
+        lowq_reads_per_frag_len_bin_; // lowq_reads_per_frag_len_bin_[BinOfReferenceSequenceBinnedInBinsOfFragmentLength]
+                                      // = #LowQReads
 
     // Collected variables for simulation
     uint64_t creation_time_; // Store time when bam file was completelly read, can be used to check whether the stats
                              // file was updated
     std::array<Vect<uintFragCount>, 2> read_lengths_; // read_lengths_[first/second][length] = #reads
-    std::array<Vect<Vect<uintFragCount>>, 2> read_lengths_by_fragment_length_; // read_lengths_by_fragment_length_[first/second][fragment_length][read_length]
-                                                                               // = #reads
-    std::array<Vect<Vect<uintFragCount>>, 2> non_mapped_read_lengths_by_fragment_length_; // non_mapped_read_lengths_by_fragment_length_[first/second][fragment_length][read_length]
-                                                                                          // = #reads
+    std::array<Vect<Vect<uintFragCount>>, 2>
+        read_lengths_by_fragment_length_; // read_lengths_by_fragment_length_[first/second][fragment_length][read_length]
+                                          // = #reads
+    std::array<Vect<Vect<uintFragCount>>, 2>
+        non_mapped_read_lengths_by_fragment_length_; // non_mapped_read_lengths_by_fragment_length_[first/second][fragment_length][read_length]
+                                                     // = #reads
     uintQual phred_quality_offset_;
     uintQual minimum_quality_;
     uintQual maximum_quality_;
