@@ -6,7 +6,7 @@ CMAKE_FLAGS ?=
 CXX_SOURCES = $(shell git ls-files 'reseq/*.cpp' 'reseq/*.h' 'reseq/*.hpp')
 PY_SOURCES  = $(shell git ls-files 'python/*.py')
 
-.PHONY: all configure build test format format-check lint clean install changelog help
+.PHONY: all configure build test coverage format format-check lint clean install changelog help
 
 all: build
 
@@ -21,6 +21,22 @@ build: configure
 
 test: build
 	cd $(BUILD_DIR) && ctest --output-on-failure
+
+coverage:
+	cmake -S . -B $(BUILD_DIR) \
+		-DCMAKE_BUILD_TYPE=Debug \
+		-DCODE_COVERAGE=ON \
+		$(CMAKE_FLAGS)
+	cmake --build $(BUILD_DIR) -j$$(nproc)
+	cd $(BUILD_DIR) && ctest --output-on-failure
+	lcov --capture --directory $(BUILD_DIR) --output-file $(BUILD_DIR)/coverage.info \
+		--ignore-errors mismatch
+	lcov --remove $(BUILD_DIR)/coverage.info \
+		'*/seqan/*' '*/skewer/*' '*/2016-05-15_ROOTPWA/*' \
+		'/usr/*' '*/build/*' \
+		--output-file $(BUILD_DIR)/coverage.info --ignore-errors unused
+	genhtml $(BUILD_DIR)/coverage.info --output-directory $(BUILD_DIR)/coverage-report
+	@echo "Coverage report: $(BUILD_DIR)/coverage-report/index.html"
 
 format:
 	clang-format -i $(CXX_SOURCES)
@@ -47,6 +63,7 @@ help:
 	@echo "Targets:"
 	@echo "  build        Configure and build (default)"
 	@echo "  test         Build and run unit tests"
+	@echo "  coverage     Build with gcov, run tests, generate HTML report"
 	@echo "  format       Format C++ and Python files in-place"
 	@echo "  format-check Dry-run format check (CI use)"
 	@echo "  lint         Run clang-tidy and ruff"
