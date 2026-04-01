@@ -1,5 +1,14 @@
-cmake_minimum_required(VERSION 3.1) 
-project(reseq)
+cmake_minimum_required(VERSION 3.1)
+
+# Read version from VERSION file (single source of truth)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" RESEQ_VERSION_RAW)
+string(STRIP "${RESEQ_VERSION_RAW}" RESEQ_VERSION)
+string(REPLACE "." ";" RESEQ_VERSION_LIST ${RESEQ_VERSION})
+list(GET RESEQ_VERSION_LIST 0 RESEQ_VERSION_MAJOR)
+list(GET RESEQ_VERSION_LIST 1 RESEQ_VERSION_MINOR)
+list(GET RESEQ_VERSION_LIST 2 RESEQ_VERSION_PATCH)
+
+project(reseq LANGUAGES CXX)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING
@@ -11,6 +20,9 @@ endif(NOT CMAKE_BUILD_TYPE)
 # Require C++14
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Export compile commands for clang-tidy
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Testing framework
 add_subdirectory(googletest)
@@ -59,9 +71,23 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# Version
-set(RESEQ_VERSION_MAJOR 1)
-set(RESEQ_VERSION_MINOR 1)
+# Version (read from VERSION file above)
+# Optional: git describe for dev builds
+find_package(Git QUIET)
+set(RESEQ_GIT_DESCRIBE "v${RESEQ_VERSION}")
+if(GIT_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} describe --tags --dirty --always
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE RESEQ_GIT_DESCRIBE
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE GIT_RESULT
+  )
+  if(NOT GIT_RESULT EQUAL 0)
+    set(RESEQ_GIT_DESCRIBE "v${RESEQ_VERSION}")
+  endif()
+endif()
 
 # Configure header file to pass CMake settings to code
 configure_file(
@@ -82,4 +108,7 @@ include_directories("${PROJECT_SOURCE_DIR}/2016-05-15_ROOTPWA/utilities")
 # Subdirectories
 add_subdirectory(skewer)
 add_subdirectory(reseq)
-add_subdirectory(python)
+option(RESEQ_BUILD_PYTHON "Build Python bindings (requires SWIG 3+ and python3-dev)" OFF)
+if(RESEQ_BUILD_PYTHON)
+  add_subdirectory(python)
+endif()

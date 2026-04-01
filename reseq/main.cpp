@@ -455,13 +455,13 @@ int main(int argc, char *argv[]) {
 	}
 
 	if(general_opts_map.count("version")) { // Check if user only wants to know version
-		cerr << "ReSeq version " << RESEQ_VERSION_MAJOR << '.' << RESEQ_VERSION_MINOR << std::endl;
+		cerr << "ReSeq version " << RESEQ_VERSION << " (" << RESEQ_GIT_VERSION << ")" << std::endl;
 		return 0;
 	}
 
 	string general_usage =
 		string("\nProgram: reseq (REal SEQuence replicator)\n")+
-		"Version: "+to_string(RESEQ_VERSION_MAJOR)+'.'+to_string(RESEQ_VERSION_MINOR)+'\n'+
+		"Version: " RESEQ_VERSION "\n"+
 		"Contact: Stephan Schmeing <stephan.schmeing@uzh.ch>\n\n"+
 		"Usage:  reseq <command> [options]\n"+
 		"Commands:\n"+
@@ -476,7 +476,7 @@ int main(int argc, char *argv[]) {
 		cerr << general_usage << std::endl;
 	}
 	else{
-		printInfo << "Running ReSeq version " << RESEQ_VERSION_MAJOR << '.' << RESEQ_VERSION_MINOR; // Always show version
+		printInfo << "Running ReSeq version " << RESEQ_VERSION;
 
 		if ("queryProfile" == unrecognized_opts.at(0)) {
 			if(2 < kVerbosityLevel){
