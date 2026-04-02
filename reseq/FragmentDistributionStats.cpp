@@ -3111,16 +3111,17 @@ void FragmentDistributionStats::BiasNormalizationThread(
             self.gc_fragment_content_bias_, self.fragment_surroundings_bias_);
     }
 
-    result_mutex.lock();
-    for (auto cov_group = max_bias.size(); cov_group--;) {
-        for (auto frag_len = max_bias.at(cov_group).size(); frag_len--;) {
-            SetToMax(max_bias.at(cov_group).at(frag_len).at(0), tmp_max_bias.at(cov_group).at(frag_len));
+    {
+        std::scoped_lock lock(result_mutex);
+        for (auto cov_group = max_bias.size(); cov_group--;) {
+            for (auto frag_len = max_bias.at(cov_group).size(); frag_len--;) {
+                SetToMax(max_bias.at(cov_group).at(frag_len).at(0), tmp_max_bias.at(cov_group).at(frag_len));
+            }
+        }
+        for (auto frag_len = norm.size(); frag_len--;) {
+            norm.at(frag_len) += tmp_norm.at(frag_len);
         }
     }
-    for (auto frag_len = norm.size(); frag_len--;) {
-        norm.at(frag_len) += tmp_norm.at(frag_len);
-    }
-    result_mutex.unlock();
 }
 
 double FragmentDistributionStats::CalculateNonZeroThreshold(double bias_normalization, double max_bias,
