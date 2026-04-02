@@ -6,6 +6,7 @@
 #include <atomic>
 #include <cmath>
 #include <deque>
+#include <memory>
 #include <mutex>
 #include <stdint.h>
 #include <utility>
@@ -84,7 +85,7 @@ class CoverageStats {
         std::vector<ProcessedCoveragePosition>
             previous_coverage_; // End of coverage information from previous_block_ (max read length dependent)
         std::atomic<uintFragCount> unprocessed_fragments_;
-        std::vector<FullRecord*> reads_;
+        std::vector<std::unique_ptr<FullRecord>> reads_;
         intVariantId first_variant_id_;
         std::atomic_flag scheduled_for_processing_;
         std::atomic<bool> processed_;
@@ -477,8 +478,8 @@ class CoverageStats {
                  uintReadLen maximum_read_length_on_reference);
 
     CoverageBlock* FindBlock(uintRefSeqId ref_seq_id, uintSeqLen ref_pos);
-    bool EnsureSpace(uintRefSeqId ref_seq_id, uintSeqLen start_pos, uintSeqLen end_pos, FullRecord* record,
-                     Reference& reference);
+    bool EnsureSpace(uintRefSeqId ref_seq_id, uintSeqLen start_pos, uintSeqLen end_pos,
+                     std::unique_ptr<FullRecord> record, Reference& reference);
 
     void AddFragment(uintRefSeqId ref_seq_id, uintSeqLen ref_pos, CoverageBlock*& block);
     void RemoveFragment(uintRefSeqId ref_seq_id, uintSeqLen ref_pos, CoverageBlock*& block,
