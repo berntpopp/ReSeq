@@ -930,7 +930,7 @@ test: build
 Add a new target:
 
 ```makefile
-coverage: 
+coverage:
 	cmake -S . -B $(BUILD_DIR) \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCODE_COVERAGE=ON \
