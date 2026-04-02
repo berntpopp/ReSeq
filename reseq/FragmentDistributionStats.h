@@ -22,7 +22,7 @@
 #include "Vect.hpp"
 
 namespace reseq {
-enum RefSeqBiasSimulation { kKeep, kNo, kDraw, kFile, kError };
+enum class RefSeqBiasSimulation { kKeep, kNo, kDraw, kFile, kError };
 
 struct BiasCalculationParams {
     uintRefSeqId ref_seq_id;

@@ -3539,7 +3539,7 @@ double FragmentDistributionStats::CorrectedCoverage(const Reference& ref, uintRe
 bool FragmentDistributionStats::UpdateRefSeqBias(RefSeqBiasSimulation model, const std::string& bias_file,
                                                  const Reference& ref, mt19937_64& rgen) {
     switch (model) {
-    case kKeep:
+    case RefSeqBiasSimulation::kKeep:
         if (ref.NumberSequences() == ref_seq_bias_.size()) {
             break;
         } else {
@@ -3548,11 +3548,11 @@ bool FragmentDistributionStats::UpdateRefSeqBias(RefSeqBiasSimulation model, con
                       << ref.NumberSequences() << " and there are " << ref_seq_bias_.size() << " biases stored."
                       << std::endl;
         }
-    case kNo:
+    case RefSeqBiasSimulation::kNo:
         ref_seq_bias_.clear();
         ref_seq_bias_.resize(ref.NumberSequences(), 1.0);
         break;
-    case kDraw: {
+    case RefSeqBiasSimulation::kDraw: {
         // Temporarily store the old one to draw from
         std::vector<double> old_bias_;
         old_bias_.resize(ref_seq_bias_.size());
@@ -3572,7 +3572,7 @@ bool FragmentDistributionStats::UpdateRefSeqBias(RefSeqBiasSimulation model, con
 
         break;
     }
-    case kFile: {
+    case RefSeqBiasSimulation::kFile: {
         // Clear out the old bias
         ref_seq_bias_.clear();
         ref_seq_bias_.resize(ref.NumberSequences(), 0.0);
