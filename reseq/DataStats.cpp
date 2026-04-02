@@ -928,7 +928,7 @@ bool DataStats::PreRun(BamFileIn& bam, const char* bam_file, BamHeader& header, 
 
 bool DataStats::ReadRecords(BamFileIn& bam, bool& not_done, ThreadData& thread_data) {
     CoverageStats::FullRecord* record;
-    CoverageStats::CoverageBlock* cov_block(NULL);
+    CoverageStats::CoverageBlock* cov_block(nullptr);
     lock_guard<mutex> lock(read_mutex_);
     try {
         while (thread_data.rec_store_.size() < kBatchSize && !atEnd(bam) && reading_success_) {
@@ -1032,7 +1032,7 @@ void DataStats::ReadThread(DataStats& self, BamFileIn& bam) {
         // length on reference yet unknown), so the coverage part can be handled after all coverage information are
         // gathered
         if (self.ReadRecords(bam, not_done, thread_data)) {
-            cov_block = NULL;
+            cov_block = nullptr;
             // Process batch
             for (auto& rec : thread_data.rec_store_) {
                 // EvalRecord:

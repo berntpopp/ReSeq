@@ -933,7 +933,7 @@ void ProbabilityEstimates::IterativeProportionalFitting(const DataStats& stats, 
                 .at(last_ref_base)
                 .at(dom_error)
                 .IterativeProportionalFitting(error_during_fitting_, precision_improved_, precision_aim, max_iterations,
-                                              margins, NULL, descriptor.str(), print_mutex_);
+                                              margins, nullptr, descriptor.str(), print_mutex_);
             return;
         }
         break;
@@ -950,7 +950,7 @@ void ProbabilityEstimates::IterativeProportionalFitting(const DataStats& stats, 
 
             // Run the iterative proportional fitting
             error_rate_.at(ref_base).at(dom_error).IterativeProportionalFitting(
-                error_during_fitting_, precision_improved_, precision_aim, max_iterations, margins, NULL,
+                error_during_fitting_, precision_improved_, precision_aim, max_iterations, margins, nullptr,
                 descriptor.str(), print_mutex_);
             return;
         }
@@ -971,7 +971,7 @@ void ProbabilityEstimates::IterativeProportionalFitting(const DataStats& stats, 
             indels_.at(template_segment)
                 .at(last_ref_base)
                 .IterativeProportionalFitting(error_during_fitting_, precision_improved_, precision_aim, max_iterations,
-                                              margins, NULL, descriptor.str(), print_mutex_);
+                                              margins, nullptr, descriptor.str(), print_mutex_);
             return;
         }
         break;

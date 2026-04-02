@@ -455,7 +455,7 @@ CoverageStats::CoverageBlock* CoverageStats::CreateBlock(uintRefSeqId seq_id, ui
             new_block->sequence_id_ = seq_id;
             new_block->start_pos_ = start_pos;
             new_block->previous_block_ = last_block_;
-            new_block->next_block_ = NULL;
+            new_block->next_block_ = nullptr;
             new_block->coverage_.clear();
             new_block->previous_coverage_.clear();
             new_block->reads_.clear();
@@ -892,7 +892,7 @@ bool CoverageStats::EnsureSpace(uintRefSeqId ref_seq_id, uintSeqLen start_pos, u
         num_exclusion_regions_ += reference.NumExcludedRegions(ref_seq_id);
 
         // Create new block
-        auto new_block = new CoverageBlock(ref_seq_id, start_pos, NULL);
+        auto new_block = new CoverageBlock(ref_seq_id, start_pos, nullptr);
         new_block->coverage_.resize(kBlockSize);
         new_block->previous_coverage_.reserve(maximum_read_length_on_reference_);
         new_block->reads_.reserve(2 * kBlockSize);
@@ -992,8 +992,8 @@ reseq::uintRefSeqId CoverageStats::CleanUp(uintSeqLen& still_needed_position, Re
         until_block = until_block->previous_block_;
 
         if (until_block) {
-            (*first_block_).previous_block_ = NULL;
-            until_block->next_block_ = NULL;
+            (*first_block_).previous_block_ = nullptr;
+            until_block->next_block_ = nullptr;
             still_needed_reference_sequence = (*first_block_).sequence_id_;
             still_needed_position = (*first_block_).start_pos_;
         }
@@ -1068,8 +1068,8 @@ bool CoverageStats::Finalize(const Reference& reference, QualityStats& qualities
 
             // Update coverage of remaining blocks and delete them
             CoverageBlock* first_block = first_block_; // Use non atomic pointer for the finalization
-            first_block_ = NULL;
-            last_block_ = NULL;
+            first_block_ = nullptr;
+            last_block_ = nullptr;
 
             while (first_block->next_block_) {
                 ++final_num_blocks;

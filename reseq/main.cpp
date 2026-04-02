@@ -535,7 +535,7 @@ int main(int argc, char* argv[]) {
                         }
                     }
 
-                    DataStats real_data_stats(NULL);
+                    DataStats real_data_stats(nullptr);
                     Reference species_reference;
                     if (opts_map.end() != it_ref) {
                         if (species_reference.ReadFasta(ref_file.c_str())) {
@@ -822,7 +822,7 @@ int main(int argc, char* argv[]) {
                     if (opts_map.end() != it_ref_in && !species_reference.ReadFasta(ref_input.c_str())) {
                         return 1;
                     } else {
-                        DataStats real_data_stats((opts_map.end() == it_ref_in ? NULL : &species_reference),
+                        DataStats real_data_stats((opts_map.end() == it_ref_in ? nullptr : &species_reference),
                                                   maximum_insert_length, minimum_mapping_quality);
                         bool stats_only = opts_map.count("statsOnly");
                         string stats_file;
@@ -1071,7 +1071,7 @@ int main(int argc, char* argv[]) {
             } else if (!AutoDetectThreads(num_threads, opt_desc_full, usage_str)) {
                 return 1;
             } else {
-                DataStats real_data_stats(NULL);
+                DataStats real_data_stats(nullptr);
                 string probs_in, probs_out;
 
                 auto it_stats_in = opts_map.find("statsIn");

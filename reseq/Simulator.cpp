@@ -546,7 +546,7 @@ bool Simulator::FillRead(SimRead& sim_read, uintReadLen& num_errors, uintTempSeq
 
         // Adapter part of the sequence
         if (!FillReadPart(sim_read, template_segment, tile_id, stats.Adapters().Sequence(template_segment, adapter_id),
-                          adapter_pos, 'S', NULL, 0, adapter_id, par, {0, 0}, 0, stats, estimates, rdist, rgen)) {
+                          adapter_pos, 'S', nullptr, 0, adapter_id, par, {0, 0}, 0, stats, estimates, rdist, rgen)) {
             return false;
         }
 
@@ -680,7 +680,7 @@ bool Simulator::CreateReads(const Reference& ref, const DataStats& stats, const 
         block_id = 0;
         print_start_position = 0;
         print_end_position = 0;
-        block.fill(NULL);
+        block.fill(nullptr);
         block_start_pos.fill(0);
     }
 
@@ -929,11 +929,11 @@ bool Simulator::CreateUnit(uintRefSeqId ref_id, uintRefSeqBin first_block_id, Re
     // at the end of the function block will be filled with the reverse block at the beginning of the reference sequence
 
     // Create all blocks for the reverse strand of the unit
-    auto block = new SimBlock(first_block_id, 0, NULL, block_seed_gen_());
+    auto block = new SimBlock(first_block_id, 0, nullptr, block_seed_gen_());
     first_reverse_block = block;
     auto old_block(block);
     while (block->start_pos_ + kBlockSize < ref.SequenceLength(ref_id)) {
-        block = new SimBlock(block->id_ + 1, block->start_pos_ + kBlockSize, NULL, block_seed_gen_());
+        block = new SimBlock(block->id_ + 1, block->start_pos_ + kBlockSize, nullptr, block_seed_gen_());
         block->next_block_ = old_block;    // Reverse direction
         old_block->partner_block_ = block; // partner_block_ is previous block for reverse strand
         old_block = block;
@@ -1243,7 +1243,7 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
             SkipSequencesShorterThanMinFragLen(ref_id, ref, stats.FragmentDistribution().InsertLengths());
             if (ref.NumberSequences() > ref_id) {
                 if (!CreateUnit(ref_id, last_unit_->last_block_->id_ + 1, ref, stats, estimates, block, unit)) {
-                    current_unit_ = NULL;
+                    current_unit_ = nullptr;
                     return false;
                 }
                 block = new SimBlock(last_unit_->last_block_->id_ + 1, 0, block, block_seed_gen_());
@@ -1314,7 +1314,7 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
             } else {
                 printErr << "Ran out of simulation blocks, but simulation is not complete.";
                 simulation_error_ = true;
-                current_unit_ = NULL;
+                current_unit_ = nullptr;
                 return false;
             }
 
@@ -1325,7 +1325,7 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
 
         return true;
     } else {
-        current_unit_ = NULL;
+        current_unit_ = nullptr;
         return false;
     }
 }
@@ -2508,7 +2508,7 @@ bool Simulator::SimulateAdapterOnlyPairs(const Reference& ref, const DataStats& 
         uintFragCount read_number(0);
 
         if (!CreateReads(ref, stats, estimates, rdist, sim_reads, rgen, num_adapter_only_pairs_, false, 0, 0, 0,
-                         read_number, NULL, 0, 0)) {
+                         read_number, nullptr, 0, 0)) {
             return false;
         }
     }
@@ -2543,7 +2543,7 @@ bool Simulator::ApplyErrorsAndQualityToFastaInput(StringSet<CharString>& input_i
                                                   GeneralRandomDistributions& rdist, mt19937_64& rgen,
                                                   const DataStats& stats, const ProbabilityEstimates& estimates) {
     SimRead sim_read;
-    SimBlock block(0, 0, NULL, 0);
+    SimBlock block(0, 0, nullptr, 0);
     stringstream readid_stream(std::ios_base::in | std::ios_base::out | std::ios_base::ate);
 
     for (uintFragCount i = 0; i < length(input_ids); ++i) {
@@ -2734,7 +2734,7 @@ bool Simulator::WriteOutSystematicErrorProfile(const string& id, vector<pair<Dna
     return true;
 }
 
-Simulator::Simulator() : written_records_(0), last_unit_(NULL), deletion_buffer_(0), rdist_zero_to_one_(0, 1) {
+Simulator::Simulator() : written_records_(0), last_unit_(nullptr), deletion_buffer_(0), rdist_zero_to_one_(0, 1) {
     req_deletion_buffer_ = 0;
 }
 
@@ -3002,7 +3002,7 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
                         del_unit = first_unit_;
                     } else {
                         // Terminate loop
-                        first_unit_->first_block_ = NULL;
+                        first_unit_->first_block_ = nullptr;
                     }
 
                     delete del_block->partner_block_;
@@ -3010,8 +3010,8 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
                     del_block = first_unit_->first_block_;
                 }
                 delete del_unit;
-                first_unit_ = NULL;
-                last_unit_ = NULL;
+                first_unit_ = nullptr;
+                last_unit_ = nullptr;
             }
         }
 
