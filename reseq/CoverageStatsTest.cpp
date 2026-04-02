@@ -5,14 +5,12 @@ using reseq::CoverageStatsTest;
 using std::string;
 
 void CoverageStatsTest::CreateTestObject() {
-    ASSERT_TRUE(test_ = new CoverageStats()) << "Could not allocate memory for CoverageStats object\n";
+    test_ = std::make_unique<CoverageStats>();
+    ASSERT_TRUE(test_) << "Could not allocate memory for CoverageStats object\n";
 }
 
 void CoverageStatsTest::DeleteTestObject() {
-    if (test_) {
-        delete test_;
-        test_ = nullptr;
-    }
+    test_.reset();
 }
 
 void CoverageStatsTest::TearDown() {

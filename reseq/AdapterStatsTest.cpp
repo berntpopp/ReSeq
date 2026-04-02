@@ -15,14 +15,12 @@ void AdapterStatsTest::Register() {
 }
 
 void AdapterStatsTest::CreateTestObject() {
-    ASSERT_TRUE(test_ = new AdapterStats()) << "Could not allocate memory for DataStats object\n";
+    test_ = std::make_unique<AdapterStats>();
+    ASSERT_TRUE(test_) << "Could not allocate memory for AdapterStats object\n";
 }
 
 void AdapterStatsTest::DeleteTestObject() {
-    if (test_) {
-        delete test_;
-        test_ = nullptr;
-    }
+    test_.reset();
 }
 
 void AdapterStatsTest::TearDown() {

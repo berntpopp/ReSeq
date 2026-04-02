@@ -2,14 +2,12 @@
 using reseq::ErrorStatsTest;
 
 void ErrorStatsTest::CreateTestObject() {
-    ASSERT_TRUE(test_ = new ErrorStats()) << "Could not allocate memory for ErrorStats object\n";
+    test_ = std::make_unique<ErrorStats>();
+    ASSERT_TRUE(test_) << "Could not allocate memory for ErrorStats object\n";
 }
 
 void ErrorStatsTest::DeleteTestObject() {
-    if (test_) {
-        delete test_;
-        test_ = nullptr;
-    }
+    test_.reset();
 }
 
 void ErrorStatsTest::TearDown() {

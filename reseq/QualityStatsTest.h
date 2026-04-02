@@ -3,6 +3,7 @@
 #include "QualityStats.h"
 
 #include <cmath>
+#include <memory>
 #include <stdint.h>
 
 #include "gtest/gtest.h"
@@ -12,7 +13,7 @@
 namespace reseq {
 class QualityStatsTest : public BasicTestClass {
   protected:
-    QualityStats* test_;
+    std::unique_ptr<QualityStats> test_;
 
     void CreateTestObject();
     void DeleteTestObject();
@@ -49,7 +50,7 @@ class QualityStatsTest : public BasicTestClass {
     void TestRemoveSystematic();
 
   public:
-    QualityStatsTest() : test_(nullptr) {}
+    QualityStatsTest() {}
 
     static void TestSrr490124Equality(const QualityStats& test, const char* context);
     static void TestTiles(const QualityStats& test);

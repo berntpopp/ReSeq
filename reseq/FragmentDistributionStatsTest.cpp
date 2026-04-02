@@ -68,8 +68,8 @@ void FragmentDistributionStatsTest::AddExlusionRegionsDrosophila() {
 }
 
 void FragmentDistributionStatsTest::CreateTestObject(const Reference* ref) {
-    ASSERT_TRUE(test_ = new FragmentDistributionStats)
-        << "Could not allocate memory for FragmentDistributionStats object\n";
+    test_ = std::make_unique<FragmentDistributionStats>();
+    ASSERT_TRUE(test_) << "Could not allocate memory for FragmentDistributionStats object\n";
 
     auto maximum_insert_length = 100;
     uintRefLenCalc num_bins(0);
@@ -87,10 +87,7 @@ void FragmentDistributionStatsTest::CreateTestObject(const Reference* ref) {
 }
 
 void FragmentDistributionStatsTest::DeleteTestObject() {
-    if (test_) {
-        delete test_;
-        test_ = nullptr;
-    }
+    test_.reset();
 }
 
 void FragmentDistributionStatsTest::TestOutskirtContent(const FragmentDistributionStats& test,
@@ -1272,8 +1269,8 @@ TEST_F(FragmentDistributionStatsTest, Functionality) {
     LoadReference(test_dir + "drosophila-GCF_000001215.4_cut.fna"); // So we have many sequences
     SetExlusionRegionsAtEnds();
     AddExlusionRegionsDrosophila();
-    ASSERT_TRUE(test_ = new FragmentDistributionStats)
-        << "Could not allocate memory for FragmentDistributionStats object\n";
+    test_ = std::make_unique<FragmentDistributionStats>();
+    ASSERT_TRUE(test_) << "Could not allocate memory for FragmentDistributionStats object\n";
 
     TestDrawCounts();
     TestRefSeqSplitting();

@@ -36,14 +36,12 @@ void SimulatorTest::Register() {
 }
 
 void SimulatorTest::CreateTestObject() {
-    ASSERT_TRUE(test_ = new Simulator) << "Could not allocate memory for FragmentDuplicationStats object\n";
+    test_ = std::make_unique<Simulator>();
+    ASSERT_TRUE(test_) << "Could not allocate memory for Simulator object\n";
 }
 
 void SimulatorTest::DeleteTestObject() {
-    if (test_) {
-        delete test_;
-        test_ = nullptr;
-    }
+    test_.reset();
 }
 
 void SimulatorTest::TearDown() {

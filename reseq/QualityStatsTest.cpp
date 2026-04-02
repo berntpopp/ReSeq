@@ -7,14 +7,12 @@ using std::round;
 using std::to_string;
 
 void QualityStatsTest::CreateTestObject() {
-    ASSERT_TRUE(test_ = new QualityStats()) << "Could not allocate memory for QualityStats object\n";
+    test_ = std::make_unique<QualityStats>();
+    ASSERT_TRUE(test_) << "Could not allocate memory for QualityStats object\n";
 }
 
 void QualityStatsTest::DeleteTestObject() {
-    if (test_) {
-        delete test_;
-        test_ = nullptr;
-    }
+    test_.reset();
 }
 
 void QualityStatsTest::TearDown() {

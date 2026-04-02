@@ -16,14 +16,12 @@ void TileStatsTest::Register() {
 }
 
 void TileStatsTest::CreateTestObject() {
-    ASSERT_TRUE(test_ = new TileStats()) << "Could not allocate memory for DataStats object\n";
+    test_ = std::make_unique<TileStats>();
+    ASSERT_TRUE(test_) << "Could not allocate memory for TileStats object\n";
 }
 
 void TileStatsTest::DeleteTestObject() {
-    if (test_) {
-        delete test_;
-        test_ = nullptr;
-    }
+    test_.reset();
 }
 
 void TileStatsTest::TestProperTileFormat(const char* read_id_string, const string& format, uintTileId expected_id,

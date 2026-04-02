@@ -2,6 +2,7 @@
 #define DATASTATSTEST_H
 #include "DataStats.h"
 
+#include <memory>
 #include <stdint.h>
 #include <string>
 
@@ -15,7 +16,7 @@ class DataStatsTest : public BasicTestClassWithReference {
     static void Register();
 
   protected:
-    DataStats* test_;
+    std::unique_ptr<DataStats> test_;
 
     void CreateTestObject(Reference* ref);
     void DeleteTestObject();
@@ -42,7 +43,7 @@ class DataStatsTest : public BasicTestClassWithReference {
     virtual void TearDown();
 
   public:
-    DataStatsTest() : test_(nullptr) {}
+    DataStatsTest() {}
 };
 } // namespace reseq
 

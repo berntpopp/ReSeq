@@ -2,6 +2,7 @@
 #define FRAGMENTDUPLICATIONSTATSTEST_H
 #include "FragmentDuplicationStats.h"
 
+#include <memory>
 #include <stdint.h>
 
 #include "gtest/gtest.h"
@@ -14,7 +15,7 @@ class FragmentDuplicationStatsTest : public BasicTestClassWithReference {
     static void Register();
 
   protected:
-    FragmentDuplicationStats* test_;
+    std::unique_ptr<FragmentDuplicationStats> test_;
 
     void CreateTestObject();
     void DeleteTestObject();
@@ -22,7 +23,7 @@ class FragmentDuplicationStatsTest : public BasicTestClassWithReference {
     virtual void TearDown();
 
   public:
-    FragmentDuplicationStatsTest() : test_(nullptr) {}
+    FragmentDuplicationStatsTest() {}
 
     static void TestSrr490124Equality(const FragmentDuplicationStats& test, const char* context);
     static void TestDuplicates(const FragmentDuplicationStats& test);

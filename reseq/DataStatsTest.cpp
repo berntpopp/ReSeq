@@ -33,14 +33,12 @@ void DataStatsTest::Register() {
 }
 
 void DataStatsTest::CreateTestObject(Reference* ref) {
-    ASSERT_TRUE(test_ = new DataStats(ref)) << "Could not allocate memory for DataStats object\n";
+    test_ = std::make_unique<DataStats>(ref);
+    ASSERT_TRUE(test_) << "Could not allocate memory for DataStats object\n";
 }
 
 void DataStatsTest::DeleteTestObject() {
-    if (test_) {
-        delete test_;
-        test_ = nullptr;
-    }
+    test_.reset();
 }
 
 void DataStatsTest::LoadStats(const string& stats_file, bool ignore_tiles, bool calculate_biases, const string adapter,
