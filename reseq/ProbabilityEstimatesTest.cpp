@@ -850,7 +850,7 @@ void ProbabilityEstimatesTest::IterativeProportionalFittingQual(
     // Run iterative proportional fitting
     DataStats stats(nullptr);
     SetUpDataQual(stats, base, margins, margin_quality_position);
-    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::kIPFQuality, kTemplateSegment, 0, base, 0, 0,
+    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::IPFDataSelector::kIPFQuality, kTemplateSegment, 0, base, 0, 0,
                                        kMaxIterations, kPrecisionAim);
 }
 
@@ -922,7 +922,7 @@ void ProbabilityEstimatesTest::IterativeProportionalFittingBaseCall(
     // Run iterative proportional fitting
     DataStats stats(nullptr);
     SetUpDataBaseCall(stats, margins, margin_quality_position);
-    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::kIPFBaseCall, kTemplateSegment, 0, 0, 0, 0,
+    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::IPFDataSelector::kIPFBaseCall, kTemplateSegment, 0, 0, 0, 0,
                                        kMaxIterations, kPrecisionAim);
 }
 
@@ -965,7 +965,7 @@ void ProbabilityEstimatesTest::IterativeProportionalFittingDomError(
     // Run iterative proportional fitting
     DataStats stats(nullptr);
     SetUpDataDomError(stats, margins);
-    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::kIPFDominantError, kTemplateSegment, 0, 0, 0, 0,
+    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::IPFDataSelector::kIPFDominantError, kTemplateSegment, 0, 0, 0, 0,
                                        kMaxIterations, kPrecisionAim);
 }
 
@@ -1012,7 +1012,7 @@ void ProbabilityEstimatesTest::IterativeProportionalFittingErrorRate(
     // Run iterative proportional fitting
     DataStats stats(nullptr);
     SetUpDataErrorRate(stats, margins);
-    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::kIPFErrorRate, kTemplateSegment, 0, 0, 0, 0,
+    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::IPFDataSelector::kIPFErrorRate, kTemplateSegment, 0, 0, 0, 0,
                                        kMaxIterations, kPrecisionAim);
 }
 

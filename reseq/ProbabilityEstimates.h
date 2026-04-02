@@ -1301,7 +1301,7 @@ inline void LogIPF<5>::IPFStepCallerTemp(const DataStorage<5>& data) {
 
 class ProbabilityEstimates {
   private:
-    enum IPFDataSelector {
+    enum class IPFDataSelector {
         kIPFQuality,
         kIPFSequenceQuality,
         kIPFBaseCall,
