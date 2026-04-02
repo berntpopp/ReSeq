@@ -279,9 +279,10 @@ class ErrorStats {
     inline void AddInDel(uintInDelType indel_type, uintBaseCall last_call, InDelDef indel, uintReadLen indel_pos,
                          uintReadLen pos, uintPercent gc) {
         // For estimation
-        ++tmp_indel_by_indel_pos_.at(indel_type).at(last_call).at(indel_pos).at(indel);
-        ++tmp_indel_by_position_.at(indel_type).at(last_call).at(pos).at(indel);
-        ++tmp_indel_by_gc_.at(indel_type).at(last_call).at(gc).at(indel);
+        const auto indel_idx = static_cast<size_t>(indel);
+        ++tmp_indel_by_indel_pos_.at(indel_type).at(last_call).at(indel_pos).at(indel_idx);
+        ++tmp_indel_by_position_.at(indel_type).at(last_call).at(pos).at(indel_idx);
+        ++tmp_indel_by_gc_.at(indel_type).at(last_call).at(gc).at(indel_idx);
         ++tmp_indel_pos_by_position_.at(indel_type).at(last_call).at(pos).at(indel_pos);
         ++tmp_indel_pos_by_gc_.at(indel_type).at(last_call).at(gc).at(indel_pos);
         ++tmp_gc_by_position_.at(indel_type).at(last_call).at(pos).at(gc);

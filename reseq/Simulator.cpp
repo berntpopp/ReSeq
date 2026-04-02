@@ -424,7 +424,7 @@ bool Simulator::FillReadPart(SimRead& sim_read, uintTempSeq template_segment, ui
             }
 
             // Take base call from indel
-            at(sim_read.seq_, par.read_pos_) = indel - 2; // This base call is not stored in par.base_call, because the
+            at(sim_read.seq_, par.read_pos_) = static_cast<int>(indel) - 2; // This base call is not stored in par.base_call, because the
                                                           // normal calls have more predictive power for indel calls
 
             // Update cigar

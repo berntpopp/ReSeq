@@ -57,6 +57,18 @@ class CoverageStats {
         }
 
         CoveragePosition(const CoveragePosition&) = delete;
+        CoveragePosition& operator=(const CoveragePosition&) = delete;
+
+        CoveragePosition(CoveragePosition&& other) noexcept
+            : dom_error_(other.dom_error_), error_rate_(other.error_rate_), valid_(other.valid_),
+              coverage_sufficient_(other.coverage_sufficient_) {
+            for (int i = 5; i--;) {
+                coverage_forward_.at(i).store(other.coverage_forward_.at(i).load(std::memory_order_relaxed),
+                                              std::memory_order_relaxed);
+                coverage_reverse_.at(i).store(other.coverage_reverse_.at(i).load(std::memory_order_relaxed),
+                                              std::memory_order_relaxed);
+            }
+        }
     };
 
     struct ProcessedCoveragePosition {
