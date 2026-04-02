@@ -18,13 +18,13 @@ bool kNoDebugOutput = false;
 #include "ProbabilityEstimatesTest.h"
 #include "QualityStatsTest.h"
 #include "ReferenceTest.h"
+#include "RegressionTest.h"
 #include "SeqQualityStatsTest.h"
 #include "SimulatorTest.h"
 #include "SurroundingTest.h"
 #include "TileStatsTest.h"
 #include "utilitiesTest.h"
 #include "VectTest.h"
-#include "RegressionTest.h"
 
 #include "BasicTestClass.hpp"
 
