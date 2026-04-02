@@ -118,18 +118,20 @@ double Simulator::NumberPairsToCoverage(uintFragCount total_pairs, uintRefLenCal
     return static_cast<double>(total_pairs) / total_ref_size * average_read_length * 2 * (1 - adapter_part);
 }
 
-void Simulator::FlushCopyValues(uintTempSeq template_segment, StringSet<CharString>*& old_output_ids,
-                                StringSet<Dna5String>*& old_output_seqs, StringSet<CharString>*& old_output_quals) {
-    old_output_ids = output_ids_.at(template_segment);
-    output_ids_.at(template_segment) = new StringSet<CharString>;
+void Simulator::FlushCopyValues(uintTempSeq template_segment,
+                                std::unique_ptr<StringSet<CharString>>& old_output_ids,
+                                std::unique_ptr<StringSet<Dna5String>>& old_output_seqs,
+                                std::unique_ptr<StringSet<CharString>>& old_output_quals) {
+    old_output_ids = std::move(output_ids_.at(template_segment));
+    output_ids_.at(template_segment) = std::make_unique<StringSet<CharString>>();
     reserve(*output_ids_.at(template_segment), kBatchSize, Exact());
 
-    old_output_seqs = output_seqs_.at(template_segment);
-    output_seqs_.at(template_segment) = new StringSet<Dna5String>;
+    old_output_seqs = std::move(output_seqs_.at(template_segment));
+    output_seqs_.at(template_segment) = std::make_unique<StringSet<Dna5String>>();
     reserve(*output_seqs_.at(template_segment), kBatchSize, Exact());
 
-    old_output_quals = output_quals_.at(template_segment);
-    output_quals_.at(template_segment) = new StringSet<CharString>;
+    old_output_quals = std::move(output_quals_.at(template_segment));
+    output_quals_.at(template_segment) = std::make_unique<StringSet<CharString>>();
     reserve(*output_quals_.at(template_segment), kBatchSize, Exact());
 }
 
@@ -155,9 +157,9 @@ bool Simulator::Flush() {
     // NOTE: output_mutex_ and flush_mutex_ use complex multi-mutex ordering
     // that cannot be safely converted to scoped_lock without redesigning the
     // output pipeline. Deferred to Phase 4 (concurrency modernization).
-    array<StringSet<CharString>*, 2> old_output_ids;
-    array<StringSet<Dna5String>*, 2> old_output_seqs;
-    array<StringSet<CharString>*, 2> old_output_quals;
+    array<std::unique_ptr<StringSet<CharString>>, 2> old_output_ids;
+    array<std::unique_ptr<StringSet<Dna5String>>, 2> old_output_seqs;
+    array<std::unique_ptr<StringSet<CharString>>, 2> old_output_quals;
 
     for (uintTempSeq template_segment = 2; template_segment--;) {
         FlushCopyValues(template_segment, old_output_ids.at(template_segment), old_output_seqs.at(template_segment),
@@ -166,11 +168,13 @@ bool Simulator::Flush() {
     output_mutex_.unlock();
 
     flush_mutex_.at(0).lock();
-    bool success = FlushWriteValues(0, old_output_ids.at(0), old_output_seqs.at(0), old_output_quals.at(0));
+    bool success =
+        FlushWriteValues(0, old_output_ids.at(0).get(), old_output_seqs.at(0).get(), old_output_quals.at(0).get());
     flush_mutex_.at(1).lock(); // Segment 1 must be locked before releasing segment 0 to guarantee that both files have
                                // the same order in writing the reads
     flush_mutex_.at(0).unlock();
-    success = success && FlushWriteValues(1, old_output_ids.at(1), old_output_seqs.at(1), old_output_quals.at(1));
+    success = success &&
+              FlushWriteValues(1, old_output_ids.at(1).get(), old_output_seqs.at(1).get(), old_output_quals.at(1).get());
     flush_mutex_.at(1).unlock();
 
     if (success) {
@@ -182,11 +186,7 @@ bool Simulator::Flush() {
         }
     }
 
-    for (uintTempSeq template_segment = 2; template_segment--;) {
-        delete old_output_ids.at(template_segment);
-        delete old_output_seqs.at(template_segment);
-        delete old_output_quals.at(template_segment);
-    }
+    // old_output_ids/seqs/quals unique_ptrs cleaned up automatically
 
     return success;
 }
@@ -2824,11 +2824,11 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
         if (stats.FragmentDistribution().UpdateRefSeqBias(ref_bias_model, ref_bias_file, ref, block_seed_gen_)) {
             // Provide StringSets to store reads in before writing them out
             for (int i = 2; i--;) {
-                output_ids_.at(i) = new StringSet<CharString>;
+                output_ids_.at(i) = std::make_unique<StringSet<CharString>>();
                 reserve(*output_ids_.at(i), kBatchSize, Exact());
-                output_seqs_.at(i) = new StringSet<Dna5String>;
+                output_seqs_.at(i) = std::make_unique<StringSet<Dna5String>>();
                 reserve(*output_seqs_.at(i), kBatchSize, Exact());
-                output_quals_.at(i) = new StringSet<CharString>;
+                output_quals_.at(i) = std::make_unique<StringSet<CharString>>();
                 reserve(*output_quals_.at(i), kBatchSize, Exact());
             }
 
@@ -3073,11 +3073,11 @@ bool Simulator::SimulateErrorModelOnly(const string& destination_file, const str
     block_seed_gen_.seed(seed);
 
     // Provide StringSet to store reads in before writing them out
-    output_ids_.at(0) = new StringSet<CharString>;
+    output_ids_.at(0) = std::make_unique<StringSet<CharString>>();
     reserve(*output_ids_.at(0), kBatchSize, Exact());
-    output_seqs_.at(0) = new StringSet<Dna5String>;
+    output_seqs_.at(0) = std::make_unique<StringSet<Dna5String>>();
     reserve(*output_seqs_.at(0), kBatchSize, Exact());
-    output_quals_.at(0) = new StringSet<CharString>;
+    output_quals_.at(0) = std::make_unique<StringSet<CharString>>();
     reserve(*output_quals_.at(0), kBatchSize, Exact());
 
     simulation_error_ = false;

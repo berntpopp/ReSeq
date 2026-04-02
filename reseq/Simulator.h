@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <random>
 #include <set>
@@ -298,9 +299,9 @@ class Simulator {
     uintFragCount num_adapter_only_pairs_;
     std::atomic_flag adapter_only_simulated_; // Int instead of bool so atomic increment works
 
-    std::array<seqan::StringSet<seqan::CharString>*, 2> output_ids_;
-    std::array<seqan::StringSet<seqan::Dna5String>*, 2> output_seqs_;
-    std::array<seqan::StringSet<seqan::CharString>*, 2> output_quals_;
+    std::array<std::unique_ptr<seqan::StringSet<seqan::CharString>>, 2> output_ids_;
+    std::array<std::unique_ptr<seqan::StringSet<seqan::Dna5String>>, 2> output_seqs_;
+    std::array<std::unique_ptr<seqan::StringSet<seqan::CharString>>, 2> output_quals_;
 
     std::vector<double> tmp_probabilities_;
     std::uniform_real_distribution<double> rdist_zero_to_one_;
@@ -317,9 +318,10 @@ class Simulator {
     static double NumberPairsToCoverage(uintFragCount total_pairs, uintRefLenCalc total_ref_size,
                                         double average_read_length, double adapter_part);
 
-    void FlushCopyValues(uintTempSeq template_segment, seqan::StringSet<seqan::CharString>*& old_output_ids,
-                         seqan::StringSet<seqan::Dna5String>*& old_output_seqs,
-                         seqan::StringSet<seqan::CharString>*& old_output_quals);
+    void FlushCopyValues(uintTempSeq template_segment,
+                         std::unique_ptr<seqan::StringSet<seqan::CharString>>& old_output_ids,
+                         std::unique_ptr<seqan::StringSet<seqan::Dna5String>>& old_output_seqs,
+                         std::unique_ptr<seqan::StringSet<seqan::CharString>>& old_output_quals);
     bool FlushWriteValues(uintTempSeq template_segment, seqan::StringSet<seqan::CharString>* old_output_ids,
                           seqan::StringSet<seqan::Dna5String>* old_output_seqs,
                           seqan::StringSet<seqan::CharString>* old_output_quals);
