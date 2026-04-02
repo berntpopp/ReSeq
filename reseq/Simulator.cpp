@@ -139,10 +139,11 @@ bool Simulator::FlushWriteValues(uintTempSeq template_segment, StringSet<CharStr
         writeRecords(dest_.at(template_segment), *old_output_ids, *old_output_seqs, *old_output_quals);
     } catch (const Exception& e) {
         simulation_error_ = true;
-        print_mutex_.lock();
-        printErr << "Could not write records " << written_records_ + 1 << " to "
-                 << (written_records_ + length(*old_output_ids)) << ": " << e.what() << std::endl;
-        print_mutex_.unlock();
+        {
+            std::scoped_lock lock(print_mutex_);
+            printErr << "Could not write records " << written_records_ + 1 << " to "
+                     << (written_records_ + length(*old_output_ids)) << ": " << e.what() << std::endl;
+        }
         return false;
     }
 
@@ -151,6 +152,9 @@ bool Simulator::FlushWriteValues(uintTempSeq template_segment, StringSet<CharStr
 
 bool Simulator::Flush() {
     // output_mutex_ MUST be locked before calling this function
+    // NOTE: output_mutex_ and flush_mutex_ use complex multi-mutex ordering
+    // that cannot be safely converted to scoped_lock without redesigning the
+    // output pipeline. Deferred to Phase 4 (concurrency modernization).
     array<StringSet<CharString>*, 2> old_output_ids;
     array<StringSet<Dna5String>*, 2> old_output_seqs;
     array<StringSet<CharString>*, 2> old_output_quals;
@@ -171,10 +175,11 @@ bool Simulator::Flush() {
 
     if (success) {
         written_records_ += length(*old_output_ids.at(0));
-        print_mutex_.lock();
-        printInfo << "Generated " << written_records_ << " read pairs ("
-                  << static_cast<uintPercentPrint>(Percent(written_records_, total_pairs_)) << "%)." << std::endl;
-        print_mutex_.unlock();
+        {
+            std::scoped_lock lock(print_mutex_);
+            printInfo << "Generated " << written_records_ << " read pairs ("
+                      << static_cast<uintPercentPrint>(Percent(written_records_, total_pairs_)) << "%)." << std::endl;
+        }
     }
 
     for (uintTempSeq template_segment = 2; template_segment--;) {
@@ -206,9 +211,10 @@ bool Simulator::WriteSingleReads(uintFragCount cur_block, StringSet<CharString>&
 
     if (success) {
         written_records_ += length(output_ids);
-        print_mutex_.lock();
-        printInfo << "Generated " << written_records_ << " reads." << std::endl;
-        print_mutex_.unlock();
+        {
+            std::scoped_lock lock(print_mutex_);
+            printInfo << "Generated " << written_records_ << " reads." << std::endl;
+        }
     }
 
     clear(output_ids);
@@ -1335,30 +1341,25 @@ bool Simulator::GetNextBlock(Reference& ref, const DataStats& stats, const Proba
     // See if we can already read in more variants, so we are always one reference sequence ahead of the simulation
     if (!ref.VariantsCompletelyLoaded() && current_unit_ &&
         !ref.VariantsLoadedForSequence(current_unit_->ref_seq_id_ + 2)) {
-        if (var_read_mutex_.try_lock()) {
+        if (std::unique_lock lock(var_read_mutex_, std::try_to_lock); lock.owns_lock()) {
             uintSeqLen max_del_shift = 0;
             if (!ref.ReadVariants(
                     max_del_shift, current_unit_->ref_seq_id_ + 2,
                     2 * stats.MaxReadLenOnReference())) { // Use twice the read length to be absolutely sure, because
                                                           // the InDel distribution in the simulation is not necessary
                                                           // exactly the same as in the real data
-                var_read_mutex_.unlock();
                 return false;
             }
             RequestBufferSize(max_del_shift);
-            var_read_mutex_.unlock();
         }
     }
 
     if (!ref.MethylationCompletelyLoaded() && current_unit_ &&
         !ref.MethylationLoadedForSequence(current_unit_->ref_seq_id_ + 2)) {
-        if (methylation_read_mutex_.try_lock()) {
+        if (std::unique_lock lock(methylation_read_mutex_, std::try_to_lock); lock.owns_lock()) {
             if (!ref.ReadMethylation(current_unit_->ref_seq_id_ + 2)) {
-                methylation_read_mutex_.unlock();
                 return false;
             }
-
-            methylation_read_mutex_.unlock();
         }
     }
 
@@ -2675,22 +2676,22 @@ void Simulator::ErrorModelOnlyThread(Simulator& self, SeqFileIn& org_seq_reader,
     uintFragCount cur_block(0);
     while (keep_running && !self.simulation_error_) {
         // Read original sequences
-        self.block_creation_mutex_.lock();
+        {
+            std::scoped_lock lock(self.block_creation_mutex_);
 
-        if (atEnd(org_seq_reader)) {
-            keep_running = false;
-        } else {
-            rgen.seed(self.block_seed_gen_());
-            rdist.Reset();
-            cur_block = self.read_blocks_++;
-
-            readRecords(input_ids, input_seqs, org_seq_reader, self.kBatchSizeErrorModelOnly);
-            if (0 == length(input_ids)) {
+            if (atEnd(org_seq_reader)) {
                 keep_running = false;
+            } else {
+                rgen.seed(self.block_seed_gen_());
+                rdist.Reset();
+                cur_block = self.read_blocks_++;
+
+                readRecords(input_ids, input_seqs, org_seq_reader, self.kBatchSizeErrorModelOnly);
+                if (0 == length(input_ids)) {
+                    keep_running = false;
+                }
             }
         }
-
-        self.block_creation_mutex_.unlock();
 
         if (keep_running) {
             // Apply error and quality model
