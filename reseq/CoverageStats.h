@@ -478,8 +478,8 @@ class CoverageStats {
                  uintReadLen maximum_read_length_on_reference);
 
     CoverageBlock* FindBlock(uintRefSeqId ref_seq_id, uintSeqLen ref_pos);
-    bool EnsureSpace(uintRefSeqId ref_seq_id, uintSeqLen start_pos, uintSeqLen end_pos,
-                     std::unique_ptr<FullRecord> record, Reference& reference);
+    bool EnsureSpace(uintRefSeqId ref_seq_id, uintSeqLen start_pos, uintSeqLen end_pos, FullRecord* record,
+                     Reference& reference);
 
     void AddFragment(uintRefSeqId ref_seq_id, uintSeqLen ref_pos, CoverageBlock*& block);
     void RemoveFragment(uintRefSeqId ref_seq_id, uintSeqLen ref_pos, CoverageBlock*& block,

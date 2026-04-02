@@ -836,8 +836,8 @@ CoverageStats::CoverageBlock* CoverageStats::FindBlock(uintRefSeqId ref_seq_id, 
     return block;
 }
 
-bool CoverageStats::EnsureSpace(uintRefSeqId ref_seq_id, uintSeqLen start_pos, uintSeqLen end_pos,
-                                std::unique_ptr<FullRecord> record, Reference& reference) {
+bool CoverageStats::EnsureSpace(uintRefSeqId ref_seq_id, uintSeqLen start_pos, uintSeqLen end_pos, FullRecord* record,
+                                Reference& reference) {
     // Make sure the variation for the given reference sequence is already loaded
     if (reference.VariantPositionsLoaded() && !reference.VariantPositionsLoadedForSequence(ref_seq_id)) {
         lock_guard<mutex> lock(variant_loading_mutex_);
@@ -913,7 +913,7 @@ bool CoverageStats::EnsureSpace(uintRefSeqId ref_seq_id, uintSeqLen start_pos, u
     // Add read to last block it potentially overlaps (most of the time it is last_block_, but it is not guaranteed so
     // use FindBlock)
     auto reg_block = FindBlock(ref_seq_id, end_pos);
-    reg_block->reads_.push_back(std::move(record));
+    reg_block->reads_.push_back(std::unique_ptr<FullRecord>(record));
 
     return true;
 }

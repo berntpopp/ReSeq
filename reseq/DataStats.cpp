@@ -927,17 +927,17 @@ bool DataStats::PreRun(BamFileIn& bam, const char* bam_file, BamHeader& header, 
 }
 
 bool DataStats::ReadRecords(BamFileIn& bam, bool& not_done, ThreadData& thread_data) {
+    CoverageStats::FullRecord* record;
     CoverageStats::CoverageBlock* cov_block(nullptr);
     lock_guard<mutex> lock(read_mutex_);
     try {
         while (thread_data.rec_store_.size() < kBatchSize && !atEnd(bam) && reading_success_) {
             ++read_records_;
-            auto record_owner = std::make_unique<CoverageStats::FullRecord>();
-            CoverageStats::FullRecord* record = record_owner.get();
+            record = new CoverageStats::FullRecord;
             readRecord(record->record_, bam);
 
             if (hasFlagSecondary(record->record_) || hasFlagSupplementary(record->record_)) {
-                // record_owner automatically cleaned up
+                delete record;
             } else {
                 if (PotentiallyValid(record->record_)) {
                     // Use record->record_.beginPos-maximum_read_length_on_reference_ as start, because of potentially
@@ -946,8 +946,8 @@ bool DataStats::ReadRecords(BamFileIn& bam, bool& not_done, ThreadData& thread_d
                                                (record->record_.beginPos > maximum_read_length_on_reference_
                                                     ? record->record_.beginPos - maximum_read_length_on_reference_
                                                     : 0),
-                                               record->record_.beginPos + maximum_read_length_on_reference_,
-                                               std::move(record_owner), *reference_)) {
+                                               record->record_.beginPos + maximum_read_length_on_reference_, record,
+                                               *reference_)) {
                         return false;
                     }
                 }
