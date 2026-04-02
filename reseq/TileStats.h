@@ -42,7 +42,7 @@ class TileStats {
                             bool read_must_continue = true) const;
 
     uintTile GetKnownTile(const seqan::CharString& read_id, uint16_t tile_colon_number, bool print_warnings,
-                          std::stringstream* error_message = NULL) const;
+                          std::stringstream* error_message = nullptr) const;
 
     // Boost archive functions
     friend class boost::serialization::access;
@@ -81,10 +81,10 @@ class TileStats {
     // Main functions
 
     uintTile GetTile(const seqan::CharString& read_id, uint16_t& tile_colon_number, bool& tile_accessible,
-                     std::stringstream* error_message = NULL) const;
+                     std::stringstream* error_message = nullptr) const;
     bool
     EnterTile(const seqan::CharString& read_id,
-              std::stringstream* error_message = NULL); // Reads the tile from the read id and returns its tile id. In
+              std::stringstream* error_message = nullptr); // Reads the tile from the read id and returns its tile id. In
                                                         // case the tile is new it enters them into tiles_ and tile_ids_
     bool GetTileId(uintTileId& tile_id, const seqan::CharString& read_id) const;
     void Shrink();

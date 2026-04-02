@@ -262,7 +262,7 @@ template <uintMarginId N> class LogArrayCalc {
 
     void Expand(const std::array<std::vector<uintMatrixIndex>, N>& dim_indices_reduced,
                 const std::array<std::vector<uintMatrixIndex>, N>& dim_indices_count,
-                const std::array<std::vector<uintMatrixIndex>, N>* dim_indices_new_count = NULL) {
+                const std::array<std::vector<uintMatrixIndex>, N>* dim_indices_new_count = nullptr) {
         // Each value dim2[0] * dim2[1] * ... is divided by the number of new values it will become and then filled into
         // those values This happens by equally splitting the division over all N-1 margins containing the variable
 
@@ -1389,7 +1389,7 @@ class ProbabilityEstimates {
                          true};
         margins.at(9) = {&stats.Qualities().ErrorRateForPositionReference(template_segment, tile_id, ref_base), false};
 
-        margins.at(2) = {NULL, true};
+        margins.at(2) = {nullptr, true};
         return &stats.Qualities().BaseQualityStatsReference(template_segment, tile_id, ref_base); // alternative_margin
     }
     inline const Vect<SeqQualityStats<uintMatrixCount>>*
@@ -1406,7 +1406,7 @@ class ProbabilityEstimates {
         margins.at(5) = {&stats.Qualities().MeanErrorRateForFragmentLengthPerTileReference(template_segment, tile_id),
                          true};
 
-        margins.at(0) = {NULL, true};
+        margins.at(0) = {nullptr, true};
         return &stats.Qualities().SequenceQualityMeanForGCPerTileReference(template_segment, tile_id);
     }
     inline const Vect<SeqQualityStats<uintMatrixCount>>* DefineMarginsBaseCall(
@@ -1426,7 +1426,7 @@ class ProbabilityEstimates {
             &stats.Qualities().ErrorRateForPositionReference(template_segment, tile_id, ref_base, dom_error), false};
         margins.at(9) = {&stats.Errors().ErrorNumByErrorRate(template_segment, tile_id, ref_base, dom_error), false};
 
-        margins.at(4) = {NULL, true};
+        margins.at(4) = {nullptr, true};
         return &stats.Qualities().BaseQualityStatsReference(template_segment, tile_id, ref_base, dom_error);
     }
     inline void DefineMarginsDominantError(const DataStats& stats,

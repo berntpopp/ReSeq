@@ -117,7 +117,7 @@ class Simulator {
         intVariantId first_methylation_id_;
 
         SimBlock(uintRefSeqBin id, uintSeqLen start_pos, SimBlock* partner_block, uintSeed seed)
-            : id_(id), start_pos_(start_pos), finished_(false), next_block_(NULL), partner_block_(partner_block),
+            : id_(id), start_pos_(start_pos), finished_(false), next_block_(nullptr), partner_block_(partner_block),
               seed_(seed), first_variant_id_(0), first_methylation_id_(0) {}
     };
 
@@ -128,7 +128,7 @@ class Simulator {
         SimUnit* next_unit_;
 
         SimUnit(uintRefSeqId ref_seq_id)
-            : ref_seq_id_(ref_seq_id), first_block_(NULL), last_block_(NULL), next_unit_(NULL) {}
+            : ref_seq_id_(ref_seq_id), first_block_(nullptr), last_block_(nullptr), next_unit_(nullptr) {}
     };
 
     class GeneralRandomDistributions {

@@ -26,7 +26,7 @@ class AdapterStats {
              // garbage from adapter reading stage)
     static const uintReadLen kKmerLength = 10;
 
-    static constexpr const char* kAdapterSearchInfoFile = NULL; // "adapter.csv";
+    static constexpr const char* kAdapterSearchInfoFile = nullptr; // "adapter.csv";
 
     // Temporary variables
     std::array<KmerCount<kKmerLength>, 2> adapter_kmers_; // adapter_kmers_[first/second] = KmerCounts

@@ -90,7 +90,7 @@ class CoverageStats {
         std::atomic<bool> processed_;
 
         CoverageBlock(uintRefSeqId seq_id, uintSeqLen start_pos, CoverageBlock* prev_block)
-            : sequence_id_(seq_id), start_pos_(start_pos), previous_block_(prev_block), next_block_(NULL),
+            : sequence_id_(seq_id), start_pos_(start_pos), previous_block_(prev_block), next_block_(nullptr),
               unprocessed_fragments_(0), first_variant_id_(0) {
             scheduled_for_processing_.clear();
             processed_ = false;
@@ -382,7 +382,7 @@ class CoverageStats {
 
   public:
     CoverageStats()
-        : coverage_threshold_(100), first_block_(NULL), last_block_(NULL), zero_coverage_region_(0), excluded_bases_(0),
+        : coverage_threshold_(100), first_block_(nullptr), last_block_(nullptr), zero_coverage_region_(0), excluded_bases_(0),
           num_exclusion_regions_(0) {}
 
     // Getter functions
