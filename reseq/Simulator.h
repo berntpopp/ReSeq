@@ -119,9 +119,9 @@ class Simulator {
         std::atomic<bool>
             finished_; // In forward direction it stores that the simulation is finished and the block can be removed,
                        // in reverse direction it stores that a thread is already processing this block pair
-        std::atomic<SimBlock*> next_block_;     // Owning pointer to next block in chain (see ownership model above)
-        SimBlock* partner_block_;               // Non-owning cross-reference to corresponding block in
-                                                // forward/reverse direction
+        std::atomic<SimBlock*> next_block_; // Owning pointer to next block in chain (see ownership model above)
+        SimBlock* partner_block_;           // Non-owning cross-reference to corresponding block in
+                                            // forward/reverse direction
         uintSeed seed_;
         std::vector<std::pair<seqan::Dna5, uintPercent>> sys_errors_; // sys_errors_[pos] = {domError, errorRate}
         std::vector<SysErrorVariant> err_variants_;
@@ -136,9 +136,9 @@ class Simulator {
     // See ownership model comment above SimBlock.
     struct SimUnit {
         const uintRefSeqId ref_seq_id_;
-        SimBlock* first_block_;     // Owning pointer to first block in this unit's chain
-        SimBlock* last_block_;      // Non-owning pointer to last block (for O(1) append)
-        SimUnit* next_unit_;        // Owning pointer to next unit in the Simulator's chain
+        SimBlock* first_block_; // Owning pointer to first block in this unit's chain
+        SimBlock* last_block_;  // Non-owning pointer to last block (for O(1) append)
+        SimUnit* next_unit_;    // Owning pointer to next unit in the Simulator's chain
 
         SimUnit(uintRefSeqId ref_seq_id)
             : ref_seq_id_(ref_seq_id), first_block_(nullptr), last_block_(nullptr), next_unit_(nullptr) {}

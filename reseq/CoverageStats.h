@@ -383,8 +383,8 @@ class CoverageStats {
 
   public:
     CoverageStats()
-        : coverage_threshold_(100), first_block_(nullptr), last_block_(nullptr), zero_coverage_region_(0), excluded_bases_(0),
-          num_exclusion_regions_(0) {}
+        : coverage_threshold_(100), first_block_(nullptr), last_block_(nullptr), zero_coverage_region_(0),
+          excluded_bases_(0), num_exclusion_regions_(0) {}
 
     // Getter functions
     inline const Vect<Vect<uintNucCount>>& DominantErrorsByDistance(seqan::Dna ref_base, seqan::Dna5 last_ref_base,

@@ -118,8 +118,7 @@ double Simulator::NumberPairsToCoverage(uintFragCount total_pairs, uintRefLenCal
     return static_cast<double>(total_pairs) / total_ref_size * average_read_length * 2 * (1 - adapter_part);
 }
 
-void Simulator::FlushCopyValues(uintTempSeq template_segment,
-                                std::unique_ptr<StringSet<CharString>>& old_output_ids,
+void Simulator::FlushCopyValues(uintTempSeq template_segment, std::unique_ptr<StringSet<CharString>>& old_output_ids,
                                 std::unique_ptr<StringSet<Dna5String>>& old_output_seqs,
                                 std::unique_ptr<StringSet<CharString>>& old_output_quals) {
     old_output_ids = std::move(output_ids_.at(template_segment));
@@ -173,8 +172,8 @@ bool Simulator::Flush() {
     flush_mutex_.at(1).lock(); // Segment 1 must be locked before releasing segment 0 to guarantee that both files have
                                // the same order in writing the reads
     flush_mutex_.at(0).unlock();
-    success = success &&
-              FlushWriteValues(1, old_output_ids.at(1).get(), old_output_seqs.at(1).get(), old_output_quals.at(1).get());
+    success = success && FlushWriteValues(1, old_output_ids.at(1).get(), old_output_seqs.at(1).get(),
+                                          old_output_quals.at(1).get());
     flush_mutex_.at(1).unlock();
 
     if (success) {
