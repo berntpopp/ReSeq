@@ -269,7 +269,7 @@ class CoverageStats {
     // Temporary variables for read in
     std::atomic<CoverageBlock*> first_block_;
     std::atomic<CoverageBlock*> last_block_;
-    std::vector<CoverageBlock*> reusable_blocks_;
+    std::vector<std::unique_ptr<CoverageBlock>> reusable_blocks_;
 
     uintRefLenCalc zero_coverage_region_;
     uintRefLenCalc excluded_bases_;

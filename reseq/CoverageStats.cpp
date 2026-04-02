@@ -448,7 +448,7 @@ CoverageStats::CoverageBlock* CoverageStats::CreateBlock(uintRefSeqId seq_id, ui
     CoverageBlock* new_block;
     if (std::unique_lock lock(reuse_mutex_, std::try_to_lock); lock.owns_lock()) {
         if (reusable_blocks_.size()) {
-            new_block = reusable_blocks_.back();
+            new_block = reusable_blocks_.back().release();
             reusable_blocks_.pop_back();
             lock.unlock(); // Keep early unlock — deliberate
 
@@ -753,9 +753,10 @@ void CoverageStats::CountBlock(CoverageBlock* block, const Reference& reference)
 }
 
 CoverageStats::CoverageBlock* CoverageStats::RemoveBlock(CoverageBlock* block) {
-    reusable_blocks_.push_back(block);
+    CoverageBlock* next = block->next_block_;
+    reusable_blocks_.push_back(std::unique_ptr<CoverageBlock>(block));
 
-    return block->next_block_;
+    return next;
 }
 
 void CoverageStats::Prepare(uintCovCount average_coverage, uintReadLen average_read_length,
@@ -1046,10 +1047,7 @@ bool CoverageStats::PreLoadVariants(Reference& reference) {
 
 bool CoverageStats::Finalize(const Reference& reference, QualityStats& qualities, ErrorStats& errors,
                              uintQual phred_quality_offset, mutex& print_mutex, ThreadData& thread) {
-    // Remove all reusable_blocks_ as they are not needed anymore
-    for (auto block : reusable_blocks_) {
-        delete block;
-    }
+    // Remove all reusable_blocks_ as they are not needed anymore (unique_ptr handles cleanup)
     auto final_num_blocks = reusable_blocks_.size();
     reusable_blocks_.clear();
 
