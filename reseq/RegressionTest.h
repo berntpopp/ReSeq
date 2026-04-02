@@ -40,7 +40,9 @@ class RegressionTest : public BasicTestClass {
         expected_dir_ = test_dir_ / "expected";
         ASSERT_TRUE(std::filesystem::is_directory(expected_dir_)) << "Expected dir not found: " << expected_dir_;
 
-        adapter_dir_ = test_dir_.parent_path() / "adapters";
+        // GetTestDir returns path with trailing slash; use canonical parent
+        auto project_root = std::filesystem::path(PROJECT_SOURCE_DIR);
+        adapter_dir_ = project_root / "adapters";
         ASSERT_TRUE(std::filesystem::is_directory(adapter_dir_)) << "Adapter dir not found: " << adapter_dir_;
 
         data_dir_ = test_dir_ / "data";
@@ -213,9 +215,7 @@ class RegressionTest : public BasicTestClass {
     }
 
   public:
-    static void Register() {
-        // Guarantees that library is included
-    }
+    static void Register();
 };
 
 } // namespace reseq

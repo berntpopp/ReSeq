@@ -53,6 +53,7 @@ if(RESEQ_BUILD_TESTS)
     QualityStatsTest.cpp ReferenceTest.cpp SeqQualityStatsTest.cpp
     SimulatorTest.cpp SurroundingTest.cpp TileStatsTest.cpp
     utilitiesTest.cpp VectTest.cpp
+    RegressionTest.cpp
   )
   target_link_libraries(reseq_test PRIVATE reseq_lib GTest::gtest)
   target_compile_options(reseq_test PRIVATE ${PRIVATE_COMPILE_OPTIONS})

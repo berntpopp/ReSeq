@@ -24,6 +24,7 @@ bool kNoDebugOutput = false;
 #include "TileStatsTest.h"
 #include "utilitiesTest.h"
 #include "VectTest.h"
+#include "RegressionTest.h"
 
 #include "BasicTestClass.hpp"
 
@@ -52,6 +53,7 @@ int main(int argc, char** argv) {
     reseq::TileStatsTest::Register();
     reseq::VectTest::Register();
     reseq::utilitiesTest::Register();
+    reseq::RegressionTest::Register();
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
