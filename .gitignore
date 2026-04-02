@@ -3,3 +3,5 @@ compile_commands.json
 .codex
 .planning/
 .worktrees/
+.env
+test/data/

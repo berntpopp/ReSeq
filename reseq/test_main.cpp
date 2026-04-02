@@ -18,6 +18,7 @@ bool kNoDebugOutput = false;
 #include "ProbabilityEstimatesTest.h"
 #include "QualityStatsTest.h"
 #include "ReferenceTest.h"
+#include "RegressionTest.h"
 #include "SeqQualityStatsTest.h"
 #include "SimulatorTest.h"
 #include "SurroundingTest.h"
@@ -52,6 +53,7 @@ int main(int argc, char** argv) {
     reseq::TileStatsTest::Register();
     reseq::VectTest::Register();
     reseq::utilitiesTest::Register();
+    reseq::RegressionTest::Register();
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

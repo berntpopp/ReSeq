@@ -6,7 +6,7 @@ CMAKE_FLAGS ?=
 CXX_SOURCES = $(shell git ls-files 'reseq/*.cpp' 'reseq/*.h' 'reseq/*.hpp')
 PY_SOURCES  = $(shell git ls-files 'python/*.py')
 
-.PHONY: all configure build test coverage format format-check lint clean install changelog help
+.PHONY: all configure build test test-data coverage format format-check lint clean install changelog help
 
 all: build
 
@@ -19,8 +19,11 @@ configure:
 build: configure
 	cmake --build $(BUILD_DIR) -j$$(nproc)
 
-test: build
+test: build test-data
 	cd $(BUILD_DIR) && ctest --output-on-failure
+
+test-data:
+	./test/download_test_data.sh
 
 coverage:
 	cmake -S . -B $(BUILD_DIR) \
@@ -63,6 +66,7 @@ help:
 	@echo "Targets:"
 	@echo "  build        Configure and build (default)"
 	@echo "  test         Build and run unit tests"
+	@echo "  test-data    Download large test data from Zenodo"
 	@echo "  coverage     Build with gcov, run tests, generate HTML report"
 	@echo "  format       Format C++ and Python files in-place"
 	@echo "  format-check Dry-run format check (CI use)"
