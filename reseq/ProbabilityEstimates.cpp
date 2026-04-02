@@ -1157,7 +1157,8 @@ bool ProbabilityEstimates::Estimate(const DataStats& stats, uintNumFits max_iter
             for (uintBaseCall ref_base = base_call_.at(template_segment).at(tile_id).size(); ref_base--;) {
                 for (uintBaseCall dom_error = base_call_.at(template_segment).at(tile_id).at(ref_base).size();
                      dom_error--;) {
-                    params.push_back({IPFDataSelector::kIPFBaseCall, template_segment, tile_id, ref_base, dom_error, 0});
+                    params.push_back(
+                        {IPFDataSelector::kIPFBaseCall, template_segment, tile_id, ref_base, dom_error, 0});
                 }
             }
         }

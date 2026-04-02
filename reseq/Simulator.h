@@ -592,7 +592,8 @@ class Simulator {
                                       const ProbabilityEstimates& estimates, uintSeed seed);
     bool Simulate(const char* destination_file_first, const char* destination_file_second, Reference& ref,
                   DataStats& stats, const ProbabilityEstimates& estimates, uintNumThreads num_threads, uintSeed seed,
-                  uintFragCount num_read_pairs = 0, double coverage = 0.0, RefSeqBiasSimulation ref_bias_model = RefSeqBiasSimulation::kKeep,
+                  uintFragCount num_read_pairs = 0, double coverage = 0.0,
+                  RefSeqBiasSimulation ref_bias_model = RefSeqBiasSimulation::kKeep,
                   const std::string& ref_bias_file = std::string(), const std::string& sys_error_file = std::string(),
                   const std::string& record_base_identifier = std::string(),
                   const std::string& var_file = std::string(), const std::string& meth_file = std::string());
