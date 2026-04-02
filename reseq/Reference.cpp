@@ -34,7 +34,7 @@ using std::pair;
 // include <vector>
 using std::vector;
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 // include <seqan/seq_io.h>
 using seqan::CharString;

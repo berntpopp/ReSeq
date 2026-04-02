@@ -12,7 +12,8 @@
 
 #include <boost/filesystem.hpp>
 
-#include "reportingUtils.hpp"
+#include "format_utils.hpp"
+#include "logging.hpp"
 
 #include <seqan/bam_io.h>
 #include <seqan/modifier.h>

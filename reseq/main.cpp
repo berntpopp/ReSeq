@@ -20,7 +20,7 @@ namespace reseq {
 uint16_t kVerbosityLevel = 99;
 bool kNoDebugOutput = false;
 } // namespace reseq
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 using reseq::kVerbosityLevel;
 
 #include <boost/program_options.hpp>

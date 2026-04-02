@@ -5,7 +5,7 @@ using reseq::ErrorStats;
 using std::max;
 using std::min;
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 // include "utlities.hpp"
 using reseq::utilities::getConst;

@@ -34,7 +34,7 @@ using std::thread;
 // include <vector>
 using std::vector;
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 // include <seqan/bam_io.h>
 using seqan::atEnd;

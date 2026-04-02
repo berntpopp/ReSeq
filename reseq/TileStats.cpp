@@ -15,7 +15,7 @@ using std::string;
 // include <vector>
 using std::vector;
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 // include <seqan/stream.h>
 using seqan::CharString;

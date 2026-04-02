@@ -9,7 +9,7 @@ using std::array;
 // include<vector>
 using std::vector;
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 // include <seqan/sequence.h>
 using seqan::Dna;
 using seqan::DnaString;

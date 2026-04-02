@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <utility>
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 #include <seqan/bam_io.h>
 

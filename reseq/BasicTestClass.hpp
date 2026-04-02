@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 #include "Reference.h"
 #include "SeqQualityStats.hpp"

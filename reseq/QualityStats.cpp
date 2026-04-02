@@ -6,7 +6,7 @@ using reseq::SeqQualityStats;
 using std::ofstream;
 #include <functional>
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 // include "utilities.hpp"
 using reseq::utilities::Divide;
 using reseq::utilities::getConst;
