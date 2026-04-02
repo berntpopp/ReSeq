@@ -1330,6 +1330,8 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
 
         return true;
     } else {
+        // simulation_error_ was set by another thread — skip systematic error setup
+        // and signal the caller to stop. Block cleanup happens in Finalize().
         current_unit_ = nullptr;
         return false;
     }
