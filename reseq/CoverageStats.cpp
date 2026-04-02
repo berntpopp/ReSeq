@@ -446,11 +446,11 @@ void CoverageStats::UpdateDistances(uintSeqLen& distance_to_start_of_error_regio
 
 CoverageStats::CoverageBlock* CoverageStats::CreateBlock(uintRefSeqId seq_id, uintSeqLen start_pos) {
     CoverageBlock* new_block;
-    if (reuse_mutex_.try_lock()) {
+    if (std::unique_lock lock(reuse_mutex_, std::try_to_lock); lock.owns_lock()) {
         if (reusable_blocks_.size()) {
             new_block = reusable_blocks_.back();
             reusable_blocks_.pop_back();
-            reuse_mutex_.unlock();
+            lock.unlock(); // Keep early unlock — deliberate
 
             new_block->sequence_id_ = seq_id;
             new_block->start_pos_ = start_pos;
@@ -462,7 +462,7 @@ CoverageStats::CoverageBlock* CoverageStats::CreateBlock(uintRefSeqId seq_id, ui
             new_block->scheduled_for_processing_.clear();
             new_block->processed_ = false;
         } else {
-            reuse_mutex_.unlock();
+            lock.unlock();
             new_block = new CoverageBlock(seq_id, start_pos, last_block_);
             new_block->previous_coverage_.reserve(maximum_read_length_on_reference_);
         }
@@ -1033,13 +1033,11 @@ reseq::uintRefSeqId CoverageStats::CleanUp(uintSeqLen& still_needed_position, Re
 bool CoverageStats::PreLoadVariants(Reference& reference) {
     if (reference.VariantPositionsLoaded() && !reference.VariantPositionsCompletelyLoaded() &&
         !reference.VariantPositionsLoadedForSequence((*last_block_).sequence_id_ + 2)) {
-        if (variant_loading_mutex_.try_lock()) {
+        if (std::unique_lock lock(variant_loading_mutex_, std::try_to_lock); lock.owns_lock()) {
             if (!reference.ReadVariantPositions((*last_block_).sequence_id_ + 2)) {
-                variant_loading_mutex_.unlock();
-                return false;
+                return false; // unique_lock destructor handles unlock
             }
-
-            variant_loading_mutex_.unlock();
+            // lock destructor handles unlock
         }
     }
 
