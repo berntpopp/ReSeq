@@ -40,7 +40,7 @@ jobs:
         run: cmake --build build -j$(nproc)
 
       - name: Test
-        run: cd build && ctest --output-on-failure
+        run: cd build && ctest --output-on-failure -j1
 
   sanitizers:
     # Informational: pre-existing memory bugs cause failures (Phase 3 fixes these)
@@ -68,7 +68,7 @@ jobs:
         run: cmake --build build -j$(nproc)
 
       - name: Test with sanitizers
-        run: cd build && ctest --output-on-failure
+        run: cd build && ctest --output-on-failure -j1
 
   coverage:
     # Informational: pre-existing memory bugs cause test failures under coverage (Phase 3 fixes these)
@@ -93,7 +93,7 @@ jobs:
         run: cmake --build build -j$(nproc)
 
       - name: Test
-        run: cd build && ctest --output-on-failure
+        run: cd build && ctest --output-on-failure -j1
 
       - name: Generate coverage report
         run: |
