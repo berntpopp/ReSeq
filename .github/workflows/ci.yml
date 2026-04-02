@@ -30,6 +30,9 @@ jobs:
           sudo apt-get install -y ${{ matrix.packages }} \
             libboost-all-dev libbz2-dev zlib1g-dev
 
+      - name: Download test data
+        run: ./test/download_test_data.sh
+
       - name: Configure
         env:
           CC: ${{ matrix.cc }}
@@ -54,6 +57,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-13 g++-13 \
             libboost-all-dev libbz2-dev zlib1g-dev
+
+      - name: Download test data
+        run: ./test/download_test_data.sh
 
       - name: Configure with sanitizers
         env:
@@ -82,6 +88,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-13 g++-13 lcov \
             libboost-all-dev libbz2-dev zlib1g-dev
+
+      - name: Download test data
+        run: ./test/download_test_data.sh
 
       - name: Configure with coverage
         env:
