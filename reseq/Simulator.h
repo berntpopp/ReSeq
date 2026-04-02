@@ -101,16 +101,27 @@ class Simulator {
         }
     };
 
+    // OWNERSHIP MODEL (Phase 3 documentation):
+    // SimBlock and SimUnit form intrusive singly-linked lists managed by Simulator.
+    // - SimUnit owns its chain of SimBlocks (first_block_ through next_block_ links).
+    //   Blocks are allocated with `new` in CreateRefSeqBlocks/Initialize and deleted
+    //   by walking the chain in HandleFinishedBlocks/Finalize.
+    // - Simulator owns its chain of SimUnits (first_unit_ through next_unit_ links).
+    //   Units are allocated in CreateRefSeqBlocks and deleted alongside their blocks.
+    // - partner_block_ is a non-owning cross-reference between forward/reverse block chains.
+    // - next_block_ is atomic for lock-free concurrent access during simulation.
+    // NOTE: Converting these linked lists to unique_ptr requires a container redesign
+    //   (e.g., std::deque or segmented vector) due to atomic next pointers and concurrent
+    //   traversal patterns. Deferred to Phase 4 (concurrency modernization).
     struct SimBlock {
         const uintRefSeqBin id_;
         const uintSeqLen start_pos_;
         std::atomic<bool>
             finished_; // In forward direction it stores that the simulation is finished and the block can be removed,
                        // in reverse direction it stores that a thread is already processing this block pair
-        std::atomic<SimBlock*> next_block_;
-        SimBlock*
-            partner_block_; // forward direction stores here the corresponding reverse direction; reverse direction
-                            // stores the previous block, which will be the partner for the next forward block
+        std::atomic<SimBlock*> next_block_;     // Owning pointer to next block in chain (see ownership model above)
+        SimBlock* partner_block_;               // Non-owning cross-reference to corresponding block in
+                                                // forward/reverse direction
         uintSeed seed_;
         std::vector<std::pair<seqan::Dna5, uintPercent>> sys_errors_; // sys_errors_[pos] = {domError, errorRate}
         std::vector<SysErrorVariant> err_variants_;
@@ -122,11 +133,12 @@ class Simulator {
               seed_(seed), first_variant_id_(0), first_methylation_id_(0) {}
     };
 
+    // See ownership model comment above SimBlock.
     struct SimUnit {
         const uintRefSeqId ref_seq_id_;
-        SimBlock* first_block_;
-        SimBlock* last_block_;
-        SimUnit* next_unit_;
+        SimBlock* first_block_;     // Owning pointer to first block in this unit's chain
+        SimBlock* last_block_;      // Non-owning pointer to last block (for O(1) append)
+        SimUnit* next_unit_;        // Owning pointer to next unit in the Simulator's chain
 
         SimUnit(uintRefSeqId ref_seq_id)
             : ref_seq_id_(ref_seq_id), first_block_(nullptr), last_block_(nullptr), next_unit_(nullptr) {}
