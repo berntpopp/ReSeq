@@ -56,9 +56,7 @@ class CoverageStats {
             }
         }
 
-        CoveragePosition(const CoveragePosition& UNUSED(right)) {
-            throw std::runtime_error("This function should never be called.");
-        }
+        CoveragePosition(const CoveragePosition&) = delete;
     };
 
     struct ProcessedCoveragePosition {
