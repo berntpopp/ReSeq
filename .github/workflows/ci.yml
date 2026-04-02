@@ -23,8 +23,6 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Install dependencies
         run: |
@@ -42,7 +40,76 @@ jobs:
         run: cmake --build build -j$(nproc)
 
       - name: Test
-        run: build/bin/reseq test
+        run: cd build && ctest --output-on-failure -j1
+
+  sanitizers:
+    # Informational: pre-existing memory bugs cause failures (Phase 3 fixes these)
+    continue-on-error: true
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13 \
+            libboost-all-dev libbz2-dev zlib1g-dev
+
+      - name: Configure with sanitizers
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Test with sanitizers
+        run: cd build && ctest --output-on-failure -j1
+
+  coverage:
+    # Informational: pre-existing memory bugs cause test failures under coverage (Phase 3 fixes these)
+    continue-on-error: true
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13 lcov \
+            libboost-all-dev libbz2-dev zlib1g-dev
+
+      - name: Configure with coverage
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCODE_COVERAGE=ON
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Test
+        run: cd build && ctest --output-on-failure -j1
+
+      - name: Generate coverage report
+        run: |
+          lcov --capture --directory build --output-file build/coverage.info \
+            --ignore-errors mismatch
+          lcov --remove build/coverage.info \
+            '*/seqan/*' '*/skewer/*' '*/2016-05-15_ROOTPWA/*' \
+            '/usr/*' '*/build/*' \
+            --output-file build/coverage.info --ignore-errors unused
+          lcov --list build/coverage.info
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build/coverage.info
 
   format-check:
     runs-on: ubuntu-24.04
