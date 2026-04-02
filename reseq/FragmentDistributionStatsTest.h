@@ -40,7 +40,7 @@ class FragmentDistributionStatsTest : public BasicTestClassWithReference {
                           const Surrounding& end_sur);
 
   public:
-    FragmentDistributionStatsTest() : test_(NULL) {}
+    FragmentDistributionStatsTest() : test_(nullptr) {}
 
     static void TestSrr490124Equality(const FragmentDistributionStats& test, const char* context);
     static void TestDuplicates(const FragmentDistributionStats& test);

@@ -49,7 +49,7 @@ class QualityStatsTest : public BasicTestClass {
     void TestRemoveSystematic();
 
   public:
-    QualityStatsTest() : test_(NULL) {}
+    QualityStatsTest() : test_(nullptr) {}
 
     static void TestSrr490124Equality(const QualityStats& test, const char* context);
     static void TestTiles(const QualityStats& test);

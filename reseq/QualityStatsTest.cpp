@@ -13,7 +13,7 @@ void QualityStatsTest::CreateTestObject() {
 void QualityStatsTest::DeleteTestObject() {
     if (test_) {
         delete test_;
-        test_ = NULL;
+        test_ = nullptr;
     }
 }
 

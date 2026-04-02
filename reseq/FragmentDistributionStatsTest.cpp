@@ -89,7 +89,7 @@ void FragmentDistributionStatsTest::CreateTestObject(const Reference* ref) {
 void FragmentDistributionStatsTest::DeleteTestObject() {
     if (test_) {
         delete test_;
-        test_ = NULL;
+        test_ = nullptr;
     }
 }
 

@@ -24,7 +24,7 @@ class AdapterStatsTest : public BasicTestClass {
     virtual void TearDown();
 
   public:
-    AdapterStatsTest() : test_(NULL) {}
+    AdapterStatsTest() : test_(nullptr) {}
 
     static void TestAdapters(const AdapterStats& test, const char* context);
     static void TestNexteraAdapters(const AdapterStats& test);

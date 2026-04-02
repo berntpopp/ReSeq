@@ -22,7 +22,7 @@ class FragmentDuplicationStatsTest : public BasicTestClassWithReference {
     virtual void TearDown();
 
   public:
-    FragmentDuplicationStatsTest() : test_(NULL) {}
+    FragmentDuplicationStatsTest() : test_(nullptr) {}
 
     static void TestSrr490124Equality(const FragmentDuplicationStats& test, const char* context);
     static void TestDuplicates(const FragmentDuplicationStats& test);

@@ -22,7 +22,7 @@ void TileStatsTest::CreateTestObject() {
 void TileStatsTest::DeleteTestObject() {
     if (test_) {
         delete test_;
-        test_ = NULL;
+        test_ = nullptr;
     }
 }
 

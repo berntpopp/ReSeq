@@ -39,7 +39,7 @@ void DataStatsTest::CreateTestObject(Reference* ref) {
 void DataStatsTest::DeleteTestObject() {
     if (test_) {
         delete test_;
-        test_ = NULL;
+        test_ = nullptr;
     }
 }
 
@@ -487,7 +487,7 @@ void DataStatsTest::TearDown() {
 
 namespace reseq {
 TEST_F(DataStatsTest, Construction) {
-    CreateTestObject(NULL);
+    CreateTestObject(nullptr);
 
     // Constructor
     string error_msg = "Initializing of class member read_lengths_ failed\n";

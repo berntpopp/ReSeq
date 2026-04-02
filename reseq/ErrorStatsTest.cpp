@@ -8,7 +8,7 @@ void ErrorStatsTest::CreateTestObject() {
 void ErrorStatsTest::DeleteTestObject() {
     if (test_) {
         delete test_;
-        test_ = NULL;
+        test_ = nullptr;
     }
 }
 

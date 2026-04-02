@@ -40,7 +40,7 @@ class SimulatorTest : public BasicTestClassWithReference {
     void TestVariationInSimulateFromGivenBlock();
 
   public:
-    SimulatorTest() : test_(NULL) {}
+    SimulatorTest() : test_(nullptr) {}
 };
 } // namespace reseq
 

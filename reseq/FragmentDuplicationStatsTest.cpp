@@ -18,7 +18,7 @@ void FragmentDuplicationStatsTest::CreateTestObject() {
 void FragmentDuplicationStatsTest::DeleteTestObject() {
     if (test_) {
         delete test_;
-        test_ = NULL;
+        test_ = nullptr;
     }
 }
 

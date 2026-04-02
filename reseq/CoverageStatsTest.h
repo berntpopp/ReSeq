@@ -24,7 +24,7 @@ class CoverageStatsTest : public BasicTestClassWithReference {
     void TestNonSystematicErrorRate();
 
   public:
-    CoverageStatsTest() : test_(NULL) {}
+    CoverageStatsTest() : test_(nullptr) {}
 
     static void TestSrr490124Equality(const CoverageStats& test, const char* context);
     static void TestDuplicates(const CoverageStats& test);

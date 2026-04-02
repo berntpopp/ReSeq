@@ -19,7 +19,7 @@ class ErrorStatsTest : public BasicTestClass {
     virtual void TearDown();
 
   public:
-    ErrorStatsTest() : test_(NULL) {}
+    ErrorStatsTest() : test_(nullptr) {}
 
     static void TestSrr490124Equality(const ErrorStats& test, const char* context);
     static void TestDuplicates(const ErrorStats& test);

@@ -21,7 +21,7 @@ void AdapterStatsTest::CreateTestObject() {
 void AdapterStatsTest::DeleteTestObject() {
     if (test_) {
         delete test_;
-        test_ = NULL;
+        test_ = nullptr;
     }
 }
 

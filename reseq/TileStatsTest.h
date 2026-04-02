@@ -30,7 +30,7 @@ class TileStatsTest : public BasicTestClass {
     virtual void TearDown();
 
   public:
-    TileStatsTest() : test_(NULL) {}
+    TileStatsTest() : test_(nullptr) {}
 
     static void TestSrr490124Equality(const TileStats& test, const char* context, bool test_tile_information = true);
     static void TestTiles(const TileStats& test);

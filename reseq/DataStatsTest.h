@@ -42,7 +42,7 @@ class DataStatsTest : public BasicTestClassWithReference {
     virtual void TearDown();
 
   public:
-    DataStatsTest() : test_(NULL) {}
+    DataStatsTest() : test_(nullptr) {}
 };
 } // namespace reseq
 
