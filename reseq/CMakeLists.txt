@@ -56,8 +56,9 @@ if(RESEQ_BUILD_TESTS)
   )
   target_link_libraries(reseq_test PRIVATE reseq_lib GTest::gtest)
   target_compile_options(reseq_test PRIVATE ${PRIVATE_COMPILE_OPTIONS})
-  include(GoogleTest)
-  gtest_discover_tests(reseq_test)
+  # Run all tests as a single invocation — tests have inter-test dependencies
+  # (shared Register() state) that require running together, not individually.
+  add_test(NAME reseq_tests COMMAND reseq_test)
 
   if(CODE_COVERAGE)
     target_compile_options(reseq_test PRIVATE --coverage)
