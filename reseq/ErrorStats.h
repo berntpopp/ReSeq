@@ -13,7 +13,7 @@
 namespace reseq {
 class ErrorStats {
   public:
-    enum InDelDef { kNoInDel, kDeletion, kInsertionA, kInsertionC, kInsertionG, kInsertionT, kInsertionN };
+    enum class InDelDef { kNoInDel, kDeletion, kInsertionA, kInsertionC, kInsertionG, kInsertionT, kInsertionN };
 
   private:
     // Temporary variables

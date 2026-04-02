@@ -322,10 +322,10 @@ bool Simulator::FillReadPart(SimRead& sim_read, uintTempSeq template_segment, ui
             estimates.InDels(par.previous_indel_type_, par.base_call_)
                 .Draw(prob_indel, prob_sum, {par.indel_pos_, par.read_pos_, par.gc_seq_}, rdist.ZeroToOne(rgen)));
         if (0.0 == prob_sum) {
-            indel = ErrorStats::kNoInDel;
+            indel = ErrorStats::InDelDef::kNoInDel;
         }
 
-        if (ErrorStats::kNoInDel == indel) {
+        if (ErrorStats::InDelDef::kNoInDel == indel) {
             // Load systematic error
             if (block) {
                 GetSysErrorFromBlock(dom_error, par.error_rate_, block, block_pos, cur_var, var_pos, allele);
@@ -377,7 +377,7 @@ bool Simulator::FillReadPart(SimRead& sim_read, uintTempSeq template_segment, ui
             // Update position
             ++par.read_pos_;
             ++org_pos;
-        } else if (ErrorStats::kDeletion == indel) {
+        } else if (ErrorStats::InDelDef::kDeletion == indel) {
             // Load systematic error
             if (block) {
                 par.error_rate_ = block->sys_errors_.at(block_pos).second;

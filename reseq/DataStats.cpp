@@ -285,7 +285,7 @@ bool DataStats::EvalReferenceStatistics(CoverageStats::FullRecord* record, uintT
                               .at(read_pos_ref);
 
                         errors_.AddBasePlotting(template_segment, ref_base, base, qual, last_base);
-                        errors_.AddInDel(indel_type, last_base, ErrorStats::kNoInDel, indel_pos, read_pos, gc_percent);
+                        errors_.AddInDel(indel_type, last_base, ErrorStats::InDelDef::kNoInDel, indel_pos, read_pos, gc_percent);
 
                         ++seq_content_mapped.at(base);
                     }
@@ -329,7 +329,7 @@ bool DataStats::EvalReferenceStatistics(CoverageStats::FullRecord* record, uintT
                               .at(ref_base)
                               .at(read_pos_ref);
 
-                        errors_.AddInDel(indel_type, last_base, ErrorStats::kDeletion, indel_pos, read_pos, gc_percent);
+                        errors_.AddInDel(indel_type, last_base, ErrorStats::InDelDef::kDeletion, indel_pos, read_pos, gc_percent);
                     }
 
                     ++read_pos_ref;
