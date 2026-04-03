@@ -15,7 +15,6 @@
 #include <seqan/bam_io.h>
 
 #include "AdapterStats.h"
-#include "BamIngestionEngine.h"
 #include "CoverageStats.h"
 #include "ErrorStats.h"
 #include "FragmentDistributionStats.h"
@@ -28,6 +27,9 @@
 #include "Vect.hpp"
 
 namespace reseq {
+
+class BamIngestionEngine; // Forward declaration (full header in DataStats.cpp)
+
 class DataStats {
   private:
     // User parameter

@@ -9,8 +9,8 @@
 
 #include "CoverageStats.h"
 #include "QualityStats.h"
-#include "Vect.hpp"
 #include "utilities.hpp"
+#include "Vect.hpp"
 
 namespace reseq {
 
@@ -75,9 +75,7 @@ class ReadSequenceStats {
     const Vect<uintFragCount>& GCReadContent(uintTempSeq template_segment) const {
         return gc_read_content_.at(template_segment);
     }
-    const Vect<uintFragCount>& NContent(uintTempSeq template_segment) const {
-        return n_content_.at(template_segment);
-    }
+    const Vect<uintFragCount>& NContent(uintTempSeq template_segment) const { return n_content_.at(template_segment); }
     const Vect<uintNucCount>& SequenceContent(uintTempSeq template_segment, uintBaseCall nucleotide) const {
         return sequence_content_.at(template_segment).at(nucleotide);
     }
