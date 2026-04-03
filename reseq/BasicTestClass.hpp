@@ -16,7 +16,7 @@
 namespace reseq {
 class BasicTestClass : public ::testing::Test {
   private:
-    static const uint16_t kTestVerbosity = 2;
+    static constexpr uint16_t kTestVerbosity = 2;
     uint16_t real_verbosity_;
 
   protected:
