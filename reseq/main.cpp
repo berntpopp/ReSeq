@@ -36,6 +36,7 @@ using boost::program_options::variable_value;
 using boost::program_options::variables_map;
 
 #include "cli/cli_common.h"
+#include "cli/replace_n.h"
 #include "CMakeConfig.h"
 #include "DataStats.h"
 using reseq::DataStats;
@@ -551,77 +552,8 @@ int main(int argc, char* argv[]) {
                 cerr << " in replaceN mode" << std::endl;
             }
             unrecognized_opts.erase(unrecognized_opts.begin());
-
-            options_description opt_desc("ReplaceN");
-            opt_desc.add_options() // Returns a special object with defined operator ()
-                ("refIn,r", value<string>(), "Reference sequences in fasta format (gz and bz2 supported)")(
-                    "refSim,R", value<string>(),
-                    "File to where reference sequences in fasta format with N's randomly replace should be written to")(
-                    "seed", value<uintSeed>(), "Seed used for replacing N, if none is given random seed will be used");
-            opt_desc_full.add(opt_desc);
-
-            string usage_str = "Usage:  reseq replaceN -r <refIn.fa> -R <refSim.fa> [options]\n";
-            variables_map opts_map;
-            try {
-                store(command_line_parser(unrecognized_opts).options(opt_desc).run(), opts_map);
-                notify(opts_map);
-            } catch (const exception& e) {
-                printErr << "Could not parse replaceN command line arguments: " << e.what() << std::endl;
-                if (0 < kVerbosityLevel) {
-                    cerr << usage_str;
-                    cerr << opt_desc_full << std::endl;
-                }
-                return 1;
-            }
-
-            if (general_opts_map.count("help")) {
-                cerr << usage_str;
-                cerr << opt_desc_full << std::endl;
-            } else if (!AutoDetectThreads(num_threads, opt_desc_full, usage_str)) {
-                return 1;
-            } else {
-                auto it_ref_in = opts_map.find("refIn");
-                auto it_ref_out = opts_map.find("refSim");
-                string ref_input, ref_output;
-                if (opts_map.end() == it_ref_in) {
-                    printErr << "refIn option is mandatory." << std::endl;
-                    if (0 < kVerbosityLevel) {
-                        cerr << usage_str;
-                        cerr << opt_desc_full << std::endl;
-                    }
-                    return 1;
-                } else {
-                    ref_input = it_ref_in->second.as<string>();
-                    printInfo << "Reading reference from " << ref_input << std::endl;
-
-                    if (opts_map.end() == it_ref_out) {
-                        printErr << "refSim option is mandatory." << std::endl;
-                        if (0 < kVerbosityLevel) {
-                            cerr << usage_str;
-                            cerr << opt_desc_full << std::endl;
-                        }
-                        return 1;
-                    } else {
-                        ref_output = it_ref_out->second.as<string>();
-                        printInfo << "Writing reference without N to " << ref_output << std::endl;
-
-                        Reference species_reference;
-                        if (species_reference.ReadFasta(ref_input.c_str())) {
-                            auto seed = GetSeed(opts_map);
-
-                            species_reference.ReplaceN(seed);
-
-                            if (species_reference.WriteFasta(ref_output.c_str())) {
-                                printInfo << "Finished replacing N's." << std::endl;
-                            } else {
-                                return 1;
-                            }
-                        } else {
-                            return 1;
-                        }
-                    }
-                }
-            }
+            return_code =
+                reseq::cli::RunReplaceN(unrecognized_opts, num_threads, general_opts_map, opt_desc_full);
         } else if ("illuminaPE" == unrecognized_opts.at(0)) {
             if (2 < kVerbosityLevel) {
                 cerr << " in illuminaPE mode" << std::endl;

@@ -35,7 +35,7 @@ target_compile_options(reseq_lib PRIVATE ${PRIVATE_COMPILE_OPTIONS})
 
 # Production executable
 add_executable(reseq main.cpp)
-target_sources(reseq PRIVATE cli/cli_common.cpp)
+target_sources(reseq PRIVATE cli/cli_common.cpp cli/replace_n.cpp)
 target_link_libraries(reseq PRIVATE reseq_lib)
 target_compile_options(reseq PRIVATE ${PRIVATE_COMPILE_OPTIONS})
 
