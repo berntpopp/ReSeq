@@ -1012,7 +1012,7 @@ bool DataStats::ReadRecords(BamFileIn& bam, bool& not_done, ThreadData& thread_d
     return true;
 }
 
-void DataStats::ReadThread(DataStats& self, BamFileIn& bam) {
+void DataStats::ReadThread(DataStats& self, BamFileIn& bam, size_t thread_idx) {
     CoverageStats::CoverageBlock* cov_block;
     uintFragCount processed_fragments(0);
     bool not_done(true);
@@ -1080,7 +1080,7 @@ void DataStats::ReadThread(DataStats& self, BamFileIn& bam) {
 
             self.fragment_distribution_.HandleReferenceSequencesUntil(
                 still_needed_reference_sequence, still_needed_position, thread_data.fragment_distribution_,
-                *self.reference_, self.duplicates_, self.print_mutex_);
+                *self.reference_, self.duplicates_, self.print_mutex_, thread_idx);
         } else {
             self.reading_success_ = false;
         }
@@ -1108,7 +1108,7 @@ void DataStats::ReadThread(DataStats& self, BamFileIn& bam) {
 
         if (self.reading_success_) {
             self.fragment_distribution_.FinishThreads(thread_data.fragment_distribution_, *self.reference_,
-                                                      self.duplicates_, self.print_mutex_);
+                                                      self.duplicates_, self.print_mutex_, thread_idx);
             self.fragment_distribution_.AddThreadData(thread_data.fragment_distribution_);
         }
     }
@@ -1308,7 +1308,7 @@ bool DataStats::ReadBam(const char* bam_file, const char* adapter_file, const ch
                                         threads.reserve(num_threads);
                                         for (decltype(num_threads) i = 0; i < num_threads; ++i) {
                                             threads.emplace_back(
-                                                [this, &bam](std::stop_token) { ReadThread(*this, bam); });
+                                                [this, &bam, i](std::stop_token) { ReadThread(*this, bam, i); });
                                         }
                                         // jthread destructors join on scope exit
                                     }

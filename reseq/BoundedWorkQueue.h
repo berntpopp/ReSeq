@@ -13,7 +13,7 @@ struct QueueSlot {
     std::atomic<uint32_t> current_param{0};
     std::atomic<uint32_t> finished_count{0};
     uint32_t total_params{0};
-    bool published{false};
+    std::atomic<bool> published{false};
 };
 
 template <size_t MaxSlots> class BoundedWorkQueue {

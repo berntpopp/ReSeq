@@ -47,7 +47,6 @@ using std::string;
 #include <sstream>
 using std::stringstream;
 #include <thread>
-using std::thread;
 #include <unordered_map>
 using std::unordered_map;
 #include <utility>
@@ -1897,19 +1896,11 @@ void FragmentDistributionStats::PrepareBiasCalculation(const Reference& ref, uin
 
     // Initialize bias calculation queue information
     params_left_for_calculation_ = ref_seq_start_bin_.at(ref_seq_start_bin_.size() - 1) * maximum_insert_length;
-    for (uintNumFits bin = 0; bin < current_bias_param_.size(); ++bin) {
-        current_bias_param_.at(bin) = maximum_insert_length + 1; // So no thread tries to calculate on the unfilled bins
-        finished_bias_calcs_.at(bin) = 0;
-        claimed_bias_bins_.at(bin).clear();
-    }
+    // BoundedWorkQueue is initialized by its constructor with all slots free
 
     calc_max_seq_bin_len_ = MaxRefSeqBinLength(ref);
     bias_calc_vects_.resize(num_threads);
     tmp_frag_count_.resize(num_threads);
-    for (auto i = tmp_frag_count_.size(); i--;) {
-        bias_calc_vects_.at(i).first.clear();
-        tmp_frag_count_.at(i).first.clear();
-    }
 
     // Creating files for additional output
     if (BiasCalculationVectors::kParameterInfoFile) {
@@ -2112,23 +2103,18 @@ void FragmentDistributionStats::CheckLowQExclusions(uintRefSeqBin ref_seq_bin, v
     excluded_lowq_regions_ += lowq_site_start_exclusion_.at(ref_seq_bin).size();
 }
 
-void FragmentDistributionStats::CheckLowQExclusions(uintRefSeqBin ref_seq_bin, const Reference& reference) {
-    // Acquire a vector from tmp_frag_count_
-    uintNumFits nvar = 0;
-    while (tmp_frag_count_.at(nvar).first.test_and_set()) {
-        ++nvar;
-    }
+void FragmentDistributionStats::CheckLowQExclusions(uintRefSeqBin ref_seq_bin, const Reference& reference,
+                                                    size_t thread_idx) {
+    // Use thread-indexed vector from tmp_frag_count_
+    auto& frag_count = tmp_frag_count_[thread_idx];
 
     // Make sure the vector has enough space (on first use make it big enough for all later uses)
-    if (tmp_frag_count_.at(nvar).second.capacity() < calc_max_seq_bin_len_ + tmp_insert_lengths_.size()) {
-        tmp_frag_count_.at(nvar).second.reserve(calc_max_seq_bin_len_ + tmp_insert_lengths_.size());
+    if (frag_count.capacity() < calc_max_seq_bin_len_ + tmp_insert_lengths_.size()) {
+        frag_count.reserve(calc_max_seq_bin_len_ + tmp_insert_lengths_.size());
     }
 
     // Run CheckLowQExclusions
-    CheckLowQExclusions(ref_seq_bin, tmp_frag_count_.at(nvar).second, reference);
-
-    // Release vector from tmp_frag_count_
-    tmp_frag_count_.at(nvar).first.clear();
+    CheckLowQExclusions(ref_seq_bin, frag_count, reference);
 }
 
 void FragmentDistributionStats::SortFragmentSites(uintRefSeqBin ref_seq_bin,
@@ -2235,15 +2221,13 @@ void FragmentDistributionStats::UpdateBiasCalculationParams(
              insert_length <= qbin_size; ++insert_length) {
             bias_calc_params_.at(queue_spot * qbin_size + insert_length - 1).Clear(ref_seq_bin);
         }
-        // Reset queue bin
-        finished_bias_calcs_.at(queue_spot) = 0;
-        current_bias_param_.at(queue_spot) =
-            0; // This allows other threads to do bias calculations with the values from bias_calc_params_ for this
-               // queue bin, so do this as the very last step
+        // Publish queue bin: this allows other threads to do bias calculations with the values from bias_calc_params_
+        // for this queue bin, so do this as the very last step
+        bias_queue_.publish(queue_spot, qbin_size);
     } else {
         params_left_for_calculation_ -= qbin_size;
-        claimed_bias_bins_.at(queue_spot)
-            .clear(); // Let go of claim as reference sequence bin does not need to be handled as it is empty
+        bias_queue_.release_empty(
+            queue_spot); // Let go of claim as reference sequence bin does not need to be handled as it is empty
     }
 }
 
@@ -2764,14 +2748,16 @@ bool FragmentDistributionStats::CalculateInsertLengthAndRefSeqBias(const Referen
 
     // Run the predetermined parameters in defined number of threads
     mutex print_mutex;
-    thread threads[num_threads];
-    for (auto i = num_threads; i--;) {
-        threads[i] =
-            thread(BiasSumThread, std::cref(*this), std::cref(reference), std::cref(params), std::ref(current_param),
-                   std::ref(finished_params), std::ref(bias_sum), std::ref(print_mutex));
-    }
-    for (auto i = num_threads; i--;) {
-        threads[i].join();
+    {
+        std::vector<std::jthread> threads;
+        threads.reserve(num_threads);
+        for (auto i = num_threads; i--;) {
+            threads.emplace_back([this, &reference, &params, &current_param, &finished_params, &bias_sum,
+                                  &print_mutex](std::stop_token) {
+                BiasSumThread(*this, reference, params, current_param, finished_params, bias_sum, print_mutex);
+            });
+        }
+        // jthread destructors join on scope exit
     }
 
     // Get median_frag_coverage before modifying corrected_abundance_
@@ -2955,81 +2941,76 @@ void FragmentDistributionStats::ReplaceUncertainCorrectedAbundanceWithMedian(con
 }
 
 void FragmentDistributionStats::AddNewBiasCalculations(uintRefSeqBin still_needed_ref_bin, ThreadData& thread,
-                                                       mutex& print_mutex, const Reference& reference) {
+                                                       mutex& print_mutex, const Reference& reference,
+                                                       size_t thread_idx) {
     uintRefSeqBin ref_seq_bin = num_handled_reference_sequence_bins_;
     while (ref_seq_bin < still_needed_ref_bin) {
         // Check if a spot in the queue is free
-        uint32_t queue_spot = 0;
-        while (queue_spot < kMaxBinsQueuedForBiasCalc && claimed_bias_bins_.at(queue_spot).test_and_set()) {
-            ++queue_spot;
+        auto queue_spot = bias_queue_.try_acquire();
+        if (queue_spot == SIZE_MAX) {
+            break; // End loop as currently no queue spots are available
         }
 
-        if (queue_spot < kMaxBinsQueuedForBiasCalc) {
-            // Additional reference sequences can be handled
-            if (num_handled_reference_sequence_bins_.compare_exchange_strong(ref_seq_bin, ref_seq_bin + 1)) {
-                // Handle ref_seq_bin
-                CheckLowQExclusions(ref_seq_bin, reference);
-                SortFragmentSites(ref_seq_bin, thread.num_sites_per_insert_length_);
-                UpdateBiasCalculationParams(ref_seq_bin, queue_spot, thread.bias_calc_tmp_params_, print_mutex);
-                ref_seq_bin = num_handled_reference_sequence_bins_; // Set ref_seq_bin after everything has been done to
-                                                                    // the new value (In case compare_exchange_strong
-                                                                    // fails this is done automatically)
-            } else {
-                claimed_bias_bins_.at(queue_spot)
-                    .clear(); // Let go of claim as reference sequence bin was already handled by another thread
-            }
+        // Additional reference sequences can be handled
+        if (num_handled_reference_sequence_bins_.compare_exchange_strong(ref_seq_bin, ref_seq_bin + 1)) {
+            // Handle ref_seq_bin
+            CheckLowQExclusions(ref_seq_bin, reference, thread_idx);
+            SortFragmentSites(ref_seq_bin, thread.num_sites_per_insert_length_);
+            UpdateBiasCalculationParams(ref_seq_bin, queue_spot, thread.bias_calc_tmp_params_, print_mutex);
+            ref_seq_bin = num_handled_reference_sequence_bins_; // Set ref_seq_bin after everything has been done to
+                                                                // the new value (In case compare_exchange_strong
+                                                                // fails this is done automatically)
         } else {
-            break; // End loop as currently no queue spots are available
+            bias_queue_.release_empty(queue_spot); // Let go of claim as reference sequence bin was already handled by
+                                                   // another thread
         }
     }
 }
 
 void FragmentDistributionStats::ExecuteBiasCalculations(const Reference& reference,
-                                                        FragmentDuplicationStats& duplications, mutex& print_mutex) {
+                                                        FragmentDuplicationStats& duplications, mutex& print_mutex,
+                                                        size_t thread_idx) {
     auto queue_bin_size = bias_calc_params_.size() / kMaxBinsQueuedForBiasCalc;
     for (uint16_t queue_bin = 0; queue_bin < kMaxBinsQueuedForBiasCalc; ++queue_bin) {
-        auto cur_par = queue_bin * queue_bin_size + current_bias_param_.at(queue_bin)++;
+        if (!bias_queue_.slot(queue_bin).published) {
+            continue; // Skip unpublished slots
+        }
+
+        auto cur_par = queue_bin * queue_bin_size + bias_queue_.slot(queue_bin).current_param++;
 
         for (; cur_par < queue_bin * queue_bin_size + queue_bin_size;
-             cur_par = queue_bin * queue_bin_size + current_bias_param_.at(queue_bin)++) {
+             cur_par = queue_bin * queue_bin_size + bias_queue_.slot(queue_bin).current_param++) {
             --params_left_for_calculation_;
 
             // Execute calculations
             if (bias_calc_params_.at(cur_par).fragment_length_) {
                 if (bias_calc_params_.at(cur_par).bias_calculation_) {
-                    // Acquire a vector from bias_calc_vects_
-                    uintNumFits nvar = 0;
-                    while (bias_calc_vects_.at(nvar).first.test_and_set()) {
-                        ++nvar;
-                    }
+                    // Use thread-indexed vector from bias_calc_vects_
+                    auto& calc_vect = bias_calc_vects_[thread_idx];
 
                     // Make sure the vector has enough space (on first use make it big enough for all later uses)
-                    if (bias_calc_vects_.at(nvar).second.sites_.capacity() < calc_max_seq_bin_len_) {
-                        bias_calc_vects_.at(nvar).second.sites_.reserve(calc_max_seq_bin_len_);
+                    if (calc_vect.sites_.capacity() < calc_max_seq_bin_len_) {
+                        calc_vect.sites_.reserve(calc_max_seq_bin_len_);
                     }
 
                     // Run bias calculations
-                    CalculateBiasByBin(bias_calc_vects_.at(nvar).second, reference, duplications,
-                                       bias_calc_params_.at(cur_par).ref_seq_bin_,
+                    CalculateBiasByBin(calc_vect, reference, duplications, bias_calc_params_.at(cur_par).ref_seq_bin_,
                                        bias_calc_params_.at(cur_par).fragment_length_);
-                    AcquireBiases(bias_calc_vects_.at(nvar).second, print_mutex);
-
-                    // Release vector from bias_calc_vects_
-                    bias_calc_vects_.at(nvar).first.clear();
+                    AcquireBiases(calc_vect, print_mutex);
                 } else {
                     CountDuplicates(duplications, bias_calc_params_.at(cur_par), reference);
                 }
             }
 
             // Check if all calculations in queue bin are finished
-            if (++finished_bias_calcs_.at(queue_bin) == queue_bin_size) {
+            if (++bias_queue_.slot(queue_bin).finished_count == queue_bin_size) {
                 // Free memory that is not needed anymore
                 fragment_sites_by_ref_seq_bin_by_insert_length_.at(bias_calc_params_.at(cur_par).ref_seq_bin_).clear();
                 fragment_sites_by_ref_seq_bin_by_insert_length_.at(bias_calc_params_.at(cur_par).ref_seq_bin_)
                     .shrink_to_fit();
 
                 // All finished, allow to reuse queue bin
-                claimed_bias_bins_.at(queue_bin).clear();
+                bias_queue_.release(queue_bin);
             }
         }
     }
@@ -3038,9 +3019,9 @@ void FragmentDistributionStats::ExecuteBiasCalculations(const Reference& referen
 void FragmentDistributionStats::HandleReferenceSequencesUntil(uintRefSeqBin still_needed_ref_bin, ThreadData& thread,
                                                               const Reference& reference,
                                                               FragmentDuplicationStats& duplications,
-                                                              mutex& print_mutex) {
-    AddNewBiasCalculations(still_needed_ref_bin, thread, print_mutex, reference);
-    ExecuteBiasCalculations(reference, duplications, print_mutex);
+                                                              mutex& print_mutex, size_t thread_idx) {
+    AddNewBiasCalculations(still_needed_ref_bin, thread, print_mutex, reference, thread_idx);
+    ExecuteBiasCalculations(reference, duplications, print_mutex, thread_idx);
 }
 
 void FragmentDistributionStats::BiasSumThread(const FragmentDistributionStats& self, const Reference& reference,
@@ -3296,7 +3277,7 @@ void FragmentDistributionStats::HandleReferenceSequencesUntil(uintRefSeqId still
                                                               uintSeqLen still_needed_position, ThreadData& thread,
                                                               const Reference& reference,
                                                               FragmentDuplicationStats& duplications,
-                                                              mutex& print_mutex) {
+                                                              mutex& print_mutex, size_t thread_idx) {
     // Check if new biases can be added for calculation
     auto still_needed_ref_bin = ref_seq_start_bin_.at(still_needed_reference_sequence);
     while (still_needed_ref_bin + 1 < ref_seq_start_bin_.at(still_needed_reference_sequence + 1) &&
@@ -3305,14 +3286,15 @@ void FragmentDistributionStats::HandleReferenceSequencesUntil(uintRefSeqId still
         ++still_needed_ref_bin;
     }
 
-    HandleReferenceSequencesUntil(still_needed_ref_bin, thread, reference, duplications, print_mutex);
+    HandleReferenceSequencesUntil(still_needed_ref_bin, thread, reference, duplications, print_mutex, thread_idx);
 }
 
 void FragmentDistributionStats::FinishThreads(ThreadData& thread, const Reference& reference,
-                                              FragmentDuplicationStats& duplications, mutex& print_mutex) {
+                                              FragmentDuplicationStats& duplications, mutex& print_mutex,
+                                              size_t thread_idx) {
     while (true) {
         HandleReferenceSequencesUntil(ref_seq_start_bin_.at(ref_seq_start_bin_.size() - 1), thread, reference,
-                                      duplications, print_mutex);
+                                      duplications, print_mutex, thread_idx);
 
         if (0 == params_left_for_calculation_) {
             break;
@@ -3720,14 +3702,17 @@ double FragmentDistributionStats::CalculateBiasNormalization(vector<uintRefSeqId
     normalization_by_frag_len.resize(insert_lengths_.to(), 0.0);
 
     // Run the predetermined parameters in defined number of threads
-    thread threads[num_threads];
-    for (auto i = num_threads; i--;) {
-        threads[i] = thread(BiasNormalizationThread, std::cref(*this), std::cref(reference), std::cref(params),
-                            std::ref(current_param), std::ref(normalization_by_frag_len), std::ref(result_mutex),
-                            std::cref(coverage_groups), std::ref(non_zero_thresholds));
-    }
-    for (auto i = num_threads; i--;) {
-        threads[i].join();
+    {
+        std::vector<std::jthread> threads;
+        threads.reserve(num_threads);
+        for (auto i = num_threads; i--;) {
+            threads.emplace_back([this, &reference, &params, &current_param, &normalization_by_frag_len, &result_mutex,
+                                  &coverage_groups, &non_zero_thresholds](std::stop_token) {
+                BiasNormalizationThread(*this, reference, params, current_param, normalization_by_frag_len,
+                                        result_mutex, coverage_groups, non_zero_thresholds);
+            });
+        }
+        // jthread destructors join on scope exit
     }
 
     // Estimate not counted fragment length using a natural spline

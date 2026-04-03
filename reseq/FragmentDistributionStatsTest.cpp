@@ -455,8 +455,9 @@ void FragmentDistributionStatsTest::TestAdapters(const FragmentDistributionStats
 }
 
 void FragmentDistributionStatsTest::BiasCalculationThread(FragmentDistributionStats& test, const Reference& reference,
-                                                          FragmentDuplicationStats& duplications, mutex& print_mutex) {
-    test.ExecuteBiasCalculations(reference, duplications, print_mutex);
+                                                          FragmentDuplicationStats& duplications, mutex& print_mutex,
+                                                          size_t thread_idx) {
+    test.ExecuteBiasCalculations(reference, duplications, print_mutex, thread_idx);
 }
 
 void FragmentDistributionStatsTest::TestBiasCalculationVectorsPreprocessing() {
@@ -855,15 +856,17 @@ void FragmentDistributionStatsTest::TestBiasCalculation() {
     mutex print_mutex;
 
     ReduceVerbosity(1); // Suppress warnings
-    test_->AddNewBiasCalculations(1, thread_data.at(0), print_mutex, species_reference_);
+    test_->AddNewBiasCalculations(1, thread_data.at(0), print_mutex, species_reference_, 0);
 
-    thread threads[num_threads];
-    for (auto i = num_threads; i--;) {
-        threads[i] = thread(BiasCalculationThread, std::ref(*test_), std::cref(species_reference_),
-                            std::ref(duplications), std::ref(print_mutex));
-    }
-    for (auto i = num_threads; i--;) {
-        threads[i].join();
+    {
+        std::vector<std::jthread> threads;
+        threads.reserve(num_threads);
+        for (decltype(num_threads) i = 0; i < num_threads; ++i) {
+            threads.emplace_back([this, &duplications, &print_mutex, i](std::stop_token) {
+                BiasCalculationThread(*test_, species_reference_, duplications, print_mutex, i);
+            });
+        }
+        // jthread destructors join on scope exit
     }
 
     test_->FinalizeBiasCalculation(species_reference_, num_threads, duplications);
