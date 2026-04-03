@@ -25,7 +25,7 @@ void CoverageStatsTest::TestNonSystematicErrorRate() {
 
     // samtools faidx ecoli-GCF_000005845.2_ASM584v2_genomic.fa NC_000913.3:101-110
     // TAAAATTTTA
-    CoverageStats::CoverageBlock block(0, 100, nullptr);
+    CoverageStats::CoverageBlock block(0, 100);
     block.coverage_.resize(10);
     block.coverage_.at(0).coverage_forward_.at(4) = 3;
     block.coverage_.at(0).coverage_forward_.at(1) = 1;
@@ -373,9 +373,10 @@ void CoverageStatsTest::TestSrr490124Equality(const CoverageStats& test, const c
     EXPECT_EQ(0, test.error_coverage_percent_stranded_min_strand_cov_20_.size())
         << "SRR490124-4pairs error_coverage_percent_stranded_min_strand_cov_20_.size() wrong for " << context << '\n';
 
-    EXPECT_TRUE(nullptr == test.first_block_) << "SRR490124-4pairs first_block_ wrong for " << context << '\n';
-    EXPECT_TRUE(nullptr == test.last_block_) << "SRR490124-4pairs last_block_ wrong for " << context << '\n';
-    EXPECT_EQ(0, test.reusable_blocks_.size()) << "SRR490124-4pairs reusable_blocks_ wrong for " << context << '\n';
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load())
+        << "SRR490124-4pairs first_live_idx_ wrong for " << context << '\n';
+    EXPECT_EQ(SIZE_MAX, test.last_live_idx_.load()) << "SRR490124-4pairs last_live_idx_ wrong for " << context << '\n';
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load()) << "SRR490124-4pairs blocks cleanup wrong for " << context << '\n';
 }
 
 void CoverageStatsTest::TestDuplicates(const CoverageStats& test) {
@@ -387,9 +388,9 @@ void CoverageStatsTest::TestDuplicates(const CoverageStats& test) {
     TestVectEquality({0, {4641252, 1, 101, 98, 24, 1, 0, 0, 25, 3, 22, 0, 0, 2, 21, 0, 2}}, test.coverage_,
                      "duplicates test", "coverage_", " not correct for ");
 
-    EXPECT_TRUE(nullptr == test.first_block_) << "SRR490124-4pairs first_block_ wrong in duplicates test\n";
-    EXPECT_TRUE(nullptr == test.last_block_) << "SRR490124-4pairs last_block_ wrong in duplicates test\n";
-    EXPECT_EQ(0, test.reusable_blocks_.size()) << "SRR490124-4pairs reusable_blocks_ wrong in duplicates test\n";
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load()) << "SRR490124-4pairs first_live_idx_ wrong in duplicates test\n";
+    EXPECT_EQ(SIZE_MAX, test.last_live_idx_.load()) << "SRR490124-4pairs last_live_idx_ wrong in duplicates test\n";
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load()) << "SRR490124-4pairs blocks cleanup wrong in duplicates test\n";
 }
 
 void CoverageStatsTest::TestVariants(const CoverageStats& test) {
@@ -539,9 +540,12 @@ void CoverageStatsTest::TestCrossDuplicates(const CoverageStats& test) {
     // length($0)-100}END{print sum}'
     TestVectEquality({0, {2940870}}, test.coverage_, "cross duplicates test", "coverage_", " not correct for ");
 
-    EXPECT_TRUE(nullptr == test.first_block_) << "SRR490124-4pairs first_block_ wrong in cross duplicates test\n";
-    EXPECT_TRUE(nullptr == test.last_block_) << "SRR490124-4pairs last_block_ wrong in cross duplicates test\n";
-    EXPECT_EQ(0, test.reusable_blocks_.size()) << "SRR490124-4pairs reusable_blocks_ wrong in cross duplicates test\n";
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load())
+        << "SRR490124-4pairs first_live_idx_ wrong in cross duplicates test\n";
+    EXPECT_EQ(SIZE_MAX, test.last_live_idx_.load())
+        << "SRR490124-4pairs last_live_idx_ wrong in cross duplicates test\n";
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load())
+        << "SRR490124-4pairs blocks cleanup wrong in cross duplicates test\n";
 }
 
 void CoverageStatsTest::TestCoverage(const CoverageStats& test) {
@@ -549,9 +553,9 @@ void CoverageStatsTest::TestCoverage(const CoverageStats& test) {
     // length($0)-100}END{print sum-300}'
     TestVectEquality({0, {2940670, 200}}, test.coverage_, "coverage test", "coverage_", " not correct for ");
 
-    EXPECT_TRUE(nullptr == test.first_block_) << "SRR490124-4pairs first_block_ wrong in coverage test\n";
-    EXPECT_TRUE(nullptr == test.last_block_) << "SRR490124-4pairs last_block_ wrong in coverage test\n";
-    EXPECT_EQ(0, test.reusable_blocks_.size()) << "SRR490124-4pairs reusable_blocks_ wrong in coverage test\n";
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load()) << "SRR490124-4pairs first_live_idx_ wrong in coverage test\n";
+    EXPECT_EQ(SIZE_MAX, test.last_live_idx_.load()) << "SRR490124-4pairs last_live_idx_ wrong in coverage test\n";
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load()) << "SRR490124-4pairs blocks cleanup wrong in coverage test\n";
 }
 
 namespace reseq {
