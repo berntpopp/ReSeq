@@ -55,7 +55,8 @@ int RunSeqToIllumina(const std::vector<std::string>& args, uintNumThreads num_th
         "probabilitiesOut,P", value<string>(),
         "Stores the probabilities estimated by iterative proportional fitting [<probabilitiesIn>]")(
         "seed", value<uintSeed>(), "Seed used for simulation, if none is given random seed will be used")(
-        "statsIn,s", value<string>(), "Profile file that contains the statistics used for simulation");
+        "statsIn,s", value<string>(), "Profile file that contains the statistics used for simulation")(
+        "textFormat", "Write profile files in legacy text format instead of compressed binary");
     opt_desc_full.add(opt_desc);
 
     string usage_str = "Usage:  reseq seqToIllumina -i <input.fa> -o <output.fq> -s <stats.reseq> [options]\n";
@@ -85,6 +86,7 @@ int RunSeqToIllumina(const std::vector<std::string>& args, uintNumThreads num_th
     } else if (!AutoDetectThreads(num_threads, opt_desc_full, usage_str)) {
         return 1;
     } else {
+        bool text_format = opts_map.count("textFormat");
         DataStats real_data_stats(nullptr);
         string probs_in, probs_out;
 
@@ -111,7 +113,7 @@ int RunSeqToIllumina(const std::vector<std::string>& args, uintNumThreads num_th
         } else {
             ProbabilityEstimates probabilities;
             if (!probabilities.Estimate(real_data_stats, ipf_iterations, ipf_precision, num_threads, probs_out.c_str(),
-                                        probs_in.c_str())) {
+                                        probs_in.c_str(), text_format)) {
                 return 1;
             } else {
                 probabilities.PrepareResult();
