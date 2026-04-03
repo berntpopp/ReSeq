@@ -2,11 +2,12 @@ BUILD_DIR ?= build
 BUILD_TYPE ?= RelWithDebInfo
 CMAKE_FLAGS ?=
 
-# File lists via git ls-files — safe with spaces, only tracked files
 CXX_SOURCES = $(shell git ls-files 'reseq/*.cpp' 'reseq/*.h' 'reseq/*.hpp')
-PY_SOURCES  = $(shell git ls-files 'python/*.py')
+PY_RUNTIME_SOURCES = $(wildcard python/*.py)
 
-.PHONY: all configure build test test-data coverage format format-check lint clean install changelog help
+.PHONY: all configure build test test-data coverage format format-check lint \
+	python-format python-format-check python-lint python-typecheck python-test python-verify \
+	clean install changelog help
 
 all: build
 
@@ -43,15 +44,33 @@ coverage:
 
 format:
 	clang-format -i $(CXX_SOURCES)
-	ruff format $(PY_SOURCES) || echo "ruff not installed, skipping Python format"
+	$(MAKE) python-format
 
 format-check:
 	clang-format --dry-run --Werror $(CXX_SOURCES)
-	ruff format --check $(PY_SOURCES)
+	$(MAKE) python-format-check
 
 lint:
 	clang-tidy -p $(BUILD_DIR)/ $(filter %.cpp,$(CXX_SOURCES))
-	ruff check $(PY_SOURCES)
+	$(MAKE) python-lint
+
+python-format:
+	ruff format python
+
+python-format-check:
+	ruff format --check python
+
+python-lint:
+	ruff check python
+
+python-typecheck:
+	mypy
+	python3 -m py_compile $(PY_RUNTIME_SOURCES)
+
+python-test:
+	python3 -m unittest discover -s python/tests -v
+
+python-verify: python-format-check python-lint python-typecheck python-test
 
 clean:
 	rm -rf $(BUILD_DIR)
@@ -71,6 +90,12 @@ help:
 	@echo "  format       Format C++ and Python files in-place"
 	@echo "  format-check Dry-run format check (CI use)"
 	@echo "  lint         Run clang-tidy and ruff"
+	@echo "  python-format       Format Python files in-place with ruff"
+	@echo "  python-format-check Dry-run Python format check"
+	@echo "  python-lint         Run ruff on Python sources and tests"
+	@echo "  python-typecheck    Run mypy where practical and compile-check Python scripts"
+	@echo "  python-test         Run Python unit tests"
+	@echo "  python-verify       Run Python format, lint, typecheck, and tests"
 	@echo "  changelog    Generate CHANGELOG.md from git history"
 	@echo "  clean        Remove build directory"
 	@echo "  install      Build and install"

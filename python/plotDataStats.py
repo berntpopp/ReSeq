@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import getopt
+import argparse
 from math import ceil
 
 import matplotlib as mpl
@@ -8,7 +8,7 @@ import matplotlib as mpl
 mpl.use("Agg")
 import os
 import sys
-from time import clock
+from time import perf_counter
 
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
@@ -1002,7 +1002,7 @@ def plotDataStats(statsFiles, oFile, plot_legend=True, title="", plot_markers=Fa
             pass
         pass
 
-    print("Start loading files: ", clock())
+    print("Start loading files: ", perf_counter())
     stats = []
     for sf in statsFiles:
         st = DataStats.DataStatsInterface(None)
@@ -1016,7 +1016,7 @@ def plotDataStats(statsFiles, oFile, plot_legend=True, title="", plot_markers=Fa
     if stats:
         with PdfPages(oFile) as pdf:
             plt.ioff()
-            print("Start plotting files: ", clock())
+            print("Start plotting files: ", perf_counter())
 
             plot(
                 pdf,
@@ -1233,7 +1233,7 @@ def plotDataStats(statsFiles, oFile, plot_legend=True, title="", plot_markers=Fa
                 legend="upper left",
             )
 
-            print("Plotted coverage information: ", clock())
+            print("Plotted coverage information: ", perf_counter())
 
             if len(names) > 2:
                 # Set same quality range for first and second reads
@@ -1608,7 +1608,7 @@ def plotDataStats(statsFiles, oFile, plot_legend=True, title="", plot_markers=Fa
                 ],
             )
 
-            print("Plotted quality information: ", clock())
+            print("Plotted quality information: ", perf_counter())
 
             plot(
                 pdf,
@@ -1813,7 +1813,7 @@ def plotDataStats(statsFiles, oFile, plot_legend=True, title="", plot_markers=Fa
             )
             plot(pdf, "Read GC", "# deleted bases", names, [st.InDelErrorByGC(1) for st in stats], plot_legend, title)
 
-            print("Plotted base calling information: ", clock())
+            print("Plotted base calling information: ", perf_counter())
 
             # plot( pdf, "Read length (first)", "# reads", names, [st.ReadLengths(0) for st in stats], plot_legend, title )
             # plot( pdf, "Read length (second)", "# reads", names, [st.ReadLengths(1) for st in stats], plot_legend, title )
@@ -1854,67 +1854,30 @@ def plotDataStats(statsFiles, oFile, plot_legend=True, title="", plot_markers=Fa
                 title,
             )
 
-            print("Plotted other information: ", clock())
+            print("Plotted other information: ", perf_counter())
             pass
         pass
 
     pass
 
 
-def usage():
-    print("Usage: python plotDataStats.py [OPTIONS] File [File2 File3 ...]")
-    print("Plots the DataStats from an boost archive from readar.")
-    print("  -h, --help            display this help and exit")
-    print("  -i, --nolegend        do not plot a legend")
-    print("  -m, --markers         add markers to some plots")
-    print("  -o, --output          define plotting output file [File with ending pdf]")
-    print("  -t, --title           title added above plots")
-    pass
+def parse_args(argv):
+    parser = argparse.ArgumentParser(description="Plot DataStats archives from ReSeq.")
+    parser.add_argument("files", nargs="+", help="One to eight DataStats archive files to plot")
+    parser.add_argument("-i", "--nolegend", action="store_true", help="do not plot a legend")
+    parser.add_argument("-m", "--markers", action="store_true", help="add markers to some plots")
+    parser.add_argument("-o", "--output", default="", help="define plotting output file [File with ending pdf]")
+    parser.add_argument("-t", "--title", default="", help="title added above plots")
+    args = parser.parse_args(argv)
+    if len(args.files) > 8:
+        parser.error("only one to eight files are supported")
+    return args
 
 
 def main(argv):
-    try:
-        optlist, args = getopt.getopt(argv, "himo:t:", ["help", "nolegend", "markers", "output=", "title="])
-        pass
-    except getopt.GetoptError:
-        print("Unknown option\n")
-        usage()
-        sys.exit(2)
-        pass
-
-    oFile = ""
-    plot_legend = True
-    plot_markers = False
-    title = ""
-    for opt, par in optlist:
-        if opt in ("-h", "--help"):
-            usage()
-            sys.exit()
-            pass
-        elif opt in ("-i", "--nolegend"):
-            plot_legend = False
-            pass
-        elif opt in ("-m", "--markers"):
-            plot_markers = True
-            pass
-        elif opt in ("-o", "--output"):
-            oFile = par
-            pass
-        elif opt in ("-t", "--title"):
-            title = par
-            pass
-        pass
-
-    if len(args) < 1 or len(args) > 8:
-        print("Wrong number of arguments. Only one to eight files are supported.\n")
-        usage()
-        sys.exit(2)
-        pass
-
-    plotDataStats(args, oFile, plot_legend, title, plot_markers)
-    pass
+    args = parse_args(argv)
+    plotDataStats(args.files, args.output, not args.nolegend, args.title, args.markers)
 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-    pass

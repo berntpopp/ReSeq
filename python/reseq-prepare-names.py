@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # Changes read names, so that pairs have identical names and tiles are not stripped of during the mapping
 
-import getopt
+import argparse
 import gzip
 import sys
+from pathlib import Path
 
 # Ignore broken pipe error
 from signal import SIG_DFL, SIGPIPE, signal
@@ -22,11 +23,18 @@ def modName(name, num_spaces, num_colons):
         return part
 
 
+def open_text(path):
+    file_path = Path(path)
+    if file_path.suffix == ".gz":
+        return gzip.open(file_path, "rt", encoding="utf-8")
+    return file_path.open("r", encoding="utf-8")
+
+
 def prepareNames(file1, file2):
-    with gzip.open(file2, "rt") if file2.split(".")[-1] == "gz" else open(file2, "r") as f2:
+    with open_text(file2) as f2:
         first_line2 = f2.readline()
 
-    with gzip.open(file1, "rt") if file1.split(".")[-1] == "gz" else open(file1, "r") as f1:
+    with open_text(file1) as f1:
         # Find the space and the semicolon where to separate
         first_line1 = f1.readline()
 
@@ -70,35 +78,21 @@ def prepareNames(file1, file2):
     return
 
 
-def usage():
-    print("Usage: python reseq-prepare-names.py [OPTIONS] File1 File2")
-    print(
-        "Returns File1 in stdout with changed read names, so that pairs have"
-        " identical names and tiles are not stripped of during the mapping"
+def parse_args(argv):
+    parser = argparse.ArgumentParser(
+        description=(
+            "Return File1 on stdout with changed read names, so paired reads keep identical names "
+            "without stripping tile information during mapping."
+        )
     )
-    print("  -h, --help            display this help and exit")
-    return
+    parser.add_argument("file1")
+    parser.add_argument("file2")
+    return parser.parse_args(argv)
 
 
 def main(argv):
-    try:
-        optlist, args = getopt.getopt(argv, "h", ["help"])
-    except getopt.GetoptError:
-        print("Unknown option\n")
-        usage()
-        sys.exit(2)
-
-    for opt, _par in optlist:
-        if opt in ("-h", "--help"):
-            usage()
-            sys.exit()
-
-    if len(args) != 2:
-        print("Wrong number of files. Exactly two are required.\n")
-        usage()
-        sys.exit(2)
-
-    prepareNames(args[0], args[1])
+    args = parse_args(argv)
+    prepareNames(args.file1, args.file2)
     return
 
 

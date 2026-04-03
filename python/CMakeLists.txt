@@ -1,61 +1,106 @@
 # This subdirectory is only added when RESEQ_BUILD_PYTHON=ON.
 # Fail clearly if prerequisites are missing rather than silently no-op.
-find_program(PYTHON "python3" "python")
-if(NOT PYTHON)
-	message(FATAL_ERROR "RESEQ_BUILD_PYTHON=ON but no python3 interpreter found")
-endif()
 
-SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+cmake_policy(SET CMP0078 NEW)
+cmake_policy(SET CMP0086 NEW)
 
-# Python packages
-FIND_PACKAGE(SWIG 3 REQUIRED)
-include(${SWIG_USE_FILE})
-FIND_PACKAGE(PythonLibs 3 REQUIRED)
-include_directories(${PYTHON_INCLUDE_PATH})
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-include_directories("${PROJECT_SOURCE_DIR}/python")
+find_package(SWIG 3 REQUIRED)
+include(UseSWIG)
+find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
 
-SET(CMAKE_SWIG_FLAGS "")
+set(UseSWIG_MODULE_VERSION 2)
 
-# Set a variable where to put the python modules
-SET( PYTHON_MODULE_DIRECTORY  "${PROJECT_BINARY_DIR}/pyMods" )
+set(PYTHON_MODULE_DIRECTORY "${PROJECT_BINARY_DIR}/pyMods")
+set(PYTHON_SWIG_OUTFILE_DIR "${PROJECT_BINARY_DIR}/python/CMakeFiles/DataStats")
+file(MAKE_DIRECTORY "${PYTHON_MODULE_DIRECTORY}")
+file(MAKE_DIRECTORY "${PYTHON_SWIG_OUTFILE_DIR}")
 
-# Define the swig outdir to be the one from the previously set variable (.cxx and .py file, don't know how to define the outdir only for the .py file)
-set(CMAKE_SWIG_OUTDIR ${PYTHON_MODULE_DIRECTORY})
+set_property(
+  SOURCE DataStats.i
+  PROPERTY CPLUSPLUS ON
+)
+set_property(
+  SOURCE DataStats.i
+  PROPERTY SWIG_MODULE_NAME DataStats
+)
+set_property(
+  SOURCE DataStats.i
+  PROPERTY USE_SWIG_DEPENDENCIES TRUE
+)
+set_property(
+  SOURCE DataStats.i
+  PROPERTY DEPENDS
+           "${PROJECT_SOURCE_DIR}/reseq/DataStatsInterface.h"
+           "${PROJECT_SOURCE_DIR}/reseq/Reference.h"
+           "${PROJECT_SOURCE_DIR}/reseq/Surrounding.h"
+           "${PROJECT_SOURCE_DIR}/reseq/utilities.hpp"
+           "${PROJECT_SOURCE_DIR}/reseq/Vect.hpp"
+)
 
-SET_SOURCE_FILES_PROPERTIES(DataStats.i PROPERTIES CPLUSPLUS ON)
-SET_SOURCE_FILES_PROPERTIES(DataStats.i PROPERTIES SWIG_FLAGS "-Wall")
-SET_SOURCE_FILES_PROPERTIES(DataStats.i PROPERTIES SWIG_FLAGS "-modern")
-SET_SOURCE_FILES_PROPERTIES(DataStats.i PROPERTIES SWIG_FLAGS "-DSWIGWORDSIZE64")
-SWIG_ADD_MODULE(DataStats python DataStats.i)
-set_target_properties(_DataStats PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PYTHON_MODULE_DIRECTORY}) # Define the outdir for the .so python module file
-SWIG_LINK_LIBRARIES(DataStats ${PYTHON_LIBRARIES})
-SWIG_LINK_LIBRARIES(DataStats ${Boost_LIBRARIES})
-SWIG_LINK_LIBRARIES(DataStats ${SEQAN_LIBRARIES})
-SWIG_LINK_LIBRARIES(DataStats DataStatsInterface)
+swig_add_library(
+  DataStats
+  TYPE MODULE
+  LANGUAGE python
+  OUTPUT_DIR "${PYTHON_MODULE_DIRECTORY}"
+  OUTFILE_DIR "${PYTHON_SWIG_OUTFILE_DIR}"
+  SOURCES DataStats.i
+)
 
-INSTALL(TARGETS _DataStats DESTINATION lib)
-install(FILES ${PROJECT_BINARY_DIR}/pyMods/DataStats.py DESTINATION lib)
+target_include_directories(
+  DataStats
+  PRIVATE
+    "${PROJECT_SOURCE_DIR}"
+    "${PROJECT_SOURCE_DIR}/python"
+    "${PROJECT_SOURCE_DIR}/reseq"
+)
+set_target_properties(
+  DataStats
+  PROPERTIES
+    SWIG_USE_TARGET_INCLUDE_DIRECTORIES TRUE
+    SWIG_COMPILE_OPTIONS "-Wall;-modern;-DSWIGWORDSIZE64"
+    LIBRARY_OUTPUT_DIRECTORY "${PYTHON_MODULE_DIRECTORY}"
+)
+target_link_libraries(
+  DataStats
+  PRIVATE
+    Python3::Module
+    reseq_lib
+)
 
-INSTALL(FILES ${PROJECT_SOURCE_DIR}/python/plotDataStats.py ${PROJECT_SOURCE_DIR}/python/reseq-prepare-names.py
-	DESTINATION bin
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(TARGETS DataStats DESTINATION lib)
+install(FILES "${PYTHON_MODULE_DIRECTORY}/DataStats.py" DESTINATION lib)
 
-# Solve issue that the wrapper file created by swig is not recreated if the included headers change
-# https://stackoverflow.com/questions/39358420/cmake-swig-dependicies
+install(
+  FILES
+    "${PROJECT_SOURCE_DIR}/python/plotDataStats.py"
+    "${PROJECT_SOURCE_DIR}/python/reseq-prepare-names.py"
+  DESTINATION bin
+  PERMISSIONS
+    OWNER_READ OWNER_WRITE OWNER_EXECUTE
+    GROUP_READ GROUP_EXECUTE
+    WORLD_READ WORLD_EXECUTE
+)
 
-# Removes generated file (if any of the dependent files are changed)
-add_custom_command(
-	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/swig.stamp
-	COMMAND ${CMAKE_COMMAND} -E remove ${swig_generated_file_fullname}
-	COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/swig.stamp
-	DEPENDS ../reseq/DataStatsInterface.h ../reseq/Reference.h ../reseq/Surrounding.h ../reseq/utilities.hpp ../reseq/Vect.hpp  # The dependent files
-	COMMENT "Removing old SWIG generated file" VERBATIM)
+add_test(
+  NAME python_script_tests
+  COMMAND "${Python3_EXECUTABLE}" -m unittest discover -s "${PROJECT_SOURCE_DIR}/python/tests" -v
+)
+set_tests_properties(
+  python_script_tests
+  PROPERTIES
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+)
 
-# Custom target for establishing dependency
-add_custom_target(
-	swigtrick
-	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/swig.stamp)
-
-add_dependencies(_DataStats swigtrick)
+add_test(
+  NAME python_datastats_import
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/python/tests/import_datastats.py"
+)
+set_tests_properties(
+  python_datastats_import
+  PROPERTIES
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+    ENVIRONMENT "PYTHONPATH=${PYTHON_MODULE_DIRECTORY}"
+)
