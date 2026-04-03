@@ -1,6 +1,8 @@
 #include "FragmentDistributionStatsTest.h"
 using reseq::FragmentDistributionStatsTest;
 
+#include "BoundedWorkQueue.h"
+
 #include <algorithm>
 using std::max;
 using std::max_element;
@@ -18,6 +20,8 @@ using std::mt19937_64;
 using std::uniform_real_distribution;
 #include <string>
 using std::string;
+#include <atomic>
+using std::atomic;
 #include <thread>
 using std::thread;
 #include <vector>
@@ -1277,3 +1281,67 @@ TEST_F(FragmentDistributionStatsTest, Functionality) {
     TestRefBinProcessing();
 }
 } // namespace reseq
+
+TEST(BoundedWorkQueueTest, TryAcquireWhenFull) {
+    reseq::BoundedWorkQueue<10> queue;
+    std::vector<size_t> acquired;
+    for (int i = 0; i < 10; ++i) {
+        size_t idx = queue.try_acquire();
+        ASSERT_NE(idx, SIZE_MAX) << "Failed to acquire slot " << i;
+        acquired.push_back(idx);
+    }
+    EXPECT_EQ(queue.try_acquire(), SIZE_MAX);
+    queue.release(acquired[0]);
+    size_t reacquired = queue.try_acquire();
+    EXPECT_NE(reacquired, SIZE_MAX);
+    EXPECT_EQ(reacquired, acquired[0]);
+}
+
+TEST(BoundedWorkQueueTest, AcquirePublishRelease) {
+    reseq::BoundedWorkQueue<10> queue;
+    size_t idx = queue.try_acquire();
+    ASSERT_NE(idx, SIZE_MAX);
+    queue.publish(idx, 5);
+    auto& slot = queue.slot(idx);
+    EXPECT_EQ(slot.current_param.load(), 0u);
+    EXPECT_EQ(slot.total_params, 5u);
+    slot.finished_count = 5;
+    queue.release(idx);
+    size_t idx2 = queue.try_acquire();
+    EXPECT_EQ(idx2, idx);
+}
+
+TEST(BoundedWorkQueueTest, ReleaseEmpty) {
+    reseq::BoundedWorkQueue<10> queue;
+    size_t idx = queue.try_acquire();
+    ASSERT_NE(idx, SIZE_MAX);
+    queue.release_empty(idx);
+    size_t idx2 = queue.try_acquire();
+    EXPECT_EQ(idx2, idx);
+}
+
+TEST(BoundedWorkQueueTest, ConcurrentAcquireRelease) {
+    reseq::BoundedWorkQueue<100> queue;
+    constexpr int kThreads = 8;
+    constexpr int kOpsPerThread = 1000;
+    std::atomic<int> total_acquired{0};
+    std::vector<std::jthread> threads;
+    for (int t = 0; t < kThreads; ++t) {
+        threads.emplace_back([&queue, &total_acquired](std::stop_token) {
+            for (int i = 0; i < kOpsPerThread; ++i) {
+                size_t idx = queue.try_acquire();
+                if (idx != SIZE_MAX) {
+                    ++total_acquired;
+                    queue.release(idx);
+                }
+            }
+        });
+    }
+    threads.clear();
+    int available = 0;
+    for (int i = 0; i < 100; ++i) {
+        if (queue.try_acquire() != SIZE_MAX)
+            ++available;
+    }
+    EXPECT_EQ(available, 100);
+}
