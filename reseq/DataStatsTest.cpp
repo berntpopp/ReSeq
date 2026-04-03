@@ -57,19 +57,19 @@ void DataStatsTest::LoadStats(const string& stats_file, bool ignore_tiles, bool 
 void DataStatsTest::TestSequenceContent(uintTempSeq template_segment, uintReadLen at_pos, uintNucCount cont_a,
                                         uintNucCount cont_c, uintNucCount cont_g, uintNucCount cont_t,
                                         uintNucCount cont_n, const char* context) {
-    EXPECT_EQ(cont_a, test_->sequence_content_.at(template_segment).at(0)[at_pos])
+    EXPECT_EQ(cont_a, test_->read_sequence_stats_.sequence_content_.at(template_segment).at(0)[at_pos])
         << "sequence_content_[" << static_cast<uintTempSeqPrint>(template_segment) << "] position " << at_pos
         << " wrong for " << context << '\n';
-    EXPECT_EQ(cont_c, test_->sequence_content_.at(template_segment).at(1)[at_pos])
+    EXPECT_EQ(cont_c, test_->read_sequence_stats_.sequence_content_.at(template_segment).at(1)[at_pos])
         << "sequence_content_[" << static_cast<uintTempSeqPrint>(template_segment) << "] position " << at_pos
         << " wrong for " << context << '\n';
-    EXPECT_EQ(cont_g, test_->sequence_content_.at(template_segment).at(2)[at_pos])
+    EXPECT_EQ(cont_g, test_->read_sequence_stats_.sequence_content_.at(template_segment).at(2)[at_pos])
         << "sequence_content_[" << static_cast<uintTempSeqPrint>(template_segment) << "] position " << at_pos
         << " wrong for " << context << '\n';
-    EXPECT_EQ(cont_t, test_->sequence_content_.at(template_segment).at(3)[at_pos])
+    EXPECT_EQ(cont_t, test_->read_sequence_stats_.sequence_content_.at(template_segment).at(3)[at_pos])
         << "sequence_content_[" << static_cast<uintTempSeqPrint>(template_segment) << "] position " << at_pos
         << " wrong for " << context << '\n';
-    EXPECT_EQ(cont_n, test_->sequence_content_.at(template_segment).at(4)[at_pos])
+    EXPECT_EQ(cont_n, test_->read_sequence_stats_.sequence_content_.at(template_segment).at(4)[at_pos])
         << "sequence_content_[" << static_cast<uintTempSeqPrint>(template_segment) << "] position " << at_pos
         << " wrong for " << context << '\n';
 }
@@ -99,8 +99,6 @@ void DataStatsTest::TestSrr490124Equality(const char* context, bool test_tile_in
         << '\n';
 
     CoverageStatsTest::TestSrr490124Equality(test_->coverage_, context);
-    EXPECT_EQ(0, test_->first_read_records_.size())
-        << "SRR490124-4pairs first_read_records_ wrong for " << context << '\n';
 
     ErrorStatsTest::TestSrr490124Equality(test_->errors_, context);
     FragmentDistributionStatsTest::TestSrr490124Equality(test_->fragment_distribution_, context);
@@ -117,56 +115,56 @@ void DataStatsTest::TestSrr490124Equality(const char* context, bool test_tile_in
     }
 
     if (bwa) {
-        EXPECT_EQ(0, test_->proper_pair_mapping_quality_.size())
+        EXPECT_EQ(0, test_->read_sequence_stats_.proper_pair_mapping_quality_.size())
             << "SRR490124-4pairs proper_pair_mapping_quality_ wrong for " << context << '\n';
-        EXPECT_EQ(61, test_->improper_pair_mapping_quality_.size())
+        EXPECT_EQ(61, test_->read_sequence_stats_.improper_pair_mapping_quality_.size())
             << "SRR490124-4pairs improper_pair_mapping_quality_ wrong for " << context << '\n';
-        EXPECT_EQ(8, test_->improper_pair_mapping_quality_[0])
+        EXPECT_EQ(8, test_->read_sequence_stats_.improper_pair_mapping_quality_[0])
             << "SRR490124-4pairs improper_pair_mapping_quality_ wrong for " << context << '\n';
-        EXPECT_EQ(8, test_->improper_pair_mapping_quality_[1])
+        EXPECT_EQ(8, test_->read_sequence_stats_.improper_pair_mapping_quality_[1])
             << "SRR490124-4pairs improper_pair_mapping_quality_ wrong for " << context << '\n';
-        EXPECT_EQ(18, test_->improper_pair_mapping_quality_[60])
+        EXPECT_EQ(18, test_->read_sequence_stats_.improper_pair_mapping_quality_[60])
             << "SRR490124-4pairs improper_pair_mapping_quality_ wrong for " << context << '\n';
-        EXPECT_EQ(1, test_->single_read_mapping_quality_.size())
+        EXPECT_EQ(1, test_->read_sequence_stats_.single_read_mapping_quality_.size())
             << "SRR490124-4pairs single_read_mapping_quality_ wrong for " << context << '\n';
-        EXPECT_EQ(1, test_->single_read_mapping_quality_[60])
+        EXPECT_EQ(1, test_->read_sequence_stats_.single_read_mapping_quality_[60])
             << "SRR490124-4pairs single_read_mapping_quality_ wrong for " << context << '\n';
     } else {
-        EXPECT_EQ(19, test_->proper_pair_mapping_quality_.size())
+        EXPECT_EQ(19, test_->read_sequence_stats_.proper_pair_mapping_quality_.size())
             << "SRR490124-4pairs proper_pair_mapping_quality_ wrong for " << context << '\n';
-        EXPECT_EQ(16, test_->proper_pair_mapping_quality_[6])
+        EXPECT_EQ(16, test_->read_sequence_stats_.proper_pair_mapping_quality_[6])
             << "SRR490124-4pairs proper_pair_mapping_quality_ wrong for " << context << '\n';
-        EXPECT_EQ(2, test_->proper_pair_mapping_quality_[23])
+        EXPECT_EQ(2, test_->read_sequence_stats_.proper_pair_mapping_quality_[23])
             << "SRR490124-4pairs proper_pair_mapping_quality_ wrong for " << context << '\n';
-        EXPECT_EQ(16, test_->proper_pair_mapping_quality_[24])
+        EXPECT_EQ(16, test_->read_sequence_stats_.proper_pair_mapping_quality_[24])
             << "SRR490124-4pairs proper_pair_mapping_quality_ wrong for " << context << '\n';
-        EXPECT_EQ(0, test_->improper_pair_mapping_quality_.size())
+        EXPECT_EQ(0, test_->read_sequence_stats_.improper_pair_mapping_quality_.size())
             << "SRR490124-4pairs improper_pair_mapping_quality_ wrong for " << context << '\n';
-        EXPECT_EQ(1, test_->single_read_mapping_quality_.size())
+        EXPECT_EQ(1, test_->read_sequence_stats_.single_read_mapping_quality_.size())
             << "SRR490124-4pairs single_read_mapping_quality_ wrong for " << context << '\n';
-        EXPECT_EQ(1, test_->single_read_mapping_quality_[3])
+        EXPECT_EQ(1, test_->read_sequence_stats_.single_read_mapping_quality_[3])
             << "SRR490124-4pairs single_read_mapping_quality_ wrong for " << context << '\n';
     }
 
     // samtools view ecoli-SRR490124-4pairs.sam | awk '{print int($2%256/128), gsub("G","",$10)+gsub("C","",$10)}' |
     // sort -n
-    EXPECT_EQ(12, test_->gc_read_content_.at(0).size())
+    EXPECT_EQ(12, test_->read_sequence_stats_.gc_read_content_.at(0).size())
         << "SRR490124-4pairs gc_read_content_[0] wrong for " << context << '\n';
-    EXPECT_EQ(1, test_->gc_read_content_.at(0)[48])
+    EXPECT_EQ(1, test_->read_sequence_stats_.gc_read_content_.at(0)[48])
         << "SRR490124-4pairs gc_read_content_[0] wrong for " << context << '\n';
-    EXPECT_EQ(8, test_->gc_read_content_.at(0)[52])
+    EXPECT_EQ(8, test_->read_sequence_stats_.gc_read_content_.at(0)[52])
         << "SRR490124-4pairs gc_read_content_[0] wrong for " << context << '\n';
-    EXPECT_EQ(1, test_->gc_read_content_.at(0)[53])
+    EXPECT_EQ(1, test_->read_sequence_stats_.gc_read_content_.at(0)[53])
         << "SRR490124-4pairs gc_read_content_[0] wrong for " << context << '\n';
-    EXPECT_EQ(8, test_->gc_read_content_.at(0)[59])
+    EXPECT_EQ(8, test_->read_sequence_stats_.gc_read_content_.at(0)[59])
         << "SRR490124-4pairs gc_read_content_[0] wrong for " << context << '\n';
-    EXPECT_EQ(20, test_->gc_read_content_.at(1).size())
+    EXPECT_EQ(20, test_->read_sequence_stats_.gc_read_content_.at(1).size())
         << "SRR490124-4pairs gc_read_content_[1] wrong for " << context << '\n';
-    EXPECT_EQ(8, test_->gc_read_content_.at(1)[37])
+    EXPECT_EQ(8, test_->read_sequence_stats_.gc_read_content_.at(1)[37])
         << "SRR490124-4pairs gc_read_content_[1] wrong for " << context << '\n';
-    EXPECT_EQ(9, test_->gc_read_content_.at(1)[47])
+    EXPECT_EQ(9, test_->read_sequence_stats_.gc_read_content_.at(1)[47])
         << "SRR490124-4pairs gc_read_content_[1] wrong for " << context << '\n';
-    EXPECT_EQ(1, test_->gc_read_content_.at(1)[56])
+    EXPECT_EQ(1, test_->read_sequence_stats_.gc_read_content_.at(1)[56])
         << "SRR490124-4pairs gc_read_content_[1] wrong for " << context << '\n';
     // samtools view -q 10 ecoli-SRR490124-4pairs.sam | awk '{print int($2%256/128), $4}' | sort -n | awk
     // '{system("samtools faidx ecoli-GCF_000005845.2_ASM584v2_genomic.fa NC_000913.3:" $2 "-" $2+99)}' | seqtk seq |
@@ -198,9 +196,9 @@ void DataStatsTest::TestSrr490124Equality(const char* context, bool test_tile_in
     EXPECT_EQ(1, test_->gc_read_content_mapped_.at(1)[56])
         << "SRR490124-4pairs gc_read_content_mapped_[1] wrong for " << context << '\n';
     for (int templ_seg = 2; templ_seg--;) {
-        EXPECT_EQ(1, test_->n_content_.at(templ_seg).size())
+        EXPECT_EQ(1, test_->read_sequence_stats_.n_content_.at(templ_seg).size())
             << "SRR490124-4pairs n_content_[" << templ_seg << "] wrong for " << context << '\n';
-        EXPECT_EQ(18, test_->n_content_.at(templ_seg)[0])
+        EXPECT_EQ(18, test_->read_sequence_stats_.n_content_.at(templ_seg)[0])
             << "SRR490124-4pairs n_content_[" << templ_seg << "] wrong for " << context << '\n';
     }
 
@@ -267,15 +265,15 @@ void DataStatsTest::TestSrr490124Equality(const char* context, bool test_tile_in
     // cat ecoli-SRR490124-4pairs-R1.fq ecoli-SRR490124-4pairs-R2.fq | awk -v FS="" '(2==NR%4){count=0;base="";for
     // (i=1;i<=NF;i++){ if(base == $i){count+=1}else{if("" != base){print base, count};count=1;base=$i}};print base,
     // count}' | sort | uniq -c
-    TestVectEquality({1, {492, 90, 51, 19, 0, 0, 10}}, test_->homopolymer_distribution_.at(0), context,
-                     "SRR490124-4pairs homopolymer_distribution_[0]", " not correct for ");
-    TestVectEquality({1, {565, 121, 24, 17}}, test_->homopolymer_distribution_.at(1), context,
+    TestVectEquality({1, {492, 90, 51, 19, 0, 0, 10}}, test_->read_sequence_stats_.homopolymer_distribution_.at(0),
+                     context, "SRR490124-4pairs homopolymer_distribution_[0]", " not correct for ");
+    TestVectEquality({1, {565, 121, 24, 17}}, test_->read_sequence_stats_.homopolymer_distribution_.at(1), context,
                      "SRR490124-4pairs homopolymer_distribution_[1]", " not correct for ");
-    TestVectEquality({1, {535, 84, 26, 9}}, test_->homopolymer_distribution_.at(2), context,
+    TestVectEquality({1, {535, 84, 26, 9}}, test_->read_sequence_stats_.homopolymer_distribution_.at(2), context,
                      "SRR490124-4pairs homopolymer_distribution_[2]", " not correct for ");
-    TestVectEquality({1, {422, 157, 19, 18}}, test_->homopolymer_distribution_.at(3), context,
+    TestVectEquality({1, {422, 157, 19, 18}}, test_->read_sequence_stats_.homopolymer_distribution_.at(3), context,
                      "SRR490124-4pairs homopolymer_distribution_[3]", " not correct for ");
-    EXPECT_EQ(0, test_->homopolymer_distribution_.at(4).size())
+    EXPECT_EQ(0, test_->read_sequence_stats_.homopolymer_distribution_.at(4).size())
         << "SRR490124-4pairs homopolymer_distribution_[4].size() not correct for " << context << '\n';
 }
 
@@ -284,20 +282,22 @@ void DataStatsTest::TestTiles() {
     QualityStatsTest::TestTiles(test_->qualities_);
 
     // samtools view ecoli-tiles.bam | awk 'BEGIN{sum=0}(0==int($2%256/128)){sum += gsub("N","",$10)}END{print sum}'
-    EXPECT_EQ(5, SumVect(test_->sequence_content_.at(0).at(4))) << "sequence_content_[0][4] wrong in tile test\n";
+    EXPECT_EQ(5, SumVect(test_->read_sequence_stats_.sequence_content_.at(0).at(4)))
+        << "sequence_content_[0][4] wrong in tile test\n";
     // samtools view ecoli-tiles.bam | awk '(0==int($2%256/128)){print substr($10,47,1)}' | sort | uniq -c
-    EXPECT_EQ(1, test_->sequence_content_.at(0).at(4)[46]) << "sequence_content_[0][4] wrong in tile test\n";
-    EXPECT_EQ(1, test_->sequence_content_.at(0).at(4)[66]) << "sequence_content_[0][4] wrong in tile test\n";
+    EXPECT_EQ(1, test_->read_sequence_stats_.sequence_content_.at(0).at(4)[46])
+        << "sequence_content_[0][4] wrong in tile test\n";
+    EXPECT_EQ(1, test_->read_sequence_stats_.sequence_content_.at(0).at(4)[66])
+        << "sequence_content_[0][4] wrong in tile test\n";
 
     // cat ecoli-tiles-R1.fq ecoli-tiles-R2.fq | awk -v FS="" '(2==NR%4){count=0;base="";for (i=1;i<=NF;i++){ if(base ==
     // $i){count+=1}else{if("" != base){print base, count};count=1;base=$i}};print base, count}' | sort | uniq -c
-    TestVectEquality({2, {1, 1}}, test_->homopolymer_distribution_.at(4), "tile test", "homopolymer_distribution_[4]",
-                     " not correct for ");
+    TestVectEquality({2, {1, 1}}, test_->read_sequence_stats_.homopolymer_distribution_.at(4), "tile test",
+                     "homopolymer_distribution_[4]", " not correct for ");
 }
 
 void DataStatsTest::TestDuplicates() {
     CoverageStatsTest::TestDuplicates(test_->coverage_);
-    EXPECT_EQ(0, test_->first_read_records_.size()) << "first_read_records_ wrong in duplicates test\n";
 
     ErrorStatsTest::TestDuplicates(test_->errors_);
     FragmentDistributionStatsTest::TestDuplicates(test_->fragment_distribution_);
@@ -306,18 +306,23 @@ void DataStatsTest::TestDuplicates() {
 
     // No single mappings
     // samtools view ecoli-duplicates.bam | awk '{print int($2%4/2), $5}' | sort -k1,1n -k2,2n | uniq -c
-    EXPECT_EQ(42, test_->proper_pair_mapping_quality_.size())
+    EXPECT_EQ(42, test_->read_sequence_stats_.proper_pair_mapping_quality_.size())
         << "proper_pair_mapping_quality_ wrong in duplicates test\n";
-    EXPECT_EQ(2, test_->proper_pair_mapping_quality_[1]) << "proper_pair_mapping_quality_ wrong in duplicates test\n";
-    EXPECT_EQ(2, test_->proper_pair_mapping_quality_[23]) << "proper_pair_mapping_quality_ wrong in duplicates test\n";
-    EXPECT_EQ(2, test_->proper_pair_mapping_quality_[24]) << "proper_pair_mapping_quality_ wrong in duplicates test\n";
-    EXPECT_EQ(6, test_->proper_pair_mapping_quality_[40]) << "proper_pair_mapping_quality_ wrong in duplicates test\n";
-    EXPECT_EQ(22, test_->proper_pair_mapping_quality_[42]) << "proper_pair_mapping_quality_ wrong in duplicates test\n";
-    EXPECT_EQ(1, test_->improper_pair_mapping_quality_.size())
+    EXPECT_EQ(2, test_->read_sequence_stats_.proper_pair_mapping_quality_[1])
+        << "proper_pair_mapping_quality_ wrong in duplicates test\n";
+    EXPECT_EQ(2, test_->read_sequence_stats_.proper_pair_mapping_quality_[23])
+        << "proper_pair_mapping_quality_ wrong in duplicates test\n";
+    EXPECT_EQ(2, test_->read_sequence_stats_.proper_pair_mapping_quality_[24])
+        << "proper_pair_mapping_quality_ wrong in duplicates test\n";
+    EXPECT_EQ(6, test_->read_sequence_stats_.proper_pair_mapping_quality_[40])
+        << "proper_pair_mapping_quality_ wrong in duplicates test\n";
+    EXPECT_EQ(22, test_->read_sequence_stats_.proper_pair_mapping_quality_[42])
+        << "proper_pair_mapping_quality_ wrong in duplicates test\n";
+    EXPECT_EQ(1, test_->read_sequence_stats_.improper_pair_mapping_quality_.size())
         << "improper_pair_mapping_quality_ wrong in duplicates test\n";
-    EXPECT_EQ(2, test_->improper_pair_mapping_quality_[42])
+    EXPECT_EQ(2, test_->read_sequence_stats_.improper_pair_mapping_quality_[42])
         << "improper_pair_mapping_quality_ wrong in duplicates test\n";
-    EXPECT_EQ(0, test_->single_read_mapping_quality_.size())
+    EXPECT_EQ(0, test_->read_sequence_stats_.single_read_mapping_quality_.size())
         << "single_read_mapping_quality_ wrong in duplicates test\n";
 
     // samtools view -q 2 -f 99 ecoli-duplicates.bam | awk '(0 != substr($1,12,1)){system("samtools faidx
@@ -390,26 +395,24 @@ void DataStatsTest::TestCrossDuplicates() {
         << test_->reference_->ReferenceIdFirstPart(1) << " wrong for reference_ in cross duplicates test\n";
 
     CoverageStatsTest::TestCrossDuplicates(test_->coverage_);
-    EXPECT_EQ(0, test_->first_read_records_.size()) << "first_read_records_ wrong for in cross duplicates test\n";
 
     FragmentDistributionStatsTest::TestCrossDuplicates(test_->fragment_distribution_);
     FragmentDuplicationStatsTest::TestCrossDuplicates(test_->duplicates_);
 
-    EXPECT_EQ(0, test_->proper_pair_mapping_quality_.size())
+    EXPECT_EQ(0, test_->read_sequence_stats_.proper_pair_mapping_quality_.size())
         << "proper_pair_mapping_quality_ wrong in cross duplicates test\n";
-    EXPECT_EQ(30, test_->improper_pair_mapping_quality_.size())
+    EXPECT_EQ(30, test_->read_sequence_stats_.improper_pair_mapping_quality_.size())
         << "improper_pair_mapping_quality_ wrong in cross duplicates test\n";
-    EXPECT_EQ(1, test_->improper_pair_mapping_quality_[1])
+    EXPECT_EQ(1, test_->read_sequence_stats_.improper_pair_mapping_quality_[1])
         << "improper_pair_mapping_quality_ wrong in cross duplicates test\n";
-    EXPECT_EQ(7, test_->improper_pair_mapping_quality_[30])
+    EXPECT_EQ(7, test_->read_sequence_stats_.improper_pair_mapping_quality_[30])
         << "improper_pair_mapping_quality_ wrong in cross duplicates test\n";
-    EXPECT_EQ(0, test_->single_read_mapping_quality_.size())
+    EXPECT_EQ(0, test_->read_sequence_stats_.single_read_mapping_quality_.size())
         << "single_read_mapping_quality_ wrong in cross duplicates test\n";
 }
 
 void DataStatsTest::TestCoverage() {
     CoverageStatsTest::TestCoverage(test_->coverage_);
-    EXPECT_EQ(0, test_->first_read_records_.size()) << "first_read_records_ wrong in coverage test\n";
 
     FragmentDistributionStatsTest::TestCoverage(test_->fragment_distribution_);
     QualityStatsTest::TestCoverage(test_->qualities_);
@@ -494,7 +497,7 @@ TEST_F(DataStatsTest, Construction) {
 
     for (int i = 2; i--;) {
         for (int j = 5; j--;) {
-            EXPECT_TRUE(test_->sequence_content_.at(i).at(j).empty())
+            EXPECT_TRUE(test_->read_sequence_stats_.sequence_content_.at(i).at(j).empty())
                 << "Initializing of class member sequence_content_ failed\n";
         }
     }

@@ -234,12 +234,9 @@ TEST_F(RegressionTest, ConvertProfileProbabilitiesRoundTrip) {
     auto profile = GenerateEcoliProfile();
     auto ipf_file = tmp_dir_ / "ecoli-4pairs.reseq.ipf";
 
-    // Generate IPF probabilities from the profile
-    int rc = RunReseq("illuminaPE -r " + (test_dir_ / "ecoli-GCF_000005845.2_ASM584v2_genomic.fa").string() + " -b " +
-                      (test_dir_ / "ecoli-SRR490124-4pairs.bam").string() + " --adapterFile " +
-                      (adapter_dir_ / "TruSeq_single.fa").string() + " --adapterMatrix " +
-                      (adapter_dir_ / "TruSeq_single.mat").string() + " --stopAfterEstimation --noBias -s " +
-                      profile.string() + " -P " + ipf_file.string() + " -j 1");
+    // Generate IPF probabilities from the existing profile (use -s to load stats, not -b)
+    int rc = RunReseq("illuminaPE -r " + (test_dir_ / "ecoli-GCF_000005845.2_ASM584v2_genomic.fa").string() +
+                      " --stopAfterEstimation -s " + profile.string() + " -P " + ipf_file.string() + " -j 1");
     // If IPF generation fails, skip this test (may not converge with 4 pairs)
     if (rc != 0 || !std::filesystem::exists(ipf_file)) {
         GTEST_SKIP() << "IPF generation did not produce output (expected with tiny dataset)";
