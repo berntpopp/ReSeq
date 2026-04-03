@@ -1631,10 +1631,10 @@ class ProbabilityEstimates {
     }
 
     bool Load(const char* archive_file);
-    bool Save(const char* archive_file) const;
+    bool Save(const char* archive_file, bool text_format = false) const;
 
     bool Estimate(const DataStats& stats, uintNumFits max_iterations, double precision_aim, uintNumThreads num_threads,
-                  const char* output, const char* input = "");
+                  const char* output, const char* input = "", bool text_format = false);
 };
 
 } // namespace reseq
