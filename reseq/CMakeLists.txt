@@ -9,6 +9,7 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 # Core library -- all production source except main.cpp and *Test.*
 add_library(reseq_lib STATIC
   AdapterStats.cpp
+  archive_format.cpp
   CoverageStats.cpp
   DataStats.cpp
   DataStatsInterface.cpp
