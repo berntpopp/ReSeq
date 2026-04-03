@@ -100,9 +100,14 @@ class CoverageStats {
         std::atomic_flag scheduled_for_processing_;
         std::atomic<bool> processed_;
 
+        size_t block_idx_;      // Index of this block in blocks_ deque
+        size_t prev_block_idx_; // Index of previous block (SIZE_MAX = null)
+        size_t next_block_idx_; // Index of next block (SIZE_MAX = null)
+
         CoverageBlock(uintRefSeqId seq_id, uintSeqLen start_pos, CoverageBlock* prev_block)
             : sequence_id_(seq_id), start_pos_(start_pos), previous_block_(prev_block), next_block_(nullptr),
-              unprocessed_fragments_(0), first_variant_id_(0) {
+              unprocessed_fragments_(0), first_variant_id_(0),
+              block_idx_(SIZE_MAX), prev_block_idx_(SIZE_MAX), next_block_idx_(SIZE_MAX) {
             scheduled_for_processing_.clear();
             processed_ = false;
         }
@@ -280,6 +285,10 @@ class CoverageStats {
     std::atomic<CoverageBlock*> first_block_;
     std::atomic<CoverageBlock*> last_block_;
     std::vector<std::unique_ptr<CoverageBlock>> reusable_blocks_;
+    std::deque<std::unique_ptr<CoverageBlock>> blocks_; // Indexed block storage
+    std::vector<size_t> free_indices_;                  // Recycled block slots
+    std::atomic<size_t> first_live_idx_{SIZE_MAX};      // Front of live range
+    std::atomic<size_t> last_live_idx_{SIZE_MAX};       // End of live range (publication signal)
 
     uintRefLenCalc zero_coverage_region_;
     uintRefLenCalc excluded_bases_;

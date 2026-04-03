@@ -762,6 +762,10 @@ CoverageStats::CoverageBlock* CoverageStats::RemoveBlock(CoverageBlock* block) {
 void CoverageStats::Prepare(uintCovCount average_coverage, uintReadLen average_read_length,
                             uintReadLen maximum_read_length_on_reference) {
     reusable_blocks_.reserve(100);
+    blocks_.clear();
+    free_indices_.clear();
+    first_live_idx_ = SIZE_MAX;
+    last_live_idx_ = SIZE_MAX;
 
     if (coverage_threshold_ > average_coverage / 4) {
         if (1 < average_coverage / 4) {
