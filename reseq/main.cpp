@@ -79,8 +79,8 @@ int main(int argc, char* argv[]) {
         "Usage:  reseq <command> [options]\n" + "Commands:\n" + "  illuminaPE\t\t" +
         "simulates illumina paired-end data\n" + "  queryProfile\t\t" +
         "queries reseq statistic files for information\n" + "  replaceN\t\t" + "replaces N's in reference\n" +
-        "  seqToIllumina\t\t" + "applies illumina quality and error model to input sequences\n" +
-        "  convertProfile\t" + "converts profiles between text and binary formats\n";
+        "  seqToIllumina\t\t" + "applies illumina quality and error model to input sequences\n" + "  convertProfile\t" +
+        "converts profiles between text and binary formats\n";
 
     int return_code = 0;
     if (0 == unrecognized_opts.size()) {

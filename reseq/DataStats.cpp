@@ -1435,8 +1435,8 @@ bool DataStats::Load(const char* archive_file) {
             break;
         }
         case reseq::format::ArchiveFormat::kUnsupportedBinaryVersion:
-            printErr << "Unsupported profile format version in '" << archive_file
-                     << "'. Please upgrade ReSeq." << std::endl;
+            printErr << "Unsupported profile format version in '" << archive_file << "'. Please upgrade ReSeq."
+                     << std::endl;
             return false;
         }
     } catch (const exception& e) {

@@ -1094,8 +1094,8 @@ bool ProbabilityEstimates::Load(const char* archive_file) {
             break;
         }
         case reseq::format::ArchiveFormat::kUnsupportedBinaryVersion:
-            printErr << "Unsupported probability format version in '" << archive_file
-                     << "'. Please upgrade ReSeq." << std::endl;
+            printErr << "Unsupported probability format version in '" << archive_file << "'. Please upgrade ReSeq."
+                     << std::endl;
             return false;
         }
     } catch (const exception& e) {

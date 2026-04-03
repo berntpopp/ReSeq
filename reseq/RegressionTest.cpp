@@ -250,9 +250,7 @@ TEST_F(RegressionTest, UnsupportedVersionError) {
     EXPECT_NE(0, rc) << "Unsupported version should fail";
 
     std::string err = RunReseqCaptureStderr("queryProfile -s " + bad_file.string() + " --maxReadLength");
-    EXPECT_NE(std::string::npos, err.find("Unsupported"))
-        << "Error should mention unsupported version, got:\n"
-        << err;
+    EXPECT_NE(std::string::npos, err.find("Unsupported")) << "Error should mention unsupported version, got:\n" << err;
 }
 
 } // namespace reseq
