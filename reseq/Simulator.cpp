@@ -36,7 +36,6 @@ using std::runtime_error;
 using std::stoi;
 using std::string;
 #include <thread>
-using std::thread;
 // include <utility>
 using std::pair;
 // include <vector>
@@ -241,7 +240,7 @@ bool Simulator::Output(const SimPair& sim_reads) {
 
 inline void Simulator::IncrementBlockPos(uintSeqLen& block_pos, const SimBlock*& block, intVariantId& cur_var) {
     if (block->sys_errors_.size() <= ++block_pos) {
-        block = block->next_block_;
+        block = blocks_[block->next_block_idx_].get();
         block_pos = 0;
         cur_var = 0;
     }
@@ -386,7 +385,7 @@ bool Simulator::FillReadPart(SimRead& sim_read, uintTempSeq template_segment, ui
                     var_pos = 0;
                 }
                 if (0 == var_pos && block->sys_errors_.size() <= ++block_pos) {
-                    block = block->next_block_;
+                    block = blocks_[block->next_block_idx_].get();
                     block_pos = 0;
                     cur_var = 0;
                 }
@@ -645,9 +644,10 @@ bool Simulator::CreateReads(const Reference& ref, const DataStats& stats, const 
     const SimBlock* end_block = start_block;
     if (start_block) {
         while (end_block->start_pos_ + end_block->sys_errors_.size() < end_position_forward) {
-            end_block = end_block->next_block_;
+            end_block = blocks_[end_block->next_block_idx_].get();
         }
-        end_block = end_block->partner_block_; // Second read is reversed, so we need the reversed block
+        end_block =
+            blocks_[end_block->partner_block_idx_].get(); // Second read is reversed, so we need the reversed block
     }
 
     // Define values for this reference position
@@ -930,19 +930,22 @@ void Simulator::SetSystematicErrorVariantsReverse(uintSeqLen& start_dist_error_r
 }
 
 bool Simulator::CreateUnit(uintRefSeqId ref_id, uintRefSeqBin first_block_id, Reference& ref, const DataStats& stats,
-                           const ProbabilityEstimates& estimates, SimBlock*& first_reverse_block, SimUnit*& unit) {
-    unit = new SimUnit(ref_id);
-    // at the end of the function block will be filled with the reverse block at the beginning of the reference sequence
+                           const ProbabilityEstimates& estimates, size_t& first_reverse_block_idx, size_t& unit_idx) {
+    unit_idx = AllocUnit(ref_id);
+    auto* unit = units_[unit_idx].get();
+    // at the end of the function first_reverse_block_idx will point to the reverse block at the beginning of the ref
+    // seq
 
     // Create all blocks for the reverse strand of the unit
-    auto block = new SimBlock(first_block_id, 0, nullptr, block_seed_gen_());
-    first_reverse_block = block;
-    auto old_block(block);
-    while (block->start_pos_ + kBlockSize < ref.SequenceLength(ref_id)) {
-        block = new SimBlock(block->id_ + 1, block->start_pos_ + kBlockSize, nullptr, block_seed_gen_());
-        block->next_block_ = old_block;    // Reverse direction
-        old_block->partner_block_ = block; // partner_block_ is previous block for reverse strand
-        old_block = block;
+    size_t block_idx = AllocBlock(first_block_id, 0, SIZE_MAX, block_seed_gen_());
+    first_reverse_block_idx = block_idx;
+    size_t old_block_idx = block_idx;
+    while (blocks_[block_idx]->start_pos_ + kBlockSize < ref.SequenceLength(ref_id)) {
+        block_idx = AllocBlock(blocks_[old_block_idx]->id_ + 1, blocks_[old_block_idx]->start_pos_ + kBlockSize,
+                               SIZE_MAX, block_seed_gen_());
+        blocks_[block_idx]->next_block_idx_ = old_block_idx;    // Reverse direction
+        blocks_[old_block_idx]->partner_block_idx_ = block_idx; // partner_block_ is previous block for reverse strand
+        old_block_idx = block_idx;
     }
 
     // Load reverse record for next sequence from systematic error file if given
@@ -969,17 +972,18 @@ bool Simulator::CreateUnit(uintRefSeqId ref_id, uintRefSeqBin first_block_id, Re
 
         // Assign last variant (first in reverse direction) to each reverse block
         intVariantId first_var = 0;
-        auto var_block = first_reverse_block;
-        while (var_block->partner_block_) {
+        size_t var_block_idx = first_reverse_block_idx;
+        while (blocks_[var_block_idx]->partner_block_idx_ != SIZE_MAX) {
             while (first_var < ref.Variants(unit->ref_seq_id_).size() &&
-                   ref.Variants(unit->ref_seq_id_).at(first_var).position_ < var_block->start_pos_ + kBlockSize) {
+                   ref.Variants(unit->ref_seq_id_).at(first_var).position_ <
+                       blocks_[var_block_idx]->start_pos_ + kBlockSize) {
                 ++first_var;
             }
 
-            var_block->first_variant_id_ = first_var - 1;
-            var_block = var_block->partner_block_;
+            blocks_[var_block_idx]->first_variant_id_ = first_var - 1;
+            var_block_idx = blocks_[var_block_idx]->partner_block_idx_;
         }
-        var_block->first_variant_id_ = ref.Variants(unit->ref_seq_id_).size() - 1;
+        blocks_[var_block_idx]->first_variant_id_ = ref.Variants(unit->ref_seq_id_).size() - 1;
     }
 
     if (ref.MethylationLoaded()) {
@@ -992,41 +996,44 @@ bool Simulator::CreateUnit(uintRefSeqId ref_id, uintRefSeqBin first_block_id, Re
 
         // Assign last methylation region (first in reverse direction) to each reverse block
         intVariantId first_meth = 0;
-        auto meth_block = first_reverse_block;
-        while (meth_block->partner_block_) {
+        size_t meth_block_idx = first_reverse_block_idx;
+        while (blocks_[meth_block_idx]->partner_block_idx_ != SIZE_MAX) {
             while (first_meth < ref.UnmethylatedRegions(unit->ref_seq_id_).size() &&
                    ref.UnmethylatedRegions(unit->ref_seq_id_).at(first_meth).first <
-                       meth_block->start_pos_ + kBlockSize) {
+                       blocks_[meth_block_idx]->start_pos_ + kBlockSize) {
                 ++first_meth;
             }
 
-            meth_block->first_methylation_id_ = first_meth - 1;
-            meth_block = meth_block->partner_block_;
+            blocks_[meth_block_idx]->first_methylation_id_ = first_meth - 1;
+            meth_block_idx = blocks_[meth_block_idx]->partner_block_idx_;
         }
-        meth_block->first_methylation_id_ = ref.UnmethylatedRegions(unit->ref_seq_id_).size() - 1;
+        blocks_[meth_block_idx]->first_methylation_id_ = ref.UnmethylatedRegions(unit->ref_seq_id_).size() - 1;
     }
 
     // Set sytematic error for all reverse blocks of the unit
+    // block_idx currently points to the last-created reverse block (highest start_pos)
     ConstDna5StringReverseComplement reversed_ref(ref.ReferenceSequence(ref_id));
     ResetSystematicErrorCounters(ref);
-    uintSeqLen start_pos(0), end_pos(ref.SequenceLength(unit->ref_seq_id_) - block->start_pos_);
-    while (block) {
-        block->sys_errors_.reserve(end_pos - start_pos);
+    uintSeqLen start_pos(0), end_pos(ref.SequenceLength(unit->ref_seq_id_) - blocks_[block_idx]->start_pos_);
+    size_t walk_idx = block_idx;
+    while (walk_idx != SIZE_MAX) {
+        auto* blk = blocks_[walk_idx].get();
+        blk->sys_errors_.reserve(end_pos - start_pos);
         if (sys_from_file_) {
-            ReadSystematicErrors(block->sys_errors_, start_pos, end_pos);
-            SetSystematicErrorVariantsReverse(distance_to_start_of_error_region_, start_error_rate_, *block,
-                                              unit->ref_seq_id_, block->start_pos_, ref, stats, estimates);
+            ReadSystematicErrors(blk->sys_errors_, start_pos, end_pos);
+            SetSystematicErrorVariantsReverse(distance_to_start_of_error_region_, start_error_rate_, *blk,
+                                              unit->ref_seq_id_, blk->start_pos_, ref, stats, estimates);
         } else {
             auto tmp_distance_to_start_of_error_region = distance_to_start_of_error_region_;
             auto tmp_start_error_rate = start_error_rate_;
-            SetSystematicErrors(block->sys_errors_, reversed_ref, start_pos, end_pos, stats, estimates);
-            SetSystematicErrorVariantsReverse(tmp_distance_to_start_of_error_region, tmp_start_error_rate, *block,
-                                              unit->ref_seq_id_, block->start_pos_, ref, stats, estimates);
+            SetSystematicErrors(blk->sys_errors_, reversed_ref, start_pos, end_pos, stats, estimates);
+            SetSystematicErrorVariantsReverse(tmp_distance_to_start_of_error_region, tmp_start_error_rate, *blk,
+                                              unit->ref_seq_id_, blk->start_pos_, ref, stats, estimates);
         }
 
         start_pos = end_pos;
         end_pos += kBlockSize;
-        block = block->next_block_;
+        walk_idx = blk->next_block_idx_;
     }
 
     ResetSystematicErrorCounters(
@@ -1208,28 +1215,29 @@ void Simulator::SkipSequencesShorterThanMinFragLen(uintRefSeqId& ref_id, const R
 }
 
 bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const ProbabilityEstimates& estimates) {
-    SimBlock* block;
-    SimUnit* unit;
+    size_t block_idx;
+    size_t unit_idx;
 
     // Create new block
-    if (!last_unit_) {
+    if (last_unit_idx_ == SIZE_MAX) {
         // Create first unit
         if (ref.NumberSequences()) {
             // Take first reference sequence that is long enough
             uintRefSeqId ref_id = 0;
             SkipSequencesShorterThanMinFragLen(ref_id, ref, stats.FragmentDistribution().InsertLengths());
             if (ref.NumberSequences() > ref_id) {
-                if (!CreateUnit(ref_id, 0, ref, stats, estimates, block, unit)) {
+                size_t first_rev_idx;
+                if (!CreateUnit(ref_id, 0, ref, stats, estimates, first_rev_idx, unit_idx)) {
                     return false;
                 }
-                block = new SimBlock(1, 0, block, block_seed_gen_());
+                block_idx = AllocBlock(1, 0, first_rev_idx, block_seed_gen_());
 
-                first_unit_ = unit;
-                last_unit_ = unit;
-                current_unit_ = unit;
-                unit->first_block_ = block;
-                unit->last_block_ = block;
-                current_block_ = block;
+                first_unit_idx_ = unit_idx;
+                last_unit_idx_ = unit_idx;
+                current_unit_idx_ = unit_idx;
+                units_[unit_idx]->first_block_idx_ = block_idx;
+                units_[unit_idx]->last_block_idx_ = block_idx;
+                current_block_idx_ = block_idx;
             } else {
                 // There is no reference sequence that is long enough
                 printErr << "All reference sequences are too short for simulating. They should have at least "
@@ -1242,53 +1250,62 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
             return false;
         }
     } else {
-        if (last_unit_->last_block_->start_pos_ + kBlockSize >= ref.SequenceLength(last_unit_->ref_seq_id_)) {
+        auto* last_unit = units_[last_unit_idx_].get();
+        auto* last_block = blocks_[last_unit->last_block_idx_].get();
+        if (last_block->start_pos_ + kBlockSize >= ref.SequenceLength(last_unit->ref_seq_id_)) {
             // Create next unit as the current one is completed: Go to the next reference sequence that is long enough
             // if exists
-            uintRefSeqId ref_id = last_unit_->ref_seq_id_ + 1;
+            uintRefSeqId ref_id = last_unit->ref_seq_id_ + 1;
             SkipSequencesShorterThanMinFragLen(ref_id, ref, stats.FragmentDistribution().InsertLengths());
             if (ref.NumberSequences() > ref_id) {
-                if (!CreateUnit(ref_id, last_unit_->last_block_->id_ + 1, ref, stats, estimates, block, unit)) {
-                    current_unit_ = nullptr;
+                size_t first_rev_idx;
+                if (!CreateUnit(ref_id, last_block->id_ + 1, ref, stats, estimates, first_rev_idx, unit_idx)) {
+                    current_unit_idx_ = SIZE_MAX;
                     return false;
                 }
-                block = new SimBlock(last_unit_->last_block_->id_ + 1, 0, block, block_seed_gen_());
+                block_idx = AllocBlock(last_block->id_ + 1, 0, first_rev_idx, block_seed_gen_());
 
-                last_unit_->next_unit_ = unit;
-                last_unit_ = unit;
-                unit->first_block_ = block;
-                unit->last_block_ = block;
+                last_unit->next_unit_idx_ = unit_idx;
+                last_unit_idx_ = unit_idx;
+                units_[unit_idx]->first_block_idx_ = block_idx;
+                units_[unit_idx]->last_block_idx_ = block_idx;
             } else {
                 // No new reference sequence anymore: Simulation is complete
                 return false;
             }
         } else {
             // The new block can be created in the current unit
-            unit = last_unit_;
+            unit_idx = last_unit_idx_;
 
-            block = new SimBlock(unit->last_block_->id_ + 1, unit->last_block_->start_pos_ + kBlockSize,
-                                 unit->last_block_->partner_block_->partner_block_, block_seed_gen_());
+            // Partner chain: last_block -> partner(reverse) -> partner(reverse's partner) = next reverse block
+            size_t last_partner_idx = last_block->partner_block_idx_;
+            size_t partner_partner_idx = blocks_[last_partner_idx]->partner_block_idx_;
+            block_idx = AllocBlock(last_block->id_ + 1, last_block->start_pos_ + kBlockSize, partner_partner_idx,
+                                   block_seed_gen_());
             if (ref.VariantsLoaded()) {
                 // Find first variant that is in the new block (or one of the upcoming ones in case this block does not
                 // have variation), which is one after the last variant(reverse first) of the previous block
-                block->first_variant_id_ = unit->last_block_->partner_block_->first_variant_id_ + 1;
+                blocks_[block_idx]->first_variant_id_ = blocks_[last_partner_idx]->first_variant_id_ + 1;
             }
             if (ref.MethylationLoaded()) {
                 // Find first methylation region that is in the new block (or one of the upcoming ones in case this
                 // block does not have methylation)
-                block->first_methylation_id_ = unit->last_block_->partner_block_->first_methylation_id_;
-                if (0 > block->first_methylation_id_ ||
-                    ref.UnmethylatedRegions(unit->ref_seq_id_).at(block->first_methylation_id_).second <=
-                        block->start_pos_) {
-                    ++block->first_methylation_id_;
+                blocks_[block_idx]->first_methylation_id_ = blocks_[last_partner_idx]->first_methylation_id_;
+                if (0 > blocks_[block_idx]->first_methylation_id_ ||
+                    ref.UnmethylatedRegions(units_[unit_idx]->ref_seq_id_)
+                            .at(blocks_[block_idx]->first_methylation_id_)
+                            .second <= blocks_[block_idx]->start_pos_) {
+                    ++blocks_[block_idx]->first_methylation_id_;
                 }
             }
-            unit->last_block_->next_block_ = block;
-            unit->last_block_ = block;
+            last_block->next_block_idx_ = block_idx;
+            last_unit->last_block_idx_ = block_idx;
         }
     }
 
     if (!simulation_error_) {
+        auto* block = blocks_[block_idx].get();
+        auto* unit = units_[unit_idx].get();
         // Set systematic errors for new block
         auto end_pos = min(block->start_pos_ + kBlockSize, ref.SequenceLength(unit->ref_seq_id_));
         block->sys_errors_.reserve(end_pos - block->start_pos_);
@@ -1305,48 +1322,53 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
                                               unit->ref_seq_id_, end_pos, ref, stats, estimates);
         }
 
-        // Delete old blocks and units that are not needed anymore
-        SimBlock* del_block(first_unit_->first_block_);
-        SimUnit* del_unit(first_unit_);
-        while (del_block->finished_) {
-            if (first_unit_->first_block_->next_block_) {
-                first_unit_->first_block_ = first_unit_->first_block_->next_block_;
-            } else if (first_unit_->next_unit_ && first_unit_->next_unit_->first_block_) {
-                first_unit_ = first_unit_->next_unit_;
-                ref.ClearVariants(del_unit->ref_seq_id_ + 1);
-                ref.ClearMethylation(del_unit->ref_seq_id_ + 1);
-                delete del_unit;
-                del_unit = first_unit_;
+        // Release old blocks and units that are not needed anymore
+        auto* first_unit = units_[first_unit_idx_].get();
+        size_t del_block_idx = first_unit->first_block_idx_;
+        size_t del_unit_idx = first_unit_idx_;
+        while (blocks_[del_block_idx]->finished_) {
+            if (blocks_[del_block_idx]->next_block_idx_ != SIZE_MAX) {
+                first_unit->first_block_idx_ = blocks_[del_block_idx]->next_block_idx_;
+            } else if (first_unit->next_unit_idx_ != SIZE_MAX &&
+                       units_[first_unit->next_unit_idx_]->first_block_idx_ != SIZE_MAX) {
+                size_t old_unit_idx = first_unit_idx_;
+                first_unit_idx_ = first_unit->next_unit_idx_;
+                first_unit = units_[first_unit_idx_].get();
+                ref.ClearVariants(units_[old_unit_idx]->ref_seq_id_ + 1);
+                ref.ClearMethylation(units_[old_unit_idx]->ref_seq_id_ + 1);
+                FreeUnit(old_unit_idx);
+                del_unit_idx = first_unit_idx_;
             } else {
                 printErr << "Ran out of simulation blocks, but simulation is not complete.";
                 simulation_error_ = true;
-                current_unit_ = nullptr;
+                current_unit_idx_ = SIZE_MAX;
                 return false;
             }
 
-            delete del_block->partner_block_;
-            delete del_block;
-            del_block = first_unit_->first_block_;
+            FreeBlock(blocks_[del_block_idx]->partner_block_idx_);
+            size_t next_del = first_unit->first_block_idx_;
+            FreeBlock(del_block_idx);
+            del_block_idx = next_del;
         }
 
         return true;
     } else {
-        // simulation_error_ was set by another thread — skip systematic error setup
+        // simulation_error_ was set by another thread -- skip systematic error setup
         // and signal the caller to stop. Block cleanup happens in Finalize().
-        current_unit_ = nullptr;
+        current_unit_idx_ = SIZE_MAX;
         return false;
     }
 }
 
 bool Simulator::GetNextBlock(Reference& ref, const DataStats& stats, const ProbabilityEstimates& estimates,
-                             SimBlock*& block, SimUnit*& unit) {
+                             size_t& out_block_idx, size_t& out_unit_idx) {
     // See if we can already read in more variants, so we are always one reference sequence ahead of the simulation
-    if (!ref.VariantsCompletelyLoaded() && current_unit_ &&
-        !ref.VariantsLoadedForSequence(current_unit_->ref_seq_id_ + 2)) {
+    if (!ref.VariantsCompletelyLoaded() && current_unit_idx_ != SIZE_MAX &&
+        !ref.VariantsLoadedForSequence(units_[current_unit_idx_]->ref_seq_id_ + 2)) {
         if (std::unique_lock lock(var_read_mutex_, std::try_to_lock); lock.owns_lock()) {
             uintSeqLen max_del_shift = 0;
             if (!ref.ReadVariants(
-                    max_del_shift, current_unit_->ref_seq_id_ + 2,
+                    max_del_shift, units_[current_unit_idx_]->ref_seq_id_ + 2,
                     2 * stats.MaxReadLenOnReference())) { // Use twice the read length to be absolutely sure, because
                                                           // the InDel distribution in the simulation is not necessary
                                                           // exactly the same as in the real data
@@ -1356,10 +1378,10 @@ bool Simulator::GetNextBlock(Reference& ref, const DataStats& stats, const Proba
         }
     }
 
-    if (!ref.MethylationCompletelyLoaded() && current_unit_ &&
-        !ref.MethylationLoadedForSequence(current_unit_->ref_seq_id_ + 2)) {
+    if (!ref.MethylationCompletelyLoaded() && current_unit_idx_ != SIZE_MAX &&
+        !ref.MethylationLoadedForSequence(units_[current_unit_idx_]->ref_seq_id_ + 2)) {
         if (std::unique_lock lock(methylation_read_mutex_, std::try_to_lock); lock.owns_lock()) {
-            if (!ref.ReadMethylation(current_unit_->ref_seq_id_ + 2)) {
+            if (!ref.ReadMethylation(units_[current_unit_idx_]->ref_seq_id_ + 2)) {
                 return false;
             }
         }
@@ -1371,24 +1393,24 @@ bool Simulator::GetNextBlock(Reference& ref, const DataStats& stats, const Proba
     CreateBlock(ref, stats, estimates);
     CheckDeletionBuffer(ref, stats, estimates);
 
-    if (!current_unit_) {
+    if (current_unit_idx_ == SIZE_MAX) {
         // No new reference sequence anymore: Simulation is complete
         return false;
     }
 
     // Set block and unit to simulate from
-    unit = current_unit_;
-    block = current_block_;
+    out_unit_idx = current_unit_idx_;
+    out_block_idx = current_block_idx_;
 
     // Find the next block for next time
-    if (current_block_->next_block_) {
+    if (blocks_[current_block_idx_]->next_block_idx_ != SIZE_MAX) {
         // Still blocks available in the current unit
-        current_block_ = current_block_->next_block_;
+        current_block_idx_ = blocks_[current_block_idx_]->next_block_idx_;
     } else {
         // No new blocks in current unit: Get next unit if exists
-        current_unit_ = current_unit_->next_unit_;
-        if (current_unit_) {
-            current_block_ = current_unit_->first_block_;
+        current_unit_idx_ = units_[current_unit_idx_]->next_unit_idx_;
+        if (current_unit_idx_ != SIZE_MAX) {
+            current_block_idx_ = units_[current_unit_idx_]->first_block_idx_;
         }
     }
 
@@ -2522,15 +2544,16 @@ bool Simulator::SimulateAdapterOnlyPairs(const Reference& ref, const DataStats& 
 void Simulator::SimulationThread(Simulator& self, Reference& ref, const DataStats& stats,
                                  const ProbabilityEstimates& estimates) {
     mt19937_64 rgen;
-    SimBlock* block;
-    SimUnit* unit;
+    size_t block_idx;
+    size_t unit_idx;
     GeneralRandomDistributions rdist(stats);
 
-    while (!self.simulation_error_ && self.GetNextBlock(ref, stats, estimates, block, unit)) {
+    while (!self.simulation_error_ && self.GetNextBlock(ref, stats, estimates, block_idx, unit_idx)) {
         // As long as there are new blocks to simulate from, simulate
         rdist.Reset();
-        self.SimulateFromGivenBlock(*block, *unit, ref, stats, estimates, rdist, rgen);
-        block->finished_ = true;
+        self.SimulateFromGivenBlock(*self.blocks_[block_idx], *self.units_[unit_idx], ref, stats, estimates, rdist,
+                                    rgen);
+        self.blocks_[block_idx]->finished_ = true;
     }
 
     // Adapters are positioned after all blocks are created to avoid a race condition with the first block to guarantee
@@ -2546,7 +2569,7 @@ bool Simulator::ApplyErrorsAndQualityToFastaInput(StringSet<CharString>& input_i
                                                   GeneralRandomDistributions& rdist, mt19937_64& rgen,
                                                   const DataStats& stats, const ProbabilityEstimates& estimates) {
     SimRead sim_read;
-    SimBlock block(0, 0, nullptr, 0);
+    SimBlock block(0, 0, SIZE_MAX, 0);
     stringstream readid_stream(std::ios_base::in | std::ios_base::out | std::ios_base::ate);
 
     for (uintFragCount i = 0; i < length(input_ids); ++i) {
@@ -2737,7 +2760,7 @@ bool Simulator::WriteOutSystematicErrorProfile(const string& id, vector<pair<Dna
     return true;
 }
 
-Simulator::Simulator() : written_records_(0), last_unit_(nullptr), deletion_buffer_(0), rdist_zero_to_one_(0, 1) {
+Simulator::Simulator() : written_records_(0), deletion_buffer_(0), rdist_zero_to_one_(0, 1) {
     req_deletion_buffer_ = 0;
 }
 
@@ -2972,13 +2995,15 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
 
                     printInfo << "Starting read generation" << std::endl;
 
-                    thread threads[num_threads];
-                    for (auto i = num_threads; i--;) {
-                        threads[i] = thread(SimulationThread, std::ref(*this), std::ref(ref), std::cref(stats),
-                                            std::cref(estimates));
-                    }
-                    for (auto i = num_threads; i--;) {
-                        threads[i].join();
+                    {
+                        std::vector<std::jthread> threads;
+                        threads.reserve(num_threads);
+                        for (auto i = num_threads; i--;) {
+                            threads.emplace_back([this, &ref, &stats, &estimates](std::stop_token) {
+                                SimulationThread(*this, ref, stats, estimates);
+                            });
+                        }
+                        // jthread destructors join on scope exit
                     }
                 } else {
                     simulation_error_ = true;
@@ -2992,30 +3017,15 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
             output_mutex_.lock();
             this->Flush(); // Flush out all sequences that have not been written to disc yet
 
-            // Clean up left over blocks and units
-            if (first_unit_) {
-                SimBlock* del_block(first_unit_->first_block_);
-                SimUnit* del_unit(first_unit_);
-                while (del_block) {
-                    if (first_unit_->first_block_->next_block_) {
-                        first_unit_->first_block_ = first_unit_->first_block_->next_block_;
-                    } else if (first_unit_->next_unit_) {
-                        first_unit_ = first_unit_->next_unit_;
-                        delete del_unit;
-                        del_unit = first_unit_;
-                    } else {
-                        // Terminate loop
-                        first_unit_->first_block_ = nullptr;
-                    }
-
-                    delete del_block->partner_block_;
-                    delete del_block;
-                    del_block = first_unit_->first_block_;
-                }
-                delete del_unit;
-                first_unit_ = nullptr;
-                last_unit_ = nullptr;
-            }
+            // Clean up left over blocks and units — just clear the deques
+            blocks_.clear();
+            units_.clear();
+            free_block_indices_.clear();
+            free_unit_indices_.clear();
+            first_unit_idx_ = SIZE_MAX;
+            last_unit_idx_ = SIZE_MAX;
+            current_unit_idx_ = SIZE_MAX;
+            current_block_idx_ = SIZE_MAX;
         }
 
         close(dest_.at(0));
@@ -3126,13 +3136,15 @@ bool Simulator::SimulateErrorModelOnly(const string& destination_file, const str
     if (!simulation_error_) {
         printInfo << "Starting read generation" << std::endl;
 
-        thread threads[num_threads];
-        for (auto i = num_threads; i--;) {
-            threads[i] = thread(ErrorModelOnlyThread, std::ref(*this), std::ref(org_seq_reader), std::cref(stats),
-                                std::cref(estimates));
-        }
-        for (auto i = num_threads; i--;) {
-            threads[i].join();
+        {
+            std::vector<std::jthread> threads;
+            threads.reserve(num_threads);
+            for (auto i = num_threads; i--;) {
+                threads.emplace_back([this, &org_seq_reader, &stats, &estimates](std::stop_token) {
+                    ErrorModelOnlyThread(*this, org_seq_reader, stats, estimates);
+                });
+            }
+            // jthread destructors join on scope exit
         }
 
         if (simulation_error_) {

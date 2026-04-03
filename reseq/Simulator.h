@@ -102,56 +102,42 @@ class Simulator {
         }
     };
 
-    // OWNERSHIP MODEL (Phase 3 documentation):
-    // SimBlock and SimUnit form intrusive singly-linked lists managed by Simulator.
-    // - SimUnit owns its chain of SimBlocks (first_block_ through next_block_ links).
-    //   Blocks are allocated with `new` in CreateRefSeqBlocks/Initialize and deleted
-    //   by walking the chain in HandleFinishedBlocks/Finalize.
-    // - Simulator owns its chain of SimUnits (first_unit_ through next_unit_ links).
-    //   Units are allocated in CreateRefSeqBlocks and deleted alongside their blocks.
-    // - partner_block_ is a non-owning cross-reference between forward/reverse block chains.
-    // - next_block_ is atomic for lock-free concurrent access during simulation.
-    // NOTE: Converting these linked lists to unique_ptr requires a container redesign
-    //   (e.g., std::deque or segmented vector) due to atomic next pointers and concurrent
-    //   traversal patterns. Deferred to Phase 4 (concurrency modernization).
+    // OWNERSHIP MODEL (Phase 4):
+    // SimBlock and SimUnit are owned by deque<unique_ptr<>> containers in Simulator.
+    // Chains are represented by index fields (next_block_idx_, partner_block_idx_, etc.)
+    // with SIZE_MAX as the null sentinel. A free-list enables index reuse after cleanup.
     struct SimBlock {
         const uintRefSeqBin id_;
         const uintSeqLen start_pos_;
         std::atomic<bool>
             finished_; // In forward direction it stores that the simulation is finished and the block can be removed,
                        // in reverse direction it stores that a thread is already processing this block pair
-        std::atomic<SimBlock*> next_block_; // Owning pointer to next block in chain (see ownership model above)
-        SimBlock* partner_block_;           // Non-owning cross-reference to corresponding block in
-                                            // forward/reverse direction
         uintSeed seed_;
         std::vector<std::pair<seqan::Dna5, uintPercent>> sys_errors_; // sys_errors_[pos] = {domError, errorRate}
         std::vector<SysErrorVariant> err_variants_;
         intVariantId first_variant_id_;
         intVariantId first_methylation_id_;
         size_t block_idx_;         // Index in blocks_ deque
-        size_t next_block_idx_;    // Index of next block (SIZE_MAX = null) — will replace atomic next_block_
-        size_t partner_block_idx_; // Index of partner block (SIZE_MAX = null) — will replace partner_block_
+        size_t next_block_idx_;    // Index of next block (SIZE_MAX = null)
+        size_t partner_block_idx_; // Index of partner block (SIZE_MAX = null)
 
-        SimBlock(uintRefSeqBin id, uintSeqLen start_pos, SimBlock* partner_block, uintSeed seed)
-            : id_(id), start_pos_(start_pos), finished_(false), next_block_(nullptr), partner_block_(partner_block),
-              seed_(seed), first_variant_id_(0), first_methylation_id_(0),
-              block_idx_(SIZE_MAX), next_block_idx_(SIZE_MAX), partner_block_idx_(SIZE_MAX) {}
+        SimBlock(uintRefSeqBin id, uintSeqLen start_pos, size_t partner_block_idx, uintSeed seed)
+            : id_(id), start_pos_(start_pos), finished_(false), seed_(seed), first_variant_id_(0),
+              first_methylation_id_(0), block_idx_(SIZE_MAX), next_block_idx_(SIZE_MAX),
+              partner_block_idx_(partner_block_idx) {}
     };
 
     // See ownership model comment above SimBlock.
     struct SimUnit {
         const uintRefSeqId ref_seq_id_;
-        SimBlock* first_block_; // Owning pointer to first block in this unit's chain
-        SimBlock* last_block_;  // Non-owning pointer to last block (for O(1) append)
-        SimUnit* next_unit_;    // Owning pointer to next unit in the Simulator's chain
-        size_t unit_idx_;       // Index in units_ deque
-        size_t first_block_idx_; // Index of first block — will replace first_block_
-        size_t last_block_idx_;  // Index of last block — will replace last_block_
-        size_t next_unit_idx_;   // Index of next unit — will replace next_unit_
+        size_t unit_idx_;        // Index in units_ deque
+        size_t first_block_idx_; // Index of first block in this unit's chain
+        size_t last_block_idx_;  // Index of last block (for O(1) append)
+        size_t next_unit_idx_;   // Index of next unit in the Simulator's chain
 
         SimUnit(uintRefSeqId ref_seq_id)
-            : ref_seq_id_(ref_seq_id), first_block_(nullptr), last_block_(nullptr), next_unit_(nullptr),
-              unit_idx_(SIZE_MAX), first_block_idx_(SIZE_MAX), last_block_idx_(SIZE_MAX), next_unit_idx_(SIZE_MAX) {}
+            : ref_seq_id_(ref_seq_id), unit_idx_(SIZE_MAX), first_block_idx_(SIZE_MAX), last_block_idx_(SIZE_MAX),
+              next_unit_idx_(SIZE_MAX) {}
     };
 
     class GeneralRandomDistributions {
@@ -283,17 +269,13 @@ class Simulator {
     std::atomic<uintFragCount> written_records_;
     std::string record_base_identifier_;
 
-    SimUnit* first_unit_;
-    SimUnit* last_unit_;
-    SimUnit* current_unit_;
-    SimBlock* current_block_;
     uintRefSeqBin deletion_buffer_; // If we have long deletions we need to add additional blocks as buffer to ensure
                                     // that the end of a fragment lies in a valid block
     std::atomic<uintRefSeqBin> req_deletion_buffer_; // Request this size for the deletion buffer
-    std::deque<SimBlock> blocks_;                 // Indexed block storage (value semantics)
-    std::deque<SimUnit> units_;                   // Indexed unit storage (value semantics)
-    std::vector<size_t> free_block_indices_;      // Recycled block slots
-    std::vector<size_t> free_unit_indices_;       // Recycled unit slots
+    std::deque<std::unique_ptr<SimBlock>> blocks_;   // Indexed block storage (owns all SimBlocks)
+    std::deque<std::unique_ptr<SimUnit>> units_;     // Indexed unit storage (owns all SimUnits)
+    std::vector<size_t> free_block_indices_;         // Recycled block slots
+    std::vector<size_t> free_unit_indices_;          // Recycled unit slots
     size_t first_unit_idx_{SIZE_MAX};
     size_t last_unit_idx_{SIZE_MAX};
     size_t current_unit_idx_{SIZE_MAX};
@@ -468,7 +450,7 @@ class Simulator {
                                            const Reference& ref, const DataStats& stats,
                                            const ProbabilityEstimates& estimates);
     bool CreateUnit(uintRefSeqId ref_id, uintRefSeqBin first_block_id, Reference& ref, const DataStats& stats,
-                    const ProbabilityEstimates& estimates, SimBlock*& first_reverse_block, SimUnit*& unit);
+                    const ProbabilityEstimates& estimates, size_t& first_reverse_block_idx, size_t& unit_idx);
     void SetSystematicErrorVariantsForward(uintSeqLen& start_dist_error_region, uintPercent& start_rate,
                                            SimBlock& block, uintRefSeqId ref_seq_id, uintSeqLen end_pos,
                                            const Reference& ref, const DataStats& stats,
@@ -490,9 +472,47 @@ class Simulator {
             ++deletion_buffer_;
         }
     }
+    // Allocate a new SimBlock in the deque (reusing free-list slots when available)
+    size_t AllocBlock(uintRefSeqBin id, uintSeqLen start_pos, size_t partner_block_idx, uintSeed seed) {
+        size_t idx;
+        if (!free_block_indices_.empty()) {
+            idx = free_block_indices_.back();
+            free_block_indices_.pop_back();
+            blocks_[idx] = std::make_unique<SimBlock>(id, start_pos, partner_block_idx, seed);
+        } else {
+            idx = blocks_.size();
+            blocks_.push_back(std::make_unique<SimBlock>(id, start_pos, partner_block_idx, seed));
+        }
+        blocks_[idx]->block_idx_ = idx;
+        return idx;
+    }
+    // Allocate a new SimUnit in the deque (reusing free-list slots when available)
+    size_t AllocUnit(uintRefSeqId ref_seq_id) {
+        size_t idx;
+        if (!free_unit_indices_.empty()) {
+            idx = free_unit_indices_.back();
+            free_unit_indices_.pop_back();
+            units_[idx] = std::make_unique<SimUnit>(ref_seq_id);
+        } else {
+            idx = units_.size();
+            units_.push_back(std::make_unique<SimUnit>(ref_seq_id));
+        }
+        units_[idx]->unit_idx_ = idx;
+        return idx;
+    }
+    // Release a block back to the free list
+    void FreeBlock(size_t idx) {
+        blocks_[idx].reset();
+        free_block_indices_.push_back(idx);
+    }
+    // Release a unit back to the free list
+    void FreeUnit(size_t idx) {
+        units_[idx].reset();
+        free_unit_indices_.push_back(idx);
+    }
     bool CreateBlock(Reference& ref, const DataStats& stats, const ProbabilityEstimates& estimates);
-    bool GetNextBlock(Reference& ref, const DataStats& stats, const ProbabilityEstimates& estimates, SimBlock*& block,
-                      SimUnit*& unit);
+    bool GetNextBlock(Reference& ref, const DataStats& stats, const ProbabilityEstimates& estimates, size_t& block_idx,
+                      size_t& unit_idx);
 
     inline bool AlleleSkipped(const VariantBiasVarModifiers& bias_mod, uintAlleleId allele,
                               const std::vector<Reference::Variant>& variants, uintSeqLen cur_start_position) const {
