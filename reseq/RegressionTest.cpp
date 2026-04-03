@@ -128,4 +128,56 @@ TEST_F(RegressionTest, VersionOutput) {
     EXPECT_NE(std::string::npos, output.find("ReSeq")) << "Version output should contain 'ReSeq', got: " << output;
 }
 
+// --- CLI behavior tests (Phase 5a prerequisite) ---
+
+TEST_F(RegressionTest, BareReseqExitCode) {
+    int rc = RunReseqExitOnly("");
+    EXPECT_EQ(0, rc) << "Bare reseq (no args) should exit 0";
+}
+
+TEST_F(RegressionTest, BareReseqOutput) {
+    std::string stderr_out = RunReseqCaptureStderr("");
+    EXPECT_NE(std::string::npos, stderr_out.find("reseq <command>"))
+        << "Bare reseq should print usage containing 'reseq <command>', got:\n"
+        << stderr_out;
+}
+
+TEST_F(RegressionTest, HelpSameAsBare) {
+    std::string bare = RunReseqCaptureStderr("");
+    std::string help = RunReseqCaptureStderr("--help");
+    EXPECT_EQ(bare, help) << "reseq --help should produce identical output to bare reseq";
+}
+
+TEST_F(RegressionTest, UnknownCommandExitCode) {
+    int rc = RunReseqExitOnly("nonsenseCommand123");
+    EXPECT_EQ(1, rc) << "Unknown command should exit 1";
+}
+
+TEST_F(RegressionTest, UnknownCommandStderr) {
+    std::string stderr_out = RunReseqCaptureStderr("nonsenseCommand123");
+    EXPECT_NE(std::string::npos, stderr_out.find("Unrecognized command: 'nonsenseCommand123'"))
+        << "Should contain exact error message, got:\n"
+        << stderr_out;
+}
+
+TEST_F(RegressionTest, CommandHelpExitCode) {
+    int rc = RunReseqExitOnly("replaceN --help");
+    EXPECT_EQ(0, rc) << "replaceN --help should exit 0";
+}
+
+TEST_F(RegressionTest, VersionExitCode) {
+    int rc = RunReseqExitOnly("--version");
+    EXPECT_EQ(0, rc) << "reseq --version should exit 0";
+}
+
+TEST_F(RegressionTest, SeqToIlluminaHelpExitCode) {
+    int rc = RunReseqExitOnly("seqToIllumina --help");
+    EXPECT_EQ(0, rc) << "seqToIllumina --help should exit 0";
+}
+
+TEST_F(RegressionTest, IlluminaPEHelpExitCode) {
+    int rc = RunReseqExitOnly("illuminaPE --help");
+    EXPECT_EQ(0, rc) << "illuminaPE --help should exit 0";
+}
+
 } // namespace reseq

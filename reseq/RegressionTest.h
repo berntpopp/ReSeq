@@ -124,6 +124,14 @@ class RegressionTest : public BasicTestClass {
         return output;
     }
 
+    /// Run reseq without suppressing stderr or forcing verbosity.
+    /// Returns only the exit code.
+    int RunReseqExitOnly(const std::string& args) {
+        std::string cmd = reseq_bin_.string() + " " + args + " >/dev/null 2>/dev/null";
+        int status = std::system(cmd.c_str());
+        return WEXITSTATUS(status);
+    }
+
     /// Generate an E. coli profile in tmp_dir_ using the 4-pair BAM.
     /// Returns the path to the generated .reseq file.
     std::filesystem::path GenerateEcoliProfile() {
