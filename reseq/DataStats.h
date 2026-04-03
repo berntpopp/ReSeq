@@ -2,15 +2,8 @@
 #define DATASTATS_H
 
 #include <array>
-#include <atomic>
-#include <chrono>
-#include <condition_variable>
-#include <map>
-#include <mutex>
 #include <stdint.h>
 #include <string>
-#include <unordered_set>
-#include <utility>
 #include <vector>
 
 #include <boost/archive/text_iarchive.hpp>

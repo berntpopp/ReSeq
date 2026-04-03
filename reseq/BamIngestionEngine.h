@@ -90,8 +90,8 @@ class BamIngestionEngine {
     bool IsSecondRead(CoverageStats::FullRecord* record, CoverageStats::FullRecord*& record_first,
                       CoverageStats::CoverageBlock*& block, DataStats& target);
 
-    bool CheckForAdapters(const seqan::BamAlignmentRecord& record_first,
-                          const seqan::BamAlignmentRecord& record_second, DataStats& target);
+    bool CheckForAdapters(const seqan::BamAlignmentRecord& record_first, const seqan::BamAlignmentRecord& record_second,
+                          DataStats& target);
     bool EvalReferenceStatistics(CoverageStats::FullRecord* record, uintTempSeq template_segment,
                                  CoverageStats::CoverageBlock* coverage_block, DataStats& target);
     bool EvalRecord(std::pair<CoverageStats::FullRecord*, CoverageStats::FullRecord*> record, ThreadData& thread,
