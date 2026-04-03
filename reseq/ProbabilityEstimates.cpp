@@ -981,7 +981,6 @@ void ProbabilityEstimates::IterativeProportionalFitting(const DataStats& stats, 
     }
 }
 
-
 void ProbabilityEstimates::PrepareResult() {
     for (auto template_segment = 2; template_segment--;) {
         quality_result_.at(template_segment).resize(quality_.at(template_segment).size());

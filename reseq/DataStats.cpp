@@ -1307,7 +1307,8 @@ bool DataStats::ReadBam(const char* bam_file, const char* adapter_file, const ch
                                         std::vector<std::jthread> threads;
                                         threads.reserve(num_threads);
                                         for (decltype(num_threads) i = 0; i < num_threads; ++i) {
-                                            threads.emplace_back([this, &bam](std::stop_token) { ReadThread(*this, bam); });
+                                            threads.emplace_back(
+                                                [this, &bam](std::stop_token) { ReadThread(*this, bam); });
                                         }
                                         // jthread destructors join on scope exit
                                     }
