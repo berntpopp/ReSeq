@@ -151,77 +151,6 @@ bool DataStats::CheckForAdapters(const seqan::BamAlignmentRecord& record_first,
     }
 }
 
-void DataStats::EvalBaseLevelStats(CoverageStats::FullRecord* full_record, uintTempSeq template_segment,
-                                   uintTempSeq strand, uintTileId tile_id, uintQual& paired_seq_qual) {
-    const BamAlignmentRecord& record(full_record->record_);
-
-    uintSeqLen pos_reversed(length(record.seq));
-
-    SeqQualityStats<uintNucCount> seq_qual_stats;
-    seq_qual_stats[maximum_quality_]; // Resize to maximum quality
-    for (auto qual : record.qual) {
-        ++seq_qual_stats.at(qual - phred_quality_offset_);
-    }
-    seq_qual_stats.Calculate();
-    seq_qual_stats.CalculateProbabilityMean();
-    full_record->sequence_quality_ = seq_qual_stats.mean_;
-
-    Dna5 base;
-    uintQual qual, last_qual(1);
-    array<uintSeqLen, 5> read_bases = {0, 0, 0, 0, 0};
-    uintReadLen homoquality_length = 0;
-    uintReadLen homopolymer_length = 0;
-    Dna5 homopolymer_nucleotide = 0;
-
-    for (uintReadLen pos = 0; pos < length(record.seq); ++pos) {
-        // In case of reversed sequences base and qual are read in reverse from bamfile so pos represents the position
-        // in the fq file
-        if (hasFlagRC(record)) {
-            base = Complement::Dna5(at(record.seq, --pos_reversed));
-            qual = at(record.qual, pos_reversed) - phred_quality_offset_;
-        } else {
-            base = at(record.seq, pos);
-            qual = at(record.qual, pos) - phred_quality_offset_;
-        }
-
-        qualities_.AddRawBase(template_segment, base, tile_id, strand, qual, seq_qual_stats.mean_, last_qual, pos);
-
-        ++read_bases.at(base);
-        ++tmp_sequence_content_.at(template_segment).at(base).at(pos);
-
-        if (last_qual == qual) {
-            ++homoquality_length;
-        } else {
-            if (pos) {
-                qualities_.AddRawHomoqualimer(last_qual, homoquality_length);
-            }
-            homoquality_length = 1;
-        }
-
-        if (homopolymer_nucleotide == base) {
-            ++homopolymer_length;
-        } else {
-            ++tmp_homopolymer_distribution_.at(homopolymer_nucleotide).at(homopolymer_length);
-            homopolymer_nucleotide = base;
-            homopolymer_length = 1;
-        }
-
-        // Quality based on preceding quality
-        last_qual = qual;
-    }
-
-    qualities_.AddRawHomoqualimer(last_qual, homoquality_length);
-    ++tmp_homopolymer_distribution_.at(homopolymer_nucleotide)
-          .at(homopolymer_length); // Add the homopolymer at read end
-
-    // Read level summaries of base level stats
-    qualities_.AddRawRead(paired_seq_qual, seq_qual_stats, template_segment, tile_id, read_bases, length(record.seq));
-
-    ++tmp_gc_read_content_.at(template_segment)
-          .at(Percent(read_bases.at(1) + read_bases.at(2), static_cast<uintSeqLen>(length(record.seq))));
-    ++tmp_n_content_.at(template_segment).at(Percent(read_bases.at(4), static_cast<uintSeqLen>(length(record.seq))));
-}
-
 bool DataStats::EvalReferenceStatistics(CoverageStats::FullRecord* record, uintTempSeq template_segment,
                                         CoverageStats::CoverageBlock* coverage_block) {
     // Get gc on reference
@@ -420,15 +349,17 @@ bool DataStats::EvalRecord(pair<CoverageStats::FullRecord*, CoverageStats::FullR
 
     // Base level stats
     uintQual paired_seq_qual(0);
-    EvalBaseLevelStats(record.first, (template_segment + 1) % 2, strand, tile_id, paired_seq_qual);
-    EvalBaseLevelStats(record.second, template_segment, strand, tile_id, paired_seq_qual);
+    read_sequence_stats_.EvalBaseLevelStats(record.first, (template_segment + 1) % 2, strand, tile_id, paired_seq_qual,
+                                            qualities_, phred_quality_offset_, maximum_quality_);
+    read_sequence_stats_.EvalBaseLevelStats(record.second, template_segment, strand, tile_id, paired_seq_qual,
+                                            qualities_, phred_quality_offset_, maximum_quality_);
 
     // Mapping and Reference stats
     if (hasFlagUnmapped(record.first->record_) || hasFlagNextUnmapped(record.first->record_)) {
         if (!hasFlagUnmapped(record.first->record_)) {
-            ++tmp_single_read_mapping_quality_.at(record.first->record_.mapQ);
+            read_sequence_stats_.IncrementMappingQuality(2, record.first->record_.mapQ);
         } else if (!hasFlagUnmapped(record.second->record_)) {
-            ++tmp_single_read_mapping_quality_.at(record.second->record_.mapQ);
+            read_sequence_stats_.IncrementMappingQuality(2, record.second->record_.mapQ);
         }
 
         if (CheckForAdapters(record.first->record_, record.second->record_)) {
@@ -438,11 +369,11 @@ bool DataStats::EvalRecord(pair<CoverageStats::FullRecord*, CoverageStats::FullR
         }
     } else {
         if (!hasFlagAllProper(record.first->record_)) {
-            ++tmp_improper_pair_mapping_quality_.at(record.first->record_.mapQ);
-            ++tmp_improper_pair_mapping_quality_.at(record.second->record_.mapQ);
+            read_sequence_stats_.IncrementMappingQuality(1, record.first->record_.mapQ);
+            read_sequence_stats_.IncrementMappingQuality(1, record.second->record_.mapQ);
         } else {
-            ++tmp_proper_pair_mapping_quality_.at(record.first->record_.mapQ);
-            ++tmp_proper_pair_mapping_quality_.at(record.second->record_.mapQ);
+            read_sequence_stats_.IncrementMappingQuality(0, record.first->record_.mapQ);
+            read_sequence_stats_.IncrementMappingQuality(0, record.second->record_.mapQ);
         }
 
         if (!QualitySufficient(record.first->record_) || !QualitySufficient(record.second->record_)) {
@@ -648,23 +579,16 @@ void DataStats::PrepareReadIn(uintQual size_mapping_quality, uintReadLen size_in
     qualities_.Prepare(tiles_.NumTiles(), maximum_quality_ + 1, size_pos, maximum_insert_length_);
 
     // Prepare vector in this class
-    tmp_proper_pair_mapping_quality_.resize(size_mapping_quality);
-    tmp_improper_pair_mapping_quality_.resize(size_mapping_quality);
-    tmp_single_read_mapping_quality_.resize(size_mapping_quality);
+    read_sequence_stats_.PrepareAccumulators(size_mapping_quality, size_pos);
 
     for (auto template_segment = 2; template_segment--;) {
         SetDimensions(tmp_read_lengths_by_fragment_length_.at(template_segment), maximum_insert_length_ + 1, size_pos);
         SetDimensions(tmp_non_mapped_read_lengths_by_fragment_length_.at(template_segment), maximum_insert_length_ + 1,
                       size_pos);
 
-        tmp_gc_read_content_.at(template_segment).resize(101);
         tmp_gc_read_content_reference_.at(template_segment).resize(101);
         tmp_gc_read_content_mapped_.at(template_segment).resize(101);
 
-        tmp_n_content_.at(template_segment).resize(101);
-        for (auto base = 5; base--;) {
-            tmp_sequence_content_.at(template_segment).at(base).resize(size_pos);
-        }
         for (auto strand = 2; strand--;) {
             for (auto base = 4; base--;) {
                 tmp_sequence_content_reference_.at(template_segment)
@@ -674,10 +598,6 @@ void DataStats::PrepareReadIn(uintQual size_mapping_quality, uintReadLen size_in
             }
         }
     }
-
-    for (auto base = 5; base--;) {
-        tmp_homopolymer_distribution_.at(base).resize(size_pos);
-    }
 }
 
 void DataStats::FinishReadIn() {
@@ -685,12 +605,9 @@ void DataStats::FinishReadIn() {
     errors_.Finalize();
     fragment_distribution_.Finalize();
     qualities_.Finalize(SumVect(read_lengths_.at(0)));
+    read_sequence_stats_.Finalize();
 
     // Copy vectors to final ones
-    proper_pair_mapping_quality_.Acquire(tmp_proper_pair_mapping_quality_);
-    improper_pair_mapping_quality_.Acquire(tmp_improper_pair_mapping_quality_);
-    single_read_mapping_quality_.Acquire(tmp_single_read_mapping_quality_);
-
     for (auto template_segment = 2; template_segment--;) {
         non_mapped_read_lengths_by_fragment_length_.at(template_segment)
             .Acquire(tmp_non_mapped_read_lengths_by_fragment_length_.at(template_segment));
@@ -707,16 +624,9 @@ void DataStats::FinishReadIn() {
         read_lengths_by_fragment_length_.at(template_segment)
             .Acquire(tmp_read_lengths_by_fragment_length_.at(template_segment));
 
-        gc_read_content_.at(template_segment).Acquire(tmp_gc_read_content_.at(template_segment));
         gc_read_content_reference_.at(template_segment).Acquire(tmp_gc_read_content_reference_.at(template_segment));
         gc_read_content_mapped_.at(template_segment).Acquire(tmp_gc_read_content_mapped_.at(template_segment));
 
-        n_content_.at(template_segment).Acquire(tmp_n_content_.at(template_segment));
-        for (auto base = 5; base--;) {
-            sequence_content_.at(template_segment)
-                .at(base)
-                .Acquire(tmp_sequence_content_.at(template_segment).at(base));
-        }
         for (auto strand = 2; strand--;) {
             for (auto base = 4; base--;) {
                 sequence_content_reference_.at(template_segment)
@@ -725,11 +635,6 @@ void DataStats::FinishReadIn() {
                     .Acquire(tmp_sequence_content_reference_.at(template_segment).at(strand).at(base));
             }
         }
-    }
-
-    tmp_homopolymer_distribution_.at(0).at(0) = 0; // Remove homopolymers introduced by initialization values
-    for (auto base = 5; base--;) {
-        homopolymer_distribution_.at(base).Acquire(tmp_homopolymer_distribution_.at(base));
     }
 }
 

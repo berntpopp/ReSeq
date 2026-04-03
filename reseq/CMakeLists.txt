@@ -18,6 +18,7 @@ add_library(reseq_lib STATIC
   FragmentDuplicationStats.cpp
   ProbabilityEstimates.cpp
   QualityStats.cpp
+  ReadSequenceStats.cpp
   Reference.cpp
   Simulator.cpp
   Surrounding.cpp
