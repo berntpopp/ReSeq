@@ -5,7 +5,6 @@
 #include <array>
 #include <atomic>
 #include <cmath>
-#include <deque>
 #include <mutex>
 #include <random>
 #include <stdint.h>
@@ -16,6 +15,7 @@
 
 #include "nlopt.hpp"
 
+#include "BoundedWorkQueue.h"
 #include "FragmentDuplicationStats.h"
 #include "Reference.h"
 #include "utilities.hpp"
@@ -388,21 +388,15 @@ class FragmentDistributionStats {
     std::array<std::vector<double>, 4 * Surrounding::Length()> tmp_sur_bias_; // tmp_sur_bias_[SurBase][#Fit]
     std::array<std::vector<double>, 2> tmp_dispersion_parameters_; // tmp_dispersion_parameters_[dispPar][#Fit]
 
-    std::array<std::atomic_flag, kMaxBinsQueuedForBiasCalc> claimed_bias_bins_;
-    std::array<std::atomic<uintNumFits>, kMaxBinsQueuedForBiasCalc> current_bias_param_;
-    std::array<std::atomic<uintNumFits>, kMaxBinsQueuedForBiasCalc> finished_bias_calcs_;
+    BoundedWorkQueue<kMaxBinsQueuedForBiasCalc> bias_queue_;
     std::atomic<uintNumFits> current_bias_result_;
     std::vector<BiasCalculationParamsSplitSeqs> bias_calc_params_;
     std::atomic<uintNumFits> params_left_for_calculation_;
     std::atomic<uintNumFits> params_fitted_;
 
     uintSeqLen calc_max_seq_bin_len_;
-    std::deque<std::pair<std::atomic_flag, BiasCalculationVectors>>
-        bias_calc_vects_; // Use deque instead of vector so we can set the size after construction despite having atomic
-                          // flags inside
-    std::deque<std::pair<std::atomic_flag, std::vector<uintFragCount>>>
-        tmp_frag_count_; // Use deque instead of vector so we can set the size after construction despite having atomic
-                         // flags inside
+    std::vector<BiasCalculationVectors> bias_calc_vects_;
+    std::vector<std::vector<uintFragCount>> tmp_frag_count_;
 
     // Collected variables for bias calculation
     std::vector<uintFragCount> abundance_;    // abundance_[referenceID] = #numberOfPairsMapToIt
@@ -445,7 +439,7 @@ class FragmentDistributionStats {
                                    const std::vector<uintFragCount>& tmp_frag_count);
     void CheckLowQExclusions(uintRefSeqBin ref_seq_bin, std::vector<uintFragCount>& tmp_frag_count,
                              const Reference& reference);
-    void CheckLowQExclusions(uintRefSeqBin ref_seq_bin, const Reference& reference);
+    void CheckLowQExclusions(uintRefSeqBin ref_seq_bin, const Reference& reference, size_t thread_idx);
     void SortFragmentSites(uintRefSeqBin ref_seq_bin, std::vector<uintSeqLen>& num_sites_per_insert_length);
     void
     UpdateBiasCalculationParams(uintRefSeqBin ref_seq_bin, uint32_t queue_spot,
@@ -480,12 +474,12 @@ class FragmentDistributionStats {
     bool CalculateInsertLengthAndRefSeqBias(const Reference& reference, uintNumThreads num_threads);
     void ReplaceUncertainCorrectedAbundanceWithMedian(const Reference& ref);
     void AddNewBiasCalculations(uintRefSeqBin still_needed_ref_bin, ThreadData& thread, std::mutex& print_mutex,
-                                const Reference& reference);
+                                const Reference& reference, size_t thread_idx);
     void ExecuteBiasCalculations(const Reference& reference, FragmentDuplicationStats& duplications,
-                                 std::mutex& print_mutex);
+                                 std::mutex& print_mutex, size_t thread_idx);
     void HandleReferenceSequencesUntil(uintRefSeqBin still_needed_ref_bin, ThreadData& thread,
                                        const Reference& reference, FragmentDuplicationStats& duplications,
-                                       std::mutex& print_mutex);
+                                       std::mutex& print_mutex, size_t thread_idx);
     static void BiasSumThread(const FragmentDistributionStats& self, const Reference& reference,
                               const std::vector<BiasCalculationParams>& params, std::atomic<uintNumFits>& current_param,
                               std::atomic<uintNumFits>& finished_params, std::vector<std::vector<double>>& bias_sum,
@@ -670,9 +664,10 @@ class FragmentDistributionStats {
 
     void HandleReferenceSequencesUntil(uintRefSeqId still_needed_reference_sequence, uintSeqLen still_needed_position,
                                        ThreadData& thread, const Reference& reference,
-                                       FragmentDuplicationStats& duplications, std::mutex& print_mutex);
+                                       FragmentDuplicationStats& duplications, std::mutex& print_mutex,
+                                       size_t thread_idx);
     void FinishThreads(ThreadData& thread, const Reference& reference, FragmentDuplicationStats& duplications,
-                       std::mutex& print_mutex);
+                       std::mutex& print_mutex, size_t thread_idx);
 
     void Finalize();
     bool FinalizeBiasCalculation(const Reference& reference, uintNumThreads num_threads,

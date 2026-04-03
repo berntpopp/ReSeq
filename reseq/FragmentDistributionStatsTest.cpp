@@ -1,6 +1,8 @@
 #include "FragmentDistributionStatsTest.h"
 using reseq::FragmentDistributionStatsTest;
 
+#include "BoundedWorkQueue.h"
+
 #include <algorithm>
 using std::max;
 using std::max_element;
@@ -18,6 +20,10 @@ using std::mt19937_64;
 using std::uniform_real_distribution;
 #include <string>
 using std::string;
+#include <atomic>
+using std::atomic;
+#include <future>
+using std::async;
 #include <thread>
 using std::thread;
 #include <vector>
@@ -451,8 +457,9 @@ void FragmentDistributionStatsTest::TestAdapters(const FragmentDistributionStats
 }
 
 void FragmentDistributionStatsTest::BiasCalculationThread(FragmentDistributionStats& test, const Reference& reference,
-                                                          FragmentDuplicationStats& duplications, mutex& print_mutex) {
-    test.ExecuteBiasCalculations(reference, duplications, print_mutex);
+                                                          FragmentDuplicationStats& duplications, mutex& print_mutex,
+                                                          size_t thread_idx) {
+    test.ExecuteBiasCalculations(reference, duplications, print_mutex, thread_idx);
 }
 
 void FragmentDistributionStatsTest::TestBiasCalculationVectorsPreprocessing() {
@@ -851,15 +858,17 @@ void FragmentDistributionStatsTest::TestBiasCalculation() {
     mutex print_mutex;
 
     ReduceVerbosity(1); // Suppress warnings
-    test_->AddNewBiasCalculations(1, thread_data.at(0), print_mutex, species_reference_);
+    test_->AddNewBiasCalculations(1, thread_data.at(0), print_mutex, species_reference_, 0);
 
-    thread threads[num_threads];
-    for (auto i = num_threads; i--;) {
-        threads[i] = thread(BiasCalculationThread, std::ref(*test_), std::cref(species_reference_),
-                            std::ref(duplications), std::ref(print_mutex));
-    }
-    for (auto i = num_threads; i--;) {
-        threads[i].join();
+    {
+        std::vector<std::jthread> threads;
+        threads.reserve(num_threads);
+        for (decltype(num_threads) i = 0; i < num_threads; ++i) {
+            threads.emplace_back([this, &duplications, &print_mutex, i](std::stop_token) {
+                BiasCalculationThread(*test_, species_reference_, duplications, print_mutex, i);
+            });
+        }
+        // jthread destructors join on scope exit
     }
 
     test_->FinalizeBiasCalculation(species_reference_, num_threads, duplications);
@@ -1198,6 +1207,57 @@ void FragmentDistributionStatsTest::TestRefBinProcessing() {
     }
 }
 
+void FragmentDistributionStatsTest::TestNonBlockingProgressGuarantee() {
+    // Acquire all slots from the bias queue (friend access to private bias_queue_)
+    const size_t queue_capacity = test_->bias_queue_.max_slots();
+    std::vector<size_t> slots;
+    slots.reserve(queue_capacity);
+    for (size_t i = 0; i < queue_capacity; ++i) {
+        size_t idx = test_->bias_queue_.try_acquire();
+        if (idx == SIZE_MAX)
+            break;
+        slots.push_back(idx);
+    }
+    ASSERT_EQ(slots.size(), queue_capacity) << "Should be able to acquire all slots before the queue is full";
+
+    // When the queue is full, try_acquire must return SIZE_MAX immediately (non-blocking).
+    // We verify with a timeout: if try_acquire ever blocks, the future won't be ready in time.
+    auto future = std::async(std::launch::async, [this]() { return test_->bias_queue_.try_acquire(); });
+    auto status = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(status, std::future_status::ready) << "try_acquire blocked when queue was full";
+    EXPECT_EQ(future.get(), SIZE_MAX) << "try_acquire should return SIZE_MAX when queue is full";
+
+    // Release all acquired slots so the object can be cleanly destroyed
+    for (auto idx : slots) {
+        test_->bias_queue_.release(idx);
+    }
+}
+
+void FragmentDistributionStatsTest::TestThreadIndexPoolExclusiveAccess() {
+    // Verify the bias queue capacity is non-zero (structural sanity check)
+    const size_t capacity = test_->bias_queue_.max_slots();
+    ASSERT_GT(capacity, 0u) << "bias_queue_ must have at least one slot";
+
+    // Verify all slots are initially available (i.e., no slot has been pre-acquired)
+    std::vector<size_t> acquired;
+    acquired.reserve(capacity);
+    for (size_t i = 0; i < capacity; ++i) {
+        size_t idx = test_->bias_queue_.try_acquire();
+        ASSERT_NE(idx, SIZE_MAX) << "Slot " << i << " should be available on a freshly prepared object";
+        acquired.push_back(idx);
+    }
+
+    // Verify that every returned index is unique (exclusive access guarantee)
+    std::sort(acquired.begin(), acquired.end());
+    auto dup = std::adjacent_find(acquired.begin(), acquired.end());
+    EXPECT_EQ(dup, acquired.end()) << "Duplicate slot index detected — slots are not exclusive";
+
+    // Release all slots
+    for (auto idx : acquired) {
+        test_->bias_queue_.release(idx);
+    }
+}
+
 namespace reseq {
 TEST_F(FragmentDistributionStatsTest, BiasCalculationVectors) {
     string test_dir;
@@ -1276,4 +1336,86 @@ TEST_F(FragmentDistributionStatsTest, Functionality) {
     TestRefSeqSplitting();
     TestRefBinProcessing();
 }
+
+TEST_F(FragmentDistributionStatsTest, NonBlockingProgressGuarantee) {
+    string test_dir;
+    ASSERT_TRUE(GetTestDir(test_dir));
+    LoadReference(test_dir + "reference-test.fa");
+    SetExlusionRegionsAtEnds();
+    CreateTestObject(&species_reference_);
+    TestNonBlockingProgressGuarantee();
+}
+
+TEST_F(FragmentDistributionStatsTest, ThreadIndexPoolExclusiveAccess) {
+    string test_dir;
+    ASSERT_TRUE(GetTestDir(test_dir));
+    LoadReference(test_dir + "reference-test.fa");
+    SetExlusionRegionsAtEnds();
+    CreateTestObject(&species_reference_);
+    TestThreadIndexPoolExclusiveAccess();
+}
 } // namespace reseq
+
+TEST(BoundedWorkQueueTest, TryAcquireWhenFull) {
+    reseq::BoundedWorkQueue<10> queue;
+    std::vector<size_t> acquired;
+    for (int i = 0; i < 10; ++i) {
+        size_t idx = queue.try_acquire();
+        ASSERT_NE(idx, SIZE_MAX) << "Failed to acquire slot " << i;
+        acquired.push_back(idx);
+    }
+    EXPECT_EQ(queue.try_acquire(), SIZE_MAX);
+    queue.release(acquired[0]);
+    size_t reacquired = queue.try_acquire();
+    EXPECT_NE(reacquired, SIZE_MAX);
+    EXPECT_EQ(reacquired, acquired[0]);
+}
+
+TEST(BoundedWorkQueueTest, AcquirePublishRelease) {
+    reseq::BoundedWorkQueue<10> queue;
+    size_t idx = queue.try_acquire();
+    ASSERT_NE(idx, SIZE_MAX);
+    queue.publish(idx, 5);
+    auto& slot = queue.slot(idx);
+    EXPECT_EQ(slot.current_param.load(), 0u);
+    EXPECT_EQ(slot.total_params, 5u);
+    slot.finished_count = 5;
+    queue.release(idx);
+    size_t idx2 = queue.try_acquire();
+    EXPECT_EQ(idx2, idx);
+}
+
+TEST(BoundedWorkQueueTest, ReleaseEmpty) {
+    reseq::BoundedWorkQueue<10> queue;
+    size_t idx = queue.try_acquire();
+    ASSERT_NE(idx, SIZE_MAX);
+    queue.release_empty(idx);
+    size_t idx2 = queue.try_acquire();
+    EXPECT_EQ(idx2, idx);
+}
+
+TEST(BoundedWorkQueueTest, ConcurrentAcquireRelease) {
+    reseq::BoundedWorkQueue<100> queue;
+    constexpr int kThreads = 8;
+    constexpr int kOpsPerThread = 1000;
+    std::atomic<int> total_acquired{0};
+    std::vector<std::jthread> threads;
+    for (int t = 0; t < kThreads; ++t) {
+        threads.emplace_back([&queue, &total_acquired](std::stop_token) {
+            for (int i = 0; i < kOpsPerThread; ++i) {
+                size_t idx = queue.try_acquire();
+                if (idx != SIZE_MAX) {
+                    ++total_acquired;
+                    queue.release(idx);
+                }
+            }
+        });
+    }
+    threads.clear();
+    int available = 0;
+    for (int i = 0; i < 100; ++i) {
+        if (queue.try_acquire() != SIZE_MAX)
+            ++available;
+    }
+    EXPECT_EQ(available, 100);
+}

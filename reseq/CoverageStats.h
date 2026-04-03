@@ -89,20 +89,22 @@ class CoverageStats {
     struct CoverageBlock {
         uintRefSeqId sequence_id_;
         uintSeqLen start_pos_;
-        CoverageBlock* previous_block_;
-        std::atomic<CoverageBlock*> next_block_;
         std::vector<CoveragePosition> coverage_;
         std::vector<ProcessedCoveragePosition>
-            previous_coverage_; // End of coverage information from previous_block_ (max read length dependent)
+            previous_coverage_; // End of coverage information from previous block (max read length dependent)
         std::atomic<uintFragCount> unprocessed_fragments_;
         std::vector<std::unique_ptr<FullRecord>> reads_;
         intVariantId first_variant_id_;
         std::atomic_flag scheduled_for_processing_;
         std::atomic<bool> processed_;
 
-        CoverageBlock(uintRefSeqId seq_id, uintSeqLen start_pos, CoverageBlock* prev_block)
-            : sequence_id_(seq_id), start_pos_(start_pos), previous_block_(prev_block), next_block_(nullptr),
-              unprocessed_fragments_(0), first_variant_id_(0) {
+        size_t block_idx_;      // Index of this block in blocks_ deque
+        size_t prev_block_idx_; // Index of previous block (SIZE_MAX = null)
+        size_t next_block_idx_; // Index of next block (SIZE_MAX = null)
+
+        CoverageBlock(uintRefSeqId seq_id, uintSeqLen start_pos)
+            : sequence_id_(seq_id), start_pos_(start_pos), unprocessed_fragments_(0), first_variant_id_(0),
+              block_idx_(SIZE_MAX), prev_block_idx_(SIZE_MAX), next_block_idx_(SIZE_MAX) {
             scheduled_for_processing_.clear();
             processed_ = false;
         }
@@ -146,6 +148,7 @@ class CoverageStats {
     // Mutex
     std::mutex clean_up_mutex_;
     std::mutex reuse_mutex_;
+    std::mutex blocks_growth_mutex_; // Protects blocks_.emplace_back() — deque growth is not thread-safe
     std::mutex variant_loading_mutex_;
 
     // Temporary variables
@@ -277,9 +280,10 @@ class CoverageStats {
         error_rates_by_gc_sum_; // error_rates_by_gc_sum_[GClastHalfAverageReadLength][errorRate] = #refBases
 
     // Temporary variables for read in
-    std::atomic<CoverageBlock*> first_block_;
-    std::atomic<CoverageBlock*> last_block_;
-    std::vector<std::unique_ptr<CoverageBlock>> reusable_blocks_;
+    std::deque<std::unique_ptr<CoverageBlock>> blocks_; // Owns all CoverageBlock instances; deque for pointer stability
+    std::vector<size_t> free_indices_;                  // Recycled block slots
+    std::atomic<size_t> first_live_idx_{SIZE_MAX};      // Front of live range
+    std::atomic<size_t> last_live_idx_{SIZE_MAX};       // End of live range (publication signal)
 
     uintRefLenCalc zero_coverage_region_;
     uintRefLenCalc excluded_bases_;
@@ -297,8 +301,8 @@ class CoverageStats {
                   QualityStats& qualities, ErrorStats& errors, uintQual phred_quality_offset);
 
     inline void CountEmptyEndOfSequence(const Reference& reference) {
-        zero_coverage_region_ += reference.SequenceLength((*last_block_).sequence_id_) - (*last_block_).start_pos_ -
-                                 (*last_block_).coverage_.size();
+        auto& lb = *blocks_[last_live_idx_.load(std::memory_order_relaxed)];
+        zero_coverage_region_ += reference.SequenceLength(lb.sequence_id_) - lb.start_pos_ - lb.coverage_.size();
     }
     inline void ApplyZeroCoverageRegion();
 
@@ -306,12 +310,16 @@ class CoverageStats {
     void UpdateCoverageAtSinglePosition(CoveragePosition& nuc_coverage, std::array<uintCovCount, 2>& coverage,
                                         seqan::Dna5 ref_base);
     inline bool NextBlockWithInSysErrorResetDistance(CoverageBlock* block) {
-        return block->next_block_ && (*(block->next_block_)).sequence_id_ == block->sequence_id_ &&
-               reset_distance_ - 1 > (*(block->next_block_)).start_pos_ - (block->start_pos_ + block->coverage_.size());
+        if (block->next_block_idx_ == SIZE_MAX)
+            return false;
+        auto& next = *blocks_[block->next_block_idx_];
+        return next.sequence_id_ == block->sequence_id_ &&
+               reset_distance_ - 1 > next.start_pos_ - (block->start_pos_ + block->coverage_.size());
     }
     inline uintSeqLen BasesWithInSysErrorResetDistance(CoverageBlock* block) {
+        auto& next = *blocks_[block->next_block_idx_];
         return reset_distance_ - 1 -
-               ((*(block->next_block_)).start_pos_ -
+               (next.start_pos_ -
                 (block->start_pos_ + block->coverage_.size())); // reset_distance_-1 because we don't need the last base
                                                                 // that we ignore but the first that we do not reset
     }
@@ -393,8 +401,7 @@ class CoverageStats {
 
   public:
     CoverageStats()
-        : coverage_threshold_(100), first_block_(nullptr), last_block_(nullptr), zero_coverage_region_(0),
-          excluded_bases_(0), num_exclusion_regions_(0) {}
+        : coverage_threshold_(100), zero_coverage_region_(0), excluded_bases_(0), num_exclusion_regions_(0) {}
 
     // Getter functions
     inline const Vect<Vect<uintNucCount>>& DominantErrorsByDistance(seqan::Dna ref_base, seqan::Dna5 last_ref_base,
@@ -495,41 +502,41 @@ class CoverageStats {
     void RemoveFragment(uintRefSeqId ref_seq_id, uintSeqLen ref_pos, CoverageBlock*& block,
                         uintFragCount& processed_fragments);
 
-    static inline uintSeqLen GetStartPos(uintSeqLen pos, CoverageBlock*& start_block) {
+    inline uintSeqLen GetStartPos(uintSeqLen pos, CoverageBlock*& start_block) const {
         while (pos >= start_block->start_pos_ + kBlockSize) {
-            start_block = start_block->next_block_;
+            start_block = blocks_[start_block->next_block_idx_].get();
         }
         return pos - start_block->start_pos_;
     }
-    static inline void IncrementPos(uintSeqLen& pos, CoverageBlock*& block) {
+    inline void IncrementPos(uintSeqLen& pos, CoverageBlock*& block) const {
         if (++pos >= kBlockSize) {
             pos = 0;
-            block = block->next_block_;
+            block = blocks_[block->next_block_idx_].get();
         }
     }
-    static inline void AddPos(uintSeqLen& pos, CoverageBlock*& block, uintSeqLen value) {
+    inline void AddPos(uintSeqLen& pos, CoverageBlock*& block, uintSeqLen value) const {
         pos += value;
         while (pos >= kBlockSize) {
             pos -= kBlockSize;
-            block = block->next_block_;
+            block = blocks_[block->next_block_idx_].get();
         }
     }
-    static inline void DecrementPos(uintSeqLen& pos, CoverageBlock*& block) {
+    inline void DecrementPos(uintSeqLen& pos, CoverageBlock*& block) const {
         if (0 == pos) {
             pos = kBlockSize;
-            block = block->previous_block_;
+            block = blocks_[block->prev_block_idx_].get();
         }
         --pos;
     }
-    static inline void SubtractPos(uintSeqLen& pos, CoverageBlock*& block, uintSeqLen value) {
+    inline void SubtractPos(uintSeqLen& pos, CoverageBlock*& block, uintSeqLen value) const {
         if (value <= pos) {
             pos -= value;
         } else {
             value -= pos;
-            block = block->previous_block_;
+            block = blocks_[block->prev_block_idx_].get();
             while (value > kBlockSize) {
                 value -= kBlockSize;
-                block = block->previous_block_;
+                block = blocks_[block->prev_block_idx_].get();
             }
             pos = kBlockSize - value;
         }

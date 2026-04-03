@@ -49,7 +49,8 @@ class FragmentDistributionStatsTest : public BasicTestClassWithReference {
     static void TestCoverage(const FragmentDistributionStats& test);
     static void TestAdapters(const FragmentDistributionStats& test, const char* context, bool bwa = false);
     static void BiasCalculationThread(FragmentDistributionStats& test, const Reference& reference,
-                                      FragmentDuplicationStats& duplications, std::mutex& print_mutex);
+                                      FragmentDuplicationStats& duplications, std::mutex& print_mutex,
+                                      size_t thread_idx);
     void TestBiasCalculationVectorsPreprocessing();
     void TestBiasCalculationVectorsNormalizations();
     void TestBiasCalculationVectorsSpline();
@@ -59,6 +60,8 @@ class FragmentDistributionStatsTest : public BasicTestClassWithReference {
     void TestDrawCounts();
     void TestRefSeqSplitting();
     void TestRefBinProcessing();
+    void TestNonBlockingProgressGuarantee();
+    void TestThreadIndexPoolExclusiveAccess();
 };
 } // namespace reseq
 

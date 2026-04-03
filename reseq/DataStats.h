@@ -201,7 +201,7 @@ class DataStats {
                 uintReadLen& size_indel);
     bool ReadRecords(seqan::BamFileIn& bam, bool& not_done, ThreadData& thread_data);
 
-    static void ReadThread(DataStats& self, seqan::BamFileIn& bam);
+    static void ReadThread(DataStats& self, seqan::BamFileIn& bam, size_t thread_idx);
 
     // boost serialization
     friend class boost::serialization::access;

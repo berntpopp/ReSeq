@@ -527,6 +527,88 @@ void SimulatorTest::TestWrittenBlocksSynchronization() {
     EXPECT_EQ(num_blocks, test_->written_blocks_) << "written_blocks_ counter does not match expected count";
 }
 
+void SimulatorTest::TestBlockLifecycle() {
+    // Verify that AllocBlock assigns correct indices and that FreeBlock + re-alloc reuses the slot.
+
+    // Initially no blocks exist
+    EXPECT_EQ(0u, test_->blocks_.size());
+    EXPECT_TRUE(test_->free_block_indices_.empty());
+
+    // Allocate first block
+    size_t idx0 = test_->AllocBlock(0, 100, SIZE_MAX, 42);
+    EXPECT_EQ(0u, idx0);
+    EXPECT_EQ(1u, test_->blocks_.size());
+    ASSERT_NE(nullptr, test_->blocks_[idx0].get());
+    EXPECT_EQ(idx0, test_->blocks_[idx0]->block_idx_);
+
+    // Allocate second block
+    size_t idx1 = test_->AllocBlock(0, 200, SIZE_MAX, 43);
+    EXPECT_EQ(1u, idx1);
+    EXPECT_EQ(2u, test_->blocks_.size());
+    ASSERT_NE(nullptr, test_->blocks_[idx1].get());
+    EXPECT_EQ(idx1, test_->blocks_[idx1]->block_idx_);
+
+    // Free the first block — its slot should enter the free list
+    test_->FreeBlock(idx0);
+    EXPECT_EQ(nullptr, test_->blocks_[idx0].get());
+    ASSERT_EQ(1u, test_->free_block_indices_.size());
+    EXPECT_EQ(idx0, test_->free_block_indices_.back());
+
+    // Next allocation must reuse the freed index
+    size_t idx_reused = test_->AllocBlock(0, 300, SIZE_MAX, 44);
+    EXPECT_EQ(idx0, idx_reused) << "Freed slot should be reused";
+    EXPECT_TRUE(test_->free_block_indices_.empty()) << "Free list should be empty after reuse";
+    EXPECT_EQ(2u, test_->blocks_.size()) << "Deque size must not grow when reusing a slot";
+    ASSERT_NE(nullptr, test_->blocks_[idx_reused].get());
+    EXPECT_EQ(idx_reused, test_->blocks_[idx_reused]->block_idx_);
+}
+
+void SimulatorTest::TestPartnerLinkage() {
+    // Allocate a forward block (no partner yet) and then a reverse block pointing to the forward block.
+    size_t fwd_idx = test_->AllocBlock(0, 1000, SIZE_MAX, 10);
+    size_t rev_idx = test_->AllocBlock(0, 1000, fwd_idx, 11);
+
+    ASSERT_NE(nullptr, test_->blocks_[fwd_idx].get());
+    ASSERT_NE(nullptr, test_->blocks_[rev_idx].get());
+
+    // Forward block has no partner (was created with SIZE_MAX)
+    EXPECT_EQ(SIZE_MAX, test_->blocks_[fwd_idx]->partner_block_idx_);
+
+    // Reverse block's partner points back to the forward block index
+    EXPECT_EQ(fwd_idx, test_->blocks_[rev_idx]->partner_block_idx_);
+
+    // They must be at distinct indices
+    EXPECT_NE(fwd_idx, rev_idx);
+}
+
+void SimulatorTest::TestCleanupFreesList() {
+    // Allocate several blocks, free a subset, verify the free list captures exactly those indices.
+
+    size_t idx0 = test_->AllocBlock(0, 0, SIZE_MAX, 1);
+    size_t idx1 = test_->AllocBlock(0, 10, SIZE_MAX, 2);
+    size_t idx2 = test_->AllocBlock(0, 20, SIZE_MAX, 3);
+    size_t idx3 = test_->AllocBlock(0, 30, SIZE_MAX, 4);
+
+    EXPECT_EQ(4u, test_->blocks_.size());
+    EXPECT_TRUE(test_->free_block_indices_.empty());
+
+    // Free idx1 and idx3 (every other block)
+    test_->FreeBlock(idx1);
+    test_->FreeBlock(idx3);
+
+    EXPECT_EQ(2u, test_->free_block_indices_.size());
+
+    // Both freed indices must appear in the free list (order: LIFO)
+    EXPECT_EQ(idx3, test_->free_block_indices_.at(1));
+    EXPECT_EQ(idx1, test_->free_block_indices_.at(0));
+
+    // Freed slots must be null; live slots must still be valid
+    EXPECT_EQ(nullptr, test_->blocks_[idx1].get());
+    EXPECT_EQ(nullptr, test_->blocks_[idx3].get());
+    ASSERT_NE(nullptr, test_->blocks_[idx0].get());
+    ASSERT_NE(nullptr, test_->blocks_[idx2].get());
+}
+
 namespace reseq {
 TEST_F(SimulatorTest, BasicFunctonality) {
     CreateTestObject();
@@ -547,5 +629,20 @@ TEST_F(SimulatorTest, Variants) {
     LoadReference(test_dir + "ecoli-GCF_000005845.2_ASM584v2_genomic.fa");
 
     TestVariationInSimulateFromGivenBlock();
+}
+
+TEST_F(SimulatorTest, BlockLifecycle) {
+    CreateTestObject();
+    TestBlockLifecycle();
+}
+
+TEST_F(SimulatorTest, PartnerLinkage) {
+    CreateTestObject();
+    TestPartnerLinkage();
+}
+
+TEST_F(SimulatorTest, CleanupFreesList) {
+    CreateTestObject();
+    TestCleanupFreesList();
 }
 } // namespace reseq

@@ -220,7 +220,7 @@ bool DataStats::EvalReferenceStatistics(CoverageStats::FullRecord* record, uintT
                                         CoverageStats::CoverageBlock* coverage_block) {
     // Get gc on reference
     auto cov_block = coverage_block; // coverage_block might be changed in the next step so keep the original for later
-    uintSeqLen coverage_pos = CoverageStats::GetStartPos(record->from_ref_pos_, cov_block);
+    uintSeqLen coverage_pos = coverage_.GetStartPos(record->from_ref_pos_, cov_block);
     array<uintNucCount, 5> seq_content_reference = {0, 0, 0, 0, 0};
     for (auto ref_pos = record->from_ref_pos_; ref_pos < record->to_ref_pos_; ++ref_pos) {
         if (cov_block->coverage_.at(ref_pos - cov_block->start_pos_).valid_) {
@@ -228,7 +228,7 @@ bool DataStats::EvalReferenceStatistics(CoverageStats::FullRecord* record, uintT
         } else {
             ++seq_content_reference.at(4);
         }
-        CoverageStats::IncrementPos(coverage_pos, cov_block);
+        coverage_.IncrementPos(coverage_pos, cov_block);
     }
     auto gc_percent = SafePercent(seq_content_reference.at(1) + seq_content_reference.at(2),
                                   record->to_ref_pos_ - record->from_ref_pos_ - seq_content_reference.at(4));
@@ -236,10 +236,10 @@ bool DataStats::EvalReferenceStatistics(CoverageStats::FullRecord* record, uintT
 
     uintSeqLen ref_pos;
     if (hasFlagRC(record->record_)) {
-        coverage_pos = CoverageStats::GetStartPos(record->to_ref_pos_ - 1, coverage_block);
+        coverage_pos = coverage_.GetStartPos(record->to_ref_pos_ - 1, coverage_block);
         ref_pos = record->to_ref_pos_ - 1;
     } else {
-        coverage_pos = CoverageStats::GetStartPos(record->from_ref_pos_, coverage_block);
+        coverage_pos = coverage_.GetStartPos(record->from_ref_pos_, coverage_block);
         ref_pos = record->from_ref_pos_;
     }
 
@@ -299,12 +299,12 @@ bool DataStats::EvalReferenceStatistics(CoverageStats::FullRecord* record, uintT
                     if (hasFlagRC(record->record_)) {
                         coverage_.AddReverse(coverage_pos, coverage_block, base);
 
-                        CoverageStats::DecrementPos(coverage_pos, coverage_block);
+                        coverage_.DecrementPos(coverage_pos, coverage_block);
                         --ref_pos;
                     } else {
                         coverage_.AddForward(coverage_pos, coverage_block, base);
 
-                        CoverageStats::IncrementPos(coverage_pos, coverage_block);
+                        coverage_.IncrementPos(coverage_pos, coverage_block);
                         ++ref_pos;
                     }
 
@@ -337,10 +337,10 @@ bool DataStats::EvalReferenceStatistics(CoverageStats::FullRecord* record, uintT
                     ++read_pos_ref;
 
                     if (hasFlagRC(record->record_)) {
-                        CoverageStats::DecrementPos(coverage_pos, coverage_block);
+                        coverage_.DecrementPos(coverage_pos, coverage_block);
                         --ref_pos;
                     } else {
-                        CoverageStats::IncrementPos(coverage_pos, coverage_block);
+                        coverage_.IncrementPos(coverage_pos, coverage_block);
                         ++ref_pos;
                     }
                     indel_type = 1;
@@ -1012,7 +1012,7 @@ bool DataStats::ReadRecords(BamFileIn& bam, bool& not_done, ThreadData& thread_d
     return true;
 }
 
-void DataStats::ReadThread(DataStats& self, BamFileIn& bam) {
+void DataStats::ReadThread(DataStats& self, BamFileIn& bam, size_t thread_idx) {
     CoverageStats::CoverageBlock* cov_block;
     uintFragCount processed_fragments(0);
     bool not_done(true);
@@ -1080,7 +1080,7 @@ void DataStats::ReadThread(DataStats& self, BamFileIn& bam) {
 
             self.fragment_distribution_.HandleReferenceSequencesUntil(
                 still_needed_reference_sequence, still_needed_position, thread_data.fragment_distribution_,
-                *self.reference_, self.duplicates_, self.print_mutex_);
+                *self.reference_, self.duplicates_, self.print_mutex_, thread_idx);
         } else {
             self.reading_success_ = false;
         }
@@ -1108,7 +1108,7 @@ void DataStats::ReadThread(DataStats& self, BamFileIn& bam) {
 
         if (self.reading_success_) {
             self.fragment_distribution_.FinishThreads(thread_data.fragment_distribution_, *self.reference_,
-                                                      self.duplicates_, self.print_mutex_);
+                                                      self.duplicates_, self.print_mutex_, thread_idx);
             self.fragment_distribution_.AddThreadData(thread_data.fragment_distribution_);
         }
     }
@@ -1308,7 +1308,7 @@ bool DataStats::ReadBam(const char* bam_file, const char* adapter_file, const ch
                                         threads.reserve(num_threads);
                                         for (decltype(num_threads) i = 0; i < num_threads; ++i) {
                                             threads.emplace_back(
-                                                [this, &bam](std::stop_token) { ReadThread(*this, bam); });
+                                                [this, &bam, i](std::stop_token) { ReadThread(*this, bam, i); });
                                         }
                                         // jthread destructors join on scope exit
                                     }

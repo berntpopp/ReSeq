@@ -2,6 +2,8 @@
 using reseq::CoverageStatsTest;
 
 #include <string>
+#include <thread>
+#include <vector>
 using std::string;
 
 void CoverageStatsTest::CreateTestObject() {
@@ -25,7 +27,7 @@ void CoverageStatsTest::TestNonSystematicErrorRate() {
 
     // samtools faidx ecoli-GCF_000005845.2_ASM584v2_genomic.fa NC_000913.3:101-110
     // TAAAATTTTA
-    CoverageStats::CoverageBlock block(0, 100, nullptr);
+    CoverageStats::CoverageBlock block(0, 100);
     block.coverage_.resize(10);
     block.coverage_.at(0).coverage_forward_.at(4) = 3;
     block.coverage_.at(0).coverage_forward_.at(1) = 1;
@@ -373,9 +375,10 @@ void CoverageStatsTest::TestSrr490124Equality(const CoverageStats& test, const c
     EXPECT_EQ(0, test.error_coverage_percent_stranded_min_strand_cov_20_.size())
         << "SRR490124-4pairs error_coverage_percent_stranded_min_strand_cov_20_.size() wrong for " << context << '\n';
 
-    EXPECT_TRUE(nullptr == test.first_block_) << "SRR490124-4pairs first_block_ wrong for " << context << '\n';
-    EXPECT_TRUE(nullptr == test.last_block_) << "SRR490124-4pairs last_block_ wrong for " << context << '\n';
-    EXPECT_EQ(0, test.reusable_blocks_.size()) << "SRR490124-4pairs reusable_blocks_ wrong for " << context << '\n';
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load())
+        << "SRR490124-4pairs first_live_idx_ wrong for " << context << '\n';
+    EXPECT_EQ(SIZE_MAX, test.last_live_idx_.load()) << "SRR490124-4pairs last_live_idx_ wrong for " << context << '\n';
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load()) << "SRR490124-4pairs blocks cleanup wrong for " << context << '\n';
 }
 
 void CoverageStatsTest::TestDuplicates(const CoverageStats& test) {
@@ -387,9 +390,9 @@ void CoverageStatsTest::TestDuplicates(const CoverageStats& test) {
     TestVectEquality({0, {4641252, 1, 101, 98, 24, 1, 0, 0, 25, 3, 22, 0, 0, 2, 21, 0, 2}}, test.coverage_,
                      "duplicates test", "coverage_", " not correct for ");
 
-    EXPECT_TRUE(nullptr == test.first_block_) << "SRR490124-4pairs first_block_ wrong in duplicates test\n";
-    EXPECT_TRUE(nullptr == test.last_block_) << "SRR490124-4pairs last_block_ wrong in duplicates test\n";
-    EXPECT_EQ(0, test.reusable_blocks_.size()) << "SRR490124-4pairs reusable_blocks_ wrong in duplicates test\n";
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load()) << "SRR490124-4pairs first_live_idx_ wrong in duplicates test\n";
+    EXPECT_EQ(SIZE_MAX, test.last_live_idx_.load()) << "SRR490124-4pairs last_live_idx_ wrong in duplicates test\n";
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load()) << "SRR490124-4pairs blocks cleanup wrong in duplicates test\n";
 }
 
 void CoverageStatsTest::TestVariants(const CoverageStats& test) {
@@ -539,9 +542,12 @@ void CoverageStatsTest::TestCrossDuplicates(const CoverageStats& test) {
     // length($0)-100}END{print sum}'
     TestVectEquality({0, {2940870}}, test.coverage_, "cross duplicates test", "coverage_", " not correct for ");
 
-    EXPECT_TRUE(nullptr == test.first_block_) << "SRR490124-4pairs first_block_ wrong in cross duplicates test\n";
-    EXPECT_TRUE(nullptr == test.last_block_) << "SRR490124-4pairs last_block_ wrong in cross duplicates test\n";
-    EXPECT_EQ(0, test.reusable_blocks_.size()) << "SRR490124-4pairs reusable_blocks_ wrong in cross duplicates test\n";
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load())
+        << "SRR490124-4pairs first_live_idx_ wrong in cross duplicates test\n";
+    EXPECT_EQ(SIZE_MAX, test.last_live_idx_.load())
+        << "SRR490124-4pairs last_live_idx_ wrong in cross duplicates test\n";
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load())
+        << "SRR490124-4pairs blocks cleanup wrong in cross duplicates test\n";
 }
 
 void CoverageStatsTest::TestCoverage(const CoverageStats& test) {
@@ -549,12 +555,30 @@ void CoverageStatsTest::TestCoverage(const CoverageStats& test) {
     // length($0)-100}END{print sum-300}'
     TestVectEquality({0, {2940670, 200}}, test.coverage_, "coverage test", "coverage_", " not correct for ");
 
-    EXPECT_TRUE(nullptr == test.first_block_) << "SRR490124-4pairs first_block_ wrong in coverage test\n";
-    EXPECT_TRUE(nullptr == test.last_block_) << "SRR490124-4pairs last_block_ wrong in coverage test\n";
-    EXPECT_EQ(0, test.reusable_blocks_.size()) << "SRR490124-4pairs reusable_blocks_ wrong in coverage test\n";
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load()) << "SRR490124-4pairs first_live_idx_ wrong in coverage test\n";
+    EXPECT_EQ(SIZE_MAX, test.last_live_idx_.load()) << "SRR490124-4pairs last_live_idx_ wrong in coverage test\n";
+    EXPECT_EQ(SIZE_MAX, test.first_live_idx_.load()) << "SRR490124-4pairs blocks cleanup wrong in coverage test\n";
 }
 
 namespace reseq {
+
+// Helper: bootstrap the very first block into a Prepare()'d CoverageStats.
+// Mirrors the "Initialize first block" branch of EnsureSpace. Must be a
+// CoverageStatsTest member to exercise friend-class private access.
+CoverageStats::CoverageBlock* CoverageStatsTest::BootstrapFirstBlock(CoverageStats& cs, uintRefSeqId seq_id,
+                                                                     uintSeqLen start_pos) {
+    cs.blocks_.emplace_back(std::make_unique<CoverageStats::CoverageBlock>(seq_id, start_pos));
+    size_t new_idx = cs.blocks_.size() - 1;
+    CoverageStats::CoverageBlock* blk = cs.blocks_[new_idx].get();
+    blk->coverage_.resize(CoverageStats::kBlockSize);
+    blk->block_idx_ = new_idx;
+    blk->prev_block_idx_ = SIZE_MAX;
+    blk->next_block_idx_ = SIZE_MAX;
+    cs.first_live_idx_.store(new_idx, std::memory_order_release);
+    cs.last_live_idx_.store(new_idx, std::memory_order_release);
+    return blk;
+}
+
 TEST_F(CoverageStatsTest, NonSystematicErrorRate) {
     string test_dir;
     ASSERT_TRUE(GetTestDir(test_dir));
@@ -562,5 +586,159 @@ TEST_F(CoverageStatsTest, NonSystematicErrorRate) {
     CreateTestObject();
 
     TestNonSystematicErrorRate();
+}
+
+} // namespace reseq
+
+// Implementation of CoverageStatsTest deque unit-test helpers.
+// These are CoverageStatsTest methods so they have friend access to CoverageStats
+// private members (blocks_, free_indices_, first_live_idx_, last_live_idx_, etc.).
+
+void CoverageStatsTest::TestDequeLifecycle() {
+    auto& cs = *test_;
+    // Prepare with minimal plausible parameters so internal state is valid.
+    cs.Prepare(/*average_coverage=*/10, /*average_read_length=*/100, /*maximum_read_length_on_reference=*/150);
+
+    // Bootstrap the first block (index 0) directly, as EnsureSpace does.
+    CoverageStats::CoverageBlock* blk0 = BootstrapFirstBlock(cs, 0, 0);
+    ASSERT_EQ(1u, cs.blocks_.size());
+    EXPECT_EQ(0u, blk0->block_idx_);
+    EXPECT_EQ(SIZE_MAX, blk0->prev_block_idx_);
+    EXPECT_EQ(SIZE_MAX, blk0->next_block_idx_);
+    EXPECT_EQ(0u, cs.first_live_idx_.load());
+    EXPECT_EQ(0u, cs.last_live_idx_.load());
+
+    // Create a second block via CreateBlock (index 1).
+    CoverageStats::CoverageBlock* blk1 = cs.CreateBlock(0, CoverageStats::kBlockSize);
+    ASSERT_EQ(2u, cs.blocks_.size());
+    EXPECT_EQ(1u, blk1->block_idx_);
+    EXPECT_EQ(0u, blk1->prev_block_idx_);
+    EXPECT_EQ(SIZE_MAX, blk1->next_block_idx_);
+    // blk0's next_block_idx_ should have been updated.
+    EXPECT_EQ(1u, blk0->next_block_idx_);
+    EXPECT_EQ(1u, cs.last_live_idx_.load());
+    EXPECT_TRUE(cs.free_indices_.empty());
+
+    // RemoveBlock blk0: its index should be pushed onto free_indices_.
+    cs.RemoveBlock(blk0);
+    ASSERT_EQ(1u, cs.free_indices_.size());
+    EXPECT_EQ(0u, cs.free_indices_.back());
+
+    // Create a third logical block: should reuse index 0 from free_indices_.
+    CoverageStats::CoverageBlock* blk2 = cs.CreateBlock(0, 2 * CoverageStats::kBlockSize);
+    EXPECT_TRUE(cs.free_indices_.empty()) << "free_indices_ should be empty after reuse";
+    EXPECT_EQ(0u, blk2->block_idx_) << "Reused index should be 0";
+    EXPECT_EQ(2u, cs.blocks_.size()) << "Deque size must not grow when reusing";
+    EXPECT_EQ(2u * CoverageStats::kBlockSize, blk2->start_pos_);
+}
+
+void CoverageStatsTest::TestFindByIndex() {
+    auto& cs = *test_;
+    cs.Prepare(10, 100, 150);
+
+    // Bootstrap first block at start_pos=0, seq_id=0.
+    BootstrapFirstBlock(cs, 0, 0);
+
+    // Add a second block at start_pos=kBlockSize.
+    CoverageStats::CoverageBlock* blk1 = cs.CreateBlock(0, CoverageStats::kBlockSize);
+
+    // FindBlock with ref_pos inside block 0 should return the block with start_pos=0.
+    CoverageStats::CoverageBlock* found0 = cs.FindBlock(0, 0);
+    EXPECT_EQ(0u, found0->start_pos_);
+
+    // FindBlock with ref_pos at start of block 1 should return block 1.
+    CoverageStats::CoverageBlock* found1 = cs.FindBlock(0, CoverageStats::kBlockSize);
+    EXPECT_EQ(blk1->start_pos_, found1->start_pos_);
+    EXPECT_EQ(1u, found1->block_idx_);
+
+    // FindBlock with a position near the end of block 1 should still return block 1.
+    CoverageStats::CoverageBlock* found1b = cs.FindBlock(0, CoverageStats::kBlockSize + 5);
+    EXPECT_EQ(1u, found1b->block_idx_);
+}
+
+void CoverageStatsTest::TestCleanupRecyclesIndices() {
+    auto& cs = *test_;
+    cs.Prepare(10, 100, 150);
+
+    // Build a chain of three blocks: 0 -> 1 -> 2.
+    BootstrapFirstBlock(cs, 0, 0);
+    CoverageStats::CoverageBlock* blk1 = cs.CreateBlock(0, CoverageStats::kBlockSize);
+    CoverageStats::CoverageBlock* blk2 = cs.CreateBlock(0, 2 * CoverageStats::kBlockSize);
+    ASSERT_EQ(3u, cs.blocks_.size());
+    EXPECT_TRUE(cs.free_indices_.empty());
+
+    // Simulate cleanup: remove blocks 0 and 1 via RemoveBlock (as CleanUp does).
+    CoverageStats::CoverageBlock* blk0 = cs.blocks_[0].get();
+    cs.RemoveBlock(blk0);
+    cs.RemoveBlock(blk1);
+    EXPECT_EQ(2u, cs.free_indices_.size());
+
+    // Advance first_live_idx_ to blk2 to reflect cleanup semantics.
+    cs.first_live_idx_.store(blk2->block_idx_, std::memory_order_relaxed);
+
+    // Now create two new blocks: they should reuse the freed indices.
+    CoverageStats::CoverageBlock* reused_a = cs.CreateBlock(0, 3 * CoverageStats::kBlockSize);
+    CoverageStats::CoverageBlock* reused_b = cs.CreateBlock(0, 4 * CoverageStats::kBlockSize);
+
+    EXPECT_TRUE(cs.free_indices_.empty()) << "All freed indices should have been reused";
+    EXPECT_EQ(3u, cs.blocks_.size()) << "Deque must not grow beyond 3 when reusing 2 indices";
+
+    // Both reused blocks must have block_idx_ that were previously freed (0 or 1).
+    EXPECT_TRUE(reused_a->block_idx_ == 0u || reused_a->block_idx_ == 1u);
+    EXPECT_TRUE(reused_b->block_idx_ == 0u || reused_b->block_idx_ == 1u);
+    EXPECT_NE(reused_a->block_idx_, reused_b->block_idx_) << "Each reused index must be distinct";
+}
+
+void CoverageStatsTest::TestConcurrentCoverageIncrement() {
+    auto& cs = *test_;
+    cs.Prepare(10, 100, 150);
+
+    CoverageStats::CoverageBlock* blk = BootstrapFirstBlock(cs, 0, 0);
+
+    const uintSeqLen kPos = 5;
+    const int kThreads = 8;
+    const int kIncrementsPerThread = 1000;
+    const uintCovCount expected = static_cast<uintCovCount>(kThreads) * kIncrementsPerThread;
+
+    // Each thread increments coverage_forward_[A] and coverage_reverse_[C] at kPos.
+    std::vector<std::thread> threads;
+    threads.reserve(kThreads);
+    for (int t = 0; t < kThreads; ++t) {
+        threads.emplace_back([&cs, blk, kPos, kIncrementsPerThread]() {
+            for (int i = 0; i < kIncrementsPerThread; ++i) {
+                cs.AddForward(kPos, blk, seqan::Dna5('A')); // ordinal 0 = A
+                cs.AddReverse(kPos, blk, seqan::Dna5('C')); // ordinal 1 = C
+            }
+        });
+    }
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    EXPECT_EQ(expected, blk->coverage_.at(kPos).coverage_forward_.at(0).load())
+        << "coverage_forward_[A] should equal kThreads * kIncrementsPerThread";
+    EXPECT_EQ(expected, blk->coverage_.at(kPos).coverage_reverse_.at(1).load())
+        << "coverage_reverse_[C] should equal kThreads * kIncrementsPerThread";
+}
+
+namespace reseq {
+TEST_F(CoverageStatsTest, DequeLifecycle) {
+    CreateTestObject();
+    TestDequeLifecycle();
+}
+
+TEST_F(CoverageStatsTest, FindByIndex) {
+    CreateTestObject();
+    TestFindByIndex();
+}
+
+TEST_F(CoverageStatsTest, CleanupRecyclesIndices) {
+    CreateTestObject();
+    TestCleanupRecyclesIndices();
+}
+
+TEST_F(CoverageStatsTest, ConcurrentCoverageIncrement) {
+    CreateTestObject();
+    TestConcurrentCoverageIncrement();
 }
 } // namespace reseq
