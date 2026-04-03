@@ -75,6 +75,36 @@ jobs:
       - name: Test with sanitizers
         run: cd build && ctest --output-on-failure -j1
 
+  thread-sanitizer:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13 \
+            libboost-all-dev libbz2-dev zlib1g-dev
+
+      - name: Download test data
+        run: ./test/download_test_data.sh
+
+      - name: Configure with TSan
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Test with TSan
+        run: cd build && ctest --output-on-failure -j1
+
   coverage:
     runs-on: ubuntu-24.04
     steps:
