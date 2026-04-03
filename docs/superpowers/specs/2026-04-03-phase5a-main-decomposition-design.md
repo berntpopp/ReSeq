@@ -1,7 +1,7 @@
 # Phase 5a: main.cpp Decomposition — Design Specification
 
 **Date:** 2026-04-03
-**Status:** Draft (rev 3 — incorporates second review)
+**Status:** Approved (rev 4)
 **Phase:** 5a (God Object Decomposition — main.cpp)
 **Prerequisite:** Phase 4 complete (PR #7, `2e65afb`)
 
@@ -12,8 +12,11 @@
 Decompose `reseq/main.cpp` (1,167 lines) into a slim dispatcher (~100 lines) with
 command logic extracted into focused files under `reseq/cli/`.
 
-This is a **strictly mechanical extraction** — every function is moved verbatim with
-its exact current signature. No behavior changes, no API redesign, no parameter changes.
+This is a **behavior-preserving extraction with adapter wrappers** — helper functions
+are moved with their exact current signatures, command logic is wrapped in Run*
+functions, and each new `.cpp` file gets self-contained includes. It is NOT a verbatim
+copy-paste across translation units (the monolithic include preamble must be decomposed
+per file).
 
 ## 2. Current Architecture
 
@@ -23,7 +26,7 @@ its exact current signature. No behavior changes, no API redesign, no parameter 
 reseq/main.cpp (1,167 lines)
   Lines 1-64:     Includes, globals, SeqAn statics
   Lines 66-82:    AutoDetectThreads(num_threads, opt_desc, usage_str) → bool
-  Lines 84-117:   DefaultExtensionFile(file_name, extension) → bool (mutates file_name in-place)
+  Lines 84-117:   DefaultExtensionFile(file_name, extension) → bool (mutates in-place)
   Lines 119-291:  GetDataStats(...) — illuminaPE only
   Lines 293-300:  GetProbsOut(probs_out, fallback_out, opts_map) → void
   Lines 302-321:  PrepareProbabilityEstimation(probs_in, probs_out, standard_probs_out,
@@ -39,7 +42,7 @@ reseq/main.cpp (1,167 lines)
   Lines 1154-1167: unknown command error, return
 ```
 
-### Exact Helper Signatures (to be moved verbatim)
+### Exact Helper Signatures (moved verbatim)
 
 ```cpp
 // Line 66 — returns bool, prints help on failure internally
@@ -72,42 +75,63 @@ uintSeed GetSeed(const variables_map& opts_map);
 | `kNoDebugOutput` | `logging.hpp:25` | `main.cpp:22`, `test_main.cpp:9` |
 | SeqAn complement statics | N/A | `main.cpp:62-63`, `test_main.cpp:34-35` |
 
-These remain in their current TUs. Not changed in this phase.
+Not changed in this phase.
 
-### Exact Current Dispatch Behavior
+### Exact Current Dispatch Behavior (verbosity-aware)
 
-Verified at runtime (`build/bin/reseq` on 2026-04-03):
+The version banner and mode suffix use DIFFERENT verbosity thresholds:
+- `printInfo` (line 452) emits at verbosity >= 4 (`logging.hpp:243-244`)
+- Mode suffix (line 456-458) and unknown-command newline (line 1155-1156) check
+  `2 < kVerbosityLevel` (verbosity >= 3) and write to `cerr` directly
 
-| Scenario | Stderr Output | Exit Code |
-|----------|---------------|-----------|
-| `reseq` (no args) | general_usage only (no opt_desc) | **0** |
-| `reseq --help` | same as bare reseq (general_usage only, no opt_desc) | **0** |
-| `reseq --version` | "ReSeq version X.Y" | 0 |
-| Valid command | "Running ReSeq version X.Y in <mode> mode" + command output | 0 on success |
-| Valid command + `--help` | version banner + usage_str + combined opt_desc_full | 0 |
-| Unknown command | version banner + "Unrecognized command: '<cmd>'" + general_usage | 1 |
+This means at `--verbosity 3`: no banner prefix (printInfo → kNullStream),
+but `" in <mode> mode\n"` DOES go to cerr as an orphaned suffix. This is the
+current behavior and must be preserved exactly.
 
-**Critical details:**
-- Bare `reseq` and `reseq --help` produce **identical output** and both exit 0.
-  There is no separate `--help` branch at the top level — the no-command path at
-  line 449-450 just prints `general_usage` and falls through to `return return_code`
-  (which is initialized to 0).
-- The version banner is a single `printInfo` line started in main (line 452-453)
-  with " in <mode> mode" appended by the command branch (e.g., line 456-458).
-  This is one continuous stderr line, not separate prints.
+| Scenario | Verbosity 4+ | Verbosity 3 | Verbosity 0-2 |
+|----------|-------------|-------------|---------------|
+| Valid command | banner + " in mode\n" | orphaned " in mode\n" | nothing |
+| Unknown command | banner + newline + error + usage | newline (no banner) + error + usage | error only |
+| No command | general_usage, exit 0 | general_usage, exit 0 | nothing, exit 0 |
 
-### Helper Function Placement
+Verified at runtime on 2026-04-03:
+- `reseq` (no args) and `reseq --help` produce **identical output**, both exit 0
+- No separate `--help` branch at top level (line 449-450 just prints general_usage)
+
+### Known Latent Issue: loaded_stats
+
+`GetDataStats` (`main.cpp:119`) does not initialize `loaded_stats` on all error paths.
+The illuminaPE caller (`main.cpp:832-844`) is currently safe because error paths exit
+before consuming it. During extraction, **initialize `loaded_stats = false` at the
+call site** defensively. This does not change behavior but prevents future UB if
+control flow is ever reordered.
+
+### Helper Placement
 
 | Helper | Callers | Placement |
 |--------|---------|-----------|
-| `AutoDetectThreads` | replaceN, illuminaPE, seqToIllumina (3 callers) | cli_common |
-| `GetSeed` | replaceN, WriteSysError, seqToIllumina (3 callers) | cli_common |
-| `GetProbsOut` | PrepareProbabilityEstimation (1 caller, co-locate) | cli_common |
-| `PrepareProbabilityEstimation` | illuminaPE, seqToIllumina (2 callers) | cli_common |
-| `DefaultExtensionFile` | GetDataStats only (1 caller) | illumina_pe.cpp (file-static) |
-| `GetDataStats` | illuminaPE only (1 caller) | illumina_pe.cpp (file-static) |
-| `WriteSysError` | illuminaPE only (1 caller) | illumina_pe.cpp (file-static) |
-| `PrepareSimulation` | illuminaPE only (1 caller) | illumina_pe.cpp (file-static) |
+| `AutoDetectThreads` | replaceN, illuminaPE, seqToIllumina | `cli_common.cpp` |
+| `GetSeed` | replaceN, WriteSysError, seqToIllumina | `cli_common.cpp` |
+| `GetProbsOut` | PrepareProbabilityEstimation | `cli_common.cpp` (co-located) |
+| `PrepareProbabilityEstimation` | illuminaPE, seqToIllumina | `cli_common.cpp` |
+| `DefaultExtensionFile` | GetDataStats only | `illumina_pe.cpp` (unnamed namespace) |
+| `GetDataStats` | illuminaPE only | `illumina_pe.cpp` (unnamed namespace) |
+| `WriteSysError` | illuminaPE only | `illumina_pe.cpp` (unnamed namespace) |
+| `PrepareSimulation` | illuminaPE only | `illumina_pe.cpp` (unnamed namespace) |
+
+File-local helpers use unnamed namespaces in `.cpp` files, NOT header declarations.
+
+### Per-Command Error/Help Patterns (not normalized)
+
+Each command has its own help/error output pattern. These are NOT identical and must
+NOT be normalized during extraction:
+- queryProfile: prints `usage_str` + `opt_desc` (command-only options)
+- replaceN: prints `usage_str` + `opt_desc` (command-only options)
+- illuminaPE: prints `usage_str` + `opt_desc_full` (all option groups combined)
+- seqToIllumina: prints `usage_str` + `opt_desc` on missing-statsIn (line 1080-1085),
+  `opt_desc_full` for `--help` (line 1066)
+
+Each Run function preserves its own pattern verbatim.
 
 ## 3. Target Architecture
 
@@ -115,32 +139,32 @@ Verified at runtime (`build/bin/reseq` on 2026-04-03):
 
 ```
 reseq/main.cpp                (~100 lines) — globals, SeqAn statics, general opts, dispatch
-reseq/cli/cli_common.h        (~40 lines)  — AutoDetectThreads, GetSeed, GetProbsOut,
-                                              PrepareProbabilityEstimation declarations
-reseq/cli/cli_common.cpp      (~100 lines) — implementations (verbatim from main.cpp)
-reseq/cli/query_profile.h     (~15 lines)  — RunQueryProfile declaration
-reseq/cli/query_profile.cpp   (~160 lines) — queryProfile implementation
-reseq/cli/replace_n.h         (~15 lines)  — RunReplaceN declaration
-reseq/cli/replace_n.cpp       (~85 lines)  — replaceN implementation
-reseq/cli/illumina_pe.h       (~15 lines)  — RunIlluminaPE declaration
-reseq/cli/illumina_pe.cpp     (~420 lines) — illuminaPE + 4 file-static helpers
-reseq/cli/seq_to_illumina.h   (~15 lines)  — RunSeqToIllumina declaration
-reseq/cli/seq_to_illumina.cpp (~140 lines) — seqToIllumina implementation
+reseq/cli/cli_common.h        (~40 lines)  — self-contained: own includes for exposed types
+reseq/cli/cli_common.cpp      (~100 lines) — implementations
+reseq/cli/query_profile.h     (~15 lines)  — self-contained header
+reseq/cli/query_profile.cpp   (~160 lines) — own includes, queryProfile implementation
+reseq/cli/replace_n.h         (~15 lines)  — self-contained header
+reseq/cli/replace_n.cpp       (~85 lines)  — own includes, replaceN implementation
+reseq/cli/illumina_pe.h       (~15 lines)  — self-contained header
+reseq/cli/illumina_pe.cpp     (~420 lines) — own includes, illuminaPE + 4 unnamed-ns helpers
+reseq/cli/seq_to_illumina.h   (~15 lines)  — self-contained header
+reseq/cli/seq_to_illumina.cpp (~140 lines) — own includes, seqToIllumina implementation
 ```
 
-### Command Interface
+**Self-contained headers:** Each `.h` file includes exactly the types it exposes
+(e.g., `<vector>`, `<string>`, `<boost/program_options.hpp>`, `"utilities.hpp"`).
+Each `.cpp` file includes exactly what it needs (not the full main.cpp preamble).
 
-Each command receives the full context needed to reproduce current behavior:
+### Command Interface
 
 ```cpp
 namespace reseq::cli {
 
-// args:          unrecognized_opts with command name already erased (main does the erase)
+// args:          unrecognized_opts with command name already erased by main
 // num_threads:   from general options (may be 0 = auto-detect)
 // general_opts:  for checking help flag
 // opt_desc_full: mutable ref — command adds its options for combined help display
-//
-// Returns: 0 on success, 1 on error
+// Returns:       0 success, 1 error
 
 int RunQueryProfile(const std::vector<std::string>& args,
                     uintNumThreads num_threads,
@@ -151,133 +175,114 @@ int RunQueryProfile(const std::vector<std::string>& args,
 }
 ```
 
-### Ownership of Command-Name Stripping and Mode Banner
+### Dispatch Ownership
 
-**main.cpp does both** (matching current code exactly):
-
-1. main.cpp starts the version banner: `printInfo << "Running ReSeq version X.Y";`
-2. main.cpp reads `unrecognized_opts.at(0)` to determine command
-3. Each command's Run function appends " in <mode> mode\n" to the banner and
-   completes the line (matching the current continuous-line pattern)
-4. main.cpp does NOT erase the command name — each Run function receives `args`
-   with command name **already erased by main.cpp before the call**
-
-Wait — re-reading the current code: each command branch does its OWN erase
-(e.g., line 459, 610, 686, 1023). So the erase happens inside the command block.
-For consistency, **main.cpp erases before calling Run**, and the Run function
-does NOT erase. This is cleaner and matches the interface doc above.
-
-The mode banner print ("in queryProfile mode\n") moves into Run* because it's
-command-specific. But the leading "Running ReSeq version X.Y" stays in main.cpp
-(it's the same for all commands). The Run function's first action is:
-
-```cpp
-if (2 < kVerbosityLevel) {
-    std::cerr << " in queryProfile mode" << std::endl;
-}
-```
-
-This continues the line started by main.cpp's `printInfo << "Running ReSeq version..."`.
+| Action | Who Does It |
+|--------|-------------|
+| Start version banner (`printInfo << "Running ReSeq version..."`) | main.cpp |
+| Erase command name from `unrecognized_opts` | main.cpp (before calling Run) |
+| Append mode suffix (`cerr << " in <mode> mode" << endl`) | Run function |
+| Per-command option parsing | Run function |
+| Per-command help/error output (each pattern preserved verbatim) | Run function |
 
 ### CMake Changes
 
-CLI files go in the `reseq` executable target (not `reseq_lib`):
+Use `target_sources` for incremental addition rather than rewriting `add_executable`:
 
 ```cmake
-add_executable(reseq
-  main.cpp
+# Existing:
+add_executable(reseq main.cpp)
+target_link_libraries(reseq PRIVATE reseq_lib)
+
+# Add after each extraction step:
+target_sources(reseq PRIVATE
   cli/cli_common.cpp
   cli/query_profile.cpp
   cli/replace_n.cpp
   cli/illumina_pe.cpp
   cli/seq_to_illumina.cpp
 )
-target_link_libraries(reseq PRIVATE reseq_lib)
 ```
+
+The `reseq` target already inherits include paths from `reseq_lib` via
+`target_link_libraries(reseq PRIVATE reseq_lib)` — `reseq_lib` has PUBLIC
+`target_include_directories` (`reseq/CMakeLists.txt:25-29`) which propagate to
+`reseq`. This means `cli/*.cpp` can use `#include "Simulator.h"` etc. without
+additional CMake configuration.
 
 ## 4. Migration Strategy
 
-### Step 0: Add CLI behavior regression tests (prerequisite)
+### Step 0: Strengthen regression tests (prerequisite)
 
-Before any code moves, add tests that lock down exact CLI behavior. See Testing section.
+Before any code moves, add:
+1. CLI behavior tests (exit codes, stderr checks)
+2. At least one direct `seqToIllumina` smoke test
+3. One `illuminaPE` test that exercises beyond `--statsOnly --noBias`
 
-### Step 1: Extract shared helpers into cli_common
+See Testing section for details.
 
-Move `AutoDetectThreads`, `GetSeed`, `GetProbsOut`, `PrepareProbabilityEstimation`
-verbatim from main.cpp to `cli/cli_common.cpp`. main.cpp includes `cli/cli_common.h`
-and calls the functions. Tests pass. Commit.
+### Steps 1-5: Extract one piece at a time
 
-### Step 2-5: Extract commands one at a time
+Each step: create files, move code, add self-contained includes, build, test, commit.
 
-Order: replaceN → queryProfile → seqToIllumina → illuminaPE (simplest first).
-
-For each command:
-1. Create `cli/<command>.h` with Run declaration
-2. Create `cli/<command>.cpp` — move command logic verbatim into Run function body
-3. For illuminaPE: also move `DefaultExtensionFile`, `GetDataStats`, `WriteSysError`,
-   `PrepareSimulation` as file-static (anonymous namespace) helpers
-4. In main.cpp: erase command name, call Run function
-5. Update CMakeLists.txt
-6. Build and test. Commit.
+1. `cli_common` (shared helpers)
+2. `replace_n` (simplest command)
+3. `query_profile` (self-contained, no shared helpers beyond basics)
+4. `seq_to_illumina` (uses PrepareProbabilityEstimation from cli_common)
+5. `illumina_pe` (largest, carries 4 unnamed-ns helpers, initialize `loaded_stats = false`)
 
 ### Step 6: Clean up main.cpp
 
-Remove dead includes, verify ~100 lines, format. Commit.
+Remove dead includes, verify line count, format.
 
-## 5. Invariants
+## 5. Testing
 
-| # | Invariant | How Verified |
-|---|-----------|-------------|
-| M1 | Bare `reseq` prints general_usage and exits 0 | NEW: `BareReseqExitCode` test |
-| M2 | `reseq --help` produces same output as bare reseq, exits 0 | NEW: `HelpSameAsBare` test |
-| M3 | `reseq --version` prints version, exits 0 | Existing: `VersionOutput` test |
-| M4 | Unknown command prints "Unrecognized command" + usage, exits 1 | NEW: `UnknownCommandBehavior` test |
-| M5 | All command outputs unchanged | Existing: golden-file regression tests (replaceN, queryProfile) |
-| M6 | Global state initialization order | kVerbosityLevel set before any command (stays in main.cpp) |
-| M7 | SeqAn static initialization | Complement statics remain in main.cpp TU |
+### Actual Regression Coverage (honest assessment)
 
-## 6. Testing
+| Command | Test Coverage | Level |
+|---------|--------------|-------|
+| `replaceN` | `ReplaceN` (full stdout diff) | **Strong** |
+| `queryProfile` | 6 tests (3 generated, 3 Zenodo) | **Strong** |
+| `illuminaPE` | `GenerateEcoliProfile()` with `--statsOnly --noBias` | **Partial** — stats path only |
+| `seqToIllumina` | **None** | **No coverage** |
+| CLI behavior | `ErrorBadCommand` (exit != 0), `VersionOutput` (stderr substring) | **Weak** |
 
-### Actual Current Regression Coverage (corrected)
+### New Tests (prerequisite — BEFORE extraction)
 
-| Command | Covered By | Coverage Level |
-|---------|-----------|----------------|
-| `replaceN` | `ReplaceN` test | Full (stdout file diff) |
-| `queryProfile` | 3 tests on generated profile + 3 on Zenodo profile | Full (stdout/file diff) |
-| `illuminaPE` | `GenerateEcoliProfile()` (--statsOnly --noBias only) | **Partial** — stats-only path, skips IPF+simulation |
-| `seqToIllumina` | **None** | **No direct regression test** |
+**CLI behavior tests** (exit codes + stderr checks):
 
-**Implication:** illuminaPE and seqToIllumina extractions carry higher risk. The
-extraction must be strictly verbatim (copy-paste, no edits). Manual smoke testing
-of the full illuminaPE pipeline and seqToIllumina is recommended after extraction.
+| Test | Assertion |
+|------|-----------|
+| `BareReseqExitCode` | `reseq` → exit 0 |
+| `BareReseqOutput` | `reseq` stderr contains "reseq <command>" (usage presence) |
+| `HelpSameAsBare` | `reseq --help` stderr == bare `reseq` stderr |
+| `UnknownCommandExitCode` | `reseq badcmd` → exit 1 |
+| `UnknownCommandStderr` | stderr contains "Unrecognized command: 'badcmd'" |
+| `CommandHelpExitCode` | `reseq replaceN --help` → exit 0 |
+| `VersionExitCode` | `reseq --version` → exit 0 (strengthens existing VersionOutput) |
 
-### New CLI Behavior Tests (prerequisite — BEFORE extraction)
+**seqToIllumina smoke test:**
 
-Add a `RunReseqExitOnly(args)` helper to `RegressionTest.h` that runs the binary
-WITHOUT `--verbosity 0` or `2>/dev/null`, returning only the exit code. Add a
-`RunReseqCaptureStderr(args)` helper (already exists) for stderr checks.
+| Test | What It Covers |
+|------|---------------|
+| `SeqToIlluminaSmoke` | Run `seqToIllumina` with test data, verify exit 0 and output files created |
 
-New tests in `RegressionTest.cpp`:
+**illuminaPE extended coverage** (if feasible with test data):
 
-| Test | What It Locks Down | Assertion |
-|------|-------------------|-----------|
-| `BareReseqExitCode` | `reseq` (no args) → exit 0 | `EXPECT_EQ(0, rc)` |
-| `HelpSameAsBare` | `reseq --help` output == bare `reseq` output | `EXPECT_EQ(bare_stderr, help_stderr)` |
-| `UnknownCommandExitCode` | `reseq badcmd` → exit 1 | `EXPECT_EQ(1, rc)` |
-| `UnknownCommandStderr` | stderr contains "Unrecognized command: 'badcmd'" | `EXPECT_NE(npos, stderr.find(...))` |
-| `CommandHelpExitCode` | `reseq replaceN --help` → exit 0 | `EXPECT_EQ(0, rc)` |
+| Test | What It Covers |
+|------|---------------|
+| `IlluminaPESimulationSmoke` | Run `illuminaPE` with `--stopAfterEstimation` or minimal simulation, verify exit 0 |
 
-These are **exit code + substring checks**, not full stderr snapshots. Full stderr
-comparison would be fragile (version numbers, path differences). The goal is to
-catch behavioral regressions (wrong exit code, missing error message), not lock
-down exact formatting.
+If the extended illuminaPE test requires too much test data or runtime, document it as
+a manual smoke test step in the verification protocol instead.
 
-### Existing Tests Preserved
+### Test Helpers Needed
 
-All 10 existing regression tests remain unchanged and serve as the primary safety
-net for command output correctness.
+Add to `RegressionTest.h`:
+- `RunReseqExitOnly(args)` — runs WITHOUT `--verbosity 0` or `2>/dev/null`, returns exit code
+- Leverage existing `RunReseqCaptureStderr(args)` for stderr checks
 
-## 7. Verification Criteria
+## 6. Verification Criteria
 
 At every commit:
 - `make build && make test` — all tests pass
@@ -285,7 +290,6 @@ At every commit:
 
 After final commit:
 - `wc -l reseq/main.cpp` — target ~100 lines
-- All new CLI behavior tests pass
-- All existing regression tests pass
-- Manual smoke test: `reseq illuminaPE --help` and `reseq seqToIllumina --help`
-  produce expected help output
+- All new + existing regression tests pass
+- Manual: `reseq illuminaPE --help` and `reseq seqToIllumina --help` produce correct output
+- Manual: `reseq --verbosity 3 replaceN --help` preserves orphaned suffix behavior
