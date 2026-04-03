@@ -1,6 +1,5 @@
 #include "cli/convert_profile.h"
 
-#include <cstdio>
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -33,7 +32,7 @@ bool SafeRename(const string& tmp_path, const string& target_path) {
     std::filesystem::rename(tmp_path, target_path, ec);
     if (ec) {
         printErr << "Failed to rename '" << tmp_path << "' to '" << target_path << "': " << ec.message() << std::endl;
-        std::remove(tmp_path.c_str());
+        std::filesystem::remove(tmp_path);
         return false;
     }
     return true;

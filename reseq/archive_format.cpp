@@ -6,8 +6,14 @@ ArchiveFormat DetectFormat(std::istream& is, const char (&magic)[3]) {
     char header[kHeaderSize];
     is.read(header, kHeaderSize);
 
-    if (is.gcount() == static_cast<std::streamsize>(kHeaderSize) && header[0] == magic[0] && header[1] == magic[1] &&
-        header[2] == magic[2]) {
+    if (is.gcount() < static_cast<std::streamsize>(kHeaderSize)) {
+        // File too short for a binary header — rewind and treat as text
+        is.clear();
+        is.seekg(0);
+        return ArchiveFormat::kText;
+    }
+
+    if (header[0] == magic[0] && header[1] == magic[1] && header[2] == magic[2]) {
         // Magic matches — check version
         auto version = static_cast<uint8_t>(header[3]);
         if (version == kFormatVersionCompressedBinary) {

@@ -1462,6 +1462,7 @@ bool DataStats::Save(const char* archive_file, bool text_format) const {
             fos.push(ofs);
             boost::archive::binary_oarchive oa(fos);
             oa << *this;
+            fos.flush();
         }
     } catch (const exception& e) {
         printErr << "Could not save data statistics: " << e.what() << std::endl;

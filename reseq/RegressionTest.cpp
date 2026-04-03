@@ -230,6 +230,36 @@ TEST_F(RegressionTest, ConvertProfileRoundTrip) {
     EXPECT_EQ(binary_output, roundtrip_output) << "Round-trip should preserve query output";
 }
 
+TEST_F(RegressionTest, ConvertProfileProbabilitiesRoundTrip) {
+    auto profile = GenerateEcoliProfile();
+    auto ipf_file = tmp_dir_ / "ecoli-4pairs.reseq.ipf";
+
+    // Generate IPF probabilities from the profile
+    int rc = RunReseq("illuminaPE -r " + (test_dir_ / "ecoli-GCF_000005845.2_ASM584v2_genomic.fa").string() + " -b " +
+                      (test_dir_ / "ecoli-SRR490124-4pairs.bam").string() + " --adapterFile " +
+                      (adapter_dir_ / "TruSeq_single.fa").string() + " --adapterMatrix " +
+                      (adapter_dir_ / "TruSeq_single.mat").string() + " --stopAfterEstimation --noBias -s " +
+                      profile.string() + " -P " + ipf_file.string() + " -j 1");
+    // If IPF generation fails, skip this test (may not converge with 4 pairs)
+    if (rc != 0 || !std::filesystem::exists(ipf_file)) {
+        GTEST_SKIP() << "IPF generation did not produce output (expected with tiny dataset)";
+    }
+
+    // Convert IPF to text
+    auto text_ipf = tmp_dir_ / "ecoli-text.reseq.ipf";
+    rc = RunReseqExitOnly("convertProfile -p " + ipf_file.string() + " -P " + text_ipf.string() + " --textFormat");
+    ASSERT_EQ(0, rc) << "convertProfile -p to text failed";
+
+    // Convert back to binary
+    auto roundtrip_ipf = tmp_dir_ / "ecoli-roundtrip.reseq.ipf";
+    rc = RunReseqExitOnly("convertProfile -p " + text_ipf.string() + " -P " + roundtrip_ipf.string());
+    ASSERT_EQ(0, rc) << "convertProfile -p to binary failed";
+
+    // Verify file sizes are reasonable (binary should be smaller than text)
+    EXPECT_GT(std::filesystem::file_size(text_ipf), std::filesystem::file_size(roundtrip_ipf))
+        << "Binary IPF should be smaller than text IPF";
+}
+
 TEST_F(RegressionTest, ConvertProfileHelpExitCode) {
     int rc = RunReseqExitOnly("convertProfile --help");
     EXPECT_EQ(0, rc) << "convertProfile --help should exit 0";

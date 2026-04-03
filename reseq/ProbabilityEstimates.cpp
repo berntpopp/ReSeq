@@ -1124,6 +1124,7 @@ bool ProbabilityEstimates::Save(const char* archive_file, bool text_format) cons
             fos.push(ofs);
             boost::archive::binary_oarchive oa(fos);
             oa << *this;
+            fos.flush();
         }
     } catch (const exception& e) {
         printErr << "Could not save probability estimates to '" << archive_file << "': " << e.what() << std::endl;
