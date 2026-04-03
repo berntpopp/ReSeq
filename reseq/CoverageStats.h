@@ -285,7 +285,7 @@ class CoverageStats {
     std::atomic<CoverageBlock*> first_block_;
     std::atomic<CoverageBlock*> last_block_;
     std::vector<std::unique_ptr<CoverageBlock>> reusable_blocks_;
-    std::deque<std::unique_ptr<CoverageBlock>> blocks_; // Indexed block storage
+    std::deque<CoverageBlock*> blocks_; // Indexed block storage (non-owning; ownership via reusable_blocks_)
     std::vector<size_t> free_indices_;                  // Recycled block slots
     std::atomic<size_t> first_live_idx_{SIZE_MAX};      // Front of live range
     std::atomic<size_t> last_live_idx_{SIZE_MAX};       // End of live range (publication signal)

@@ -446,12 +446,15 @@ void CoverageStats::UpdateDistances(uintSeqLen& distance_to_start_of_error_regio
 
 CoverageStats::CoverageBlock* CoverageStats::CreateBlock(uintRefSeqId seq_id, uintSeqLen start_pos) {
     CoverageBlock* new_block;
-    if (std::unique_lock lock(reuse_mutex_, std::try_to_lock); lock.owns_lock()) {
-        if (reusable_blocks_.size()) {
-            new_block = reusable_blocks_.back().release();
-            reusable_blocks_.pop_back();
-            lock.unlock(); // Keep early unlock — deliberate
+    size_t new_idx;
 
+    if (std::unique_lock lock(reuse_mutex_, std::try_to_lock); lock.owns_lock()) {
+        if (!free_indices_.empty()) {
+            new_idx = free_indices_.back();
+            free_indices_.pop_back();
+            lock.unlock();
+
+            new_block = blocks_[new_idx];
             new_block->sequence_id_ = seq_id;
             new_block->start_pos_ = start_pos;
             new_block->previous_block_ = last_block_;
@@ -461,20 +464,44 @@ CoverageStats::CoverageBlock* CoverageStats::CreateBlock(uintRefSeqId seq_id, ui
             new_block->reads_.clear();
             new_block->scheduled_for_processing_.clear();
             new_block->processed_ = false;
+            new_block->block_idx_ = new_idx;
+            new_block->prev_block_idx_ = last_live_idx_.load(std::memory_order_relaxed);
+            new_block->next_block_idx_ = SIZE_MAX;
         } else {
             lock.unlock();
             new_block = new CoverageBlock(seq_id, start_pos, last_block_);
+            blocks_.emplace_back(new_block);
+            new_idx = blocks_.size() - 1;
+            new_block->block_idx_ = new_idx;
+            new_block->prev_block_idx_ = last_live_idx_.load(std::memory_order_relaxed);
+            new_block->next_block_idx_ = SIZE_MAX;
             new_block->previous_coverage_.reserve(maximum_read_length_on_reference_);
         }
     } else {
         new_block = new CoverageBlock(seq_id, start_pos, last_block_);
+        blocks_.emplace_back(new_block);
+        new_idx = blocks_.size() - 1;
+        new_block->block_idx_ = new_idx;
+        new_block->prev_block_idx_ = last_live_idx_.load(std::memory_order_relaxed);
+        new_block->next_block_idx_ = SIZE_MAX;
         new_block->previous_coverage_.reserve(maximum_read_length_on_reference_);
     }
 
     new_block->reads_.reserve((*last_block_).reads_.capacity());
     new_block->coverage_.resize(kBlockSize);
     new_block->first_variant_id_ = (*last_block_).first_variant_id_;
+
+    // Update old pointer chain (backward compat during migration)
     (*last_block_).next_block_ = new_block;
+
+    // Update index chain
+    if (last_live_idx_.load(std::memory_order_relaxed) != SIZE_MAX) {
+        blocks_[last_live_idx_.load(std::memory_order_relaxed)]->next_block_idx_ = new_idx;
+    }
+    last_live_idx_.store(new_idx, std::memory_order_release);
+    if (first_live_idx_.load(std::memory_order_relaxed) == SIZE_MAX) {
+        first_live_idx_.store(new_idx, std::memory_order_release);
+    }
 
     return new_block;
 }
