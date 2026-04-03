@@ -183,88 +183,64 @@ PerSegmentPerBase<PerBaseN<std::vector<std::vector<AtomicVec<uintNucCount>>>>>
 
 ### Goal
 
-Remove all 6 `FRIEND_TEST` macros from production headers. Remove `gtest/gtest.h` include from `Vect.hpp`. Use Peer classes (Chromium/Abseil best practice) for cases requiring private access.
+Remove all 6 `FRIEND_TEST` macros from production headers. Remove `gtest/gtest.h` include from `Vect.hpp`. The existing `friend class *Test;` declarations stay — they already provide the private access tests need. Only introduce Peer classes if a specific test still needs narrower private access after removing FRIEND_TEST.
 
 ### Strategy Per Macro
 
 | Location | Macro | Action |
 |----------|-------|--------|
-| `Vect.hpp` | `FRIEND_TEST(VectTest, BasicFunctionality)` | **Eliminate.** Test through public API (`.std()`, iterators, `size()`, `from()`, `to()`). |
+| `Vect.hpp` | `FRIEND_TEST(VectTest, BasicFunctionality)` | **Eliminate.** Rewrite test to use public API (`.std()`, iterators, `size()`, `from()`, `to()`). Remove `#include "gtest/gtest.h"` from Vect.hpp. |
 | `Vect.hpp` | `FRIEND_TEST(VectTest, CopyAndClear)` | **Eliminate.** Same — public API is sufficient. |
-| `DataStats.h` | `FRIEND_TEST(DataStatsTest, Construction)` | **Eliminate.** Test construction via public getters. The Construction test currently checks `read_lengths_.empty()` and `sequence_content_.empty()` — replace with `ReadLengths(0).size() == 0` and `SequenceContent(0, 0).size() == 0`. |
-| `ReadSequenceStats.h` | `FRIEND_TEST(DataStatsTest, Construction)` | **Eliminate.** Same test, same fix as above. |
-| `FragmentDistributionStats.h` | `FRIEND_TEST(FragmentDistributionStatsTest, UpdateRefSeqBias)` | **Peer class.** Add `friend class FragmentDistributionStatsPeer;` to header. Define `FragmentDistributionStatsPeer` in `FragmentDistributionStatsTest.cpp` with accessor methods. |
-| `FragmentDuplicationStats.h` | `FRIEND_TEST(FragmentDuplicationStatsTest, DispersionCalculation)` | **Peer class.** Add `friend class FragmentDuplicationStatsPeer;` to header. Define in `FragmentDuplicationStatsTest.cpp`. |
-| `FragmentDuplicationStats.h` | `FRIEND_TEST(FragmentDistributionStatsTest, BiasBinningAndFragmentCounts)` | **Peer class.** Covered by same `FragmentDuplicationStatsPeer` (accessed from FragmentDistributionStatsTest via include). |
-
-### Peer Class Pattern
-
-```cpp
-// In FragmentDistributionStatsTest.cpp (NOT a production file)
-class FragmentDistributionStatsPeer {
-  public:
-    static auto& GetRefSeqBias(FragmentDistributionStats& stats) {
-        return stats.ref_seq_bias_;
-    }
-    // ... other accessors as needed by tests
-};
-```
-
-Production header gets only: `friend class FragmentDistributionStatsPeer;`
+| `DataStats.h` | `FRIEND_TEST(DataStatsTest, Construction)` | **Eliminate.** `friend class DataStatsTest;` already exists (line 136). The FRIEND_TEST is redundant — the Construction test body runs inside `DataStatsTest` fixture, which is already a friend. Rewrite the test to use public getters (`ReadLengths(0).size() == 0`, `SequenceContent(0, 0).size() == 0`) so the friend is not exercised. |
+| `ReadSequenceStats.h` | `FRIEND_TEST(DataStatsTest, Construction)` | **Eliminate.** Same — `friend class DataStatsTest;` already exists (line 57). Rewrite test to use public API. |
+| `FragmentDistributionStats.h` | `FRIEND_TEST(FragmentDistributionStatsTest, UpdateRefSeqBias)` | **Eliminate.** `friend class FragmentDistributionStatsTest;` already exists (line 517). The FRIEND_TEST is redundant. No test rewrite needed — existing friend class covers access. |
+| `FragmentDuplicationStats.h` | `FRIEND_TEST(FragmentDuplicationStatsTest, DispersionCalculation)` | **Eliminate.** `friend class FragmentDuplicationStatsTest;` already exists (line 40). Redundant. |
+| `FragmentDuplicationStats.h` | `FRIEND_TEST(FragmentDistributionStatsTest, BiasBinningAndFragmentCounts)` | **Eliminate.** Cross-class test access — `friend class FragmentDistributionStatsTest;` does NOT exist in FragmentDuplicationStats.h. This FRIEND_TEST grants access to FragmentDistributionStatsTest for one specific test. Replace with `friend class FragmentDuplicationStatsPeer;` only if the test genuinely needs private access after analysis; otherwise refactor the test to access via the existing FragmentDuplicationStatsTest friend. |
 
 ### gtest Cleanup
 
-After removing all `FRIEND_TEST` from `Vect.hpp`, remove the `#include "gtest/gtest.h"` line. This eliminates the transitive gtest dependency from all 8 Stats class headers.
+After removing all `FRIEND_TEST` from `Vect.hpp`, remove the `#include "gtest/gtest.h"` line. This eliminates the transitive gtest dependency from all 8 Stats class headers that include Vect.hpp.
+
+Note: Other production headers that use `FRIEND_TEST` (DataStats.h, ReadSequenceStats.h, FragmentDistributionStats.h, FragmentDuplicationStats.h) get gtest transitively through `utilities.hpp` → `Vect.hpp`. Once Vect.hpp drops the include, verify these headers still compile (they should — `friend class` does not require gtest).
 
 ### Verification
 
-`make build && make test` — all tests must pass with the rewritten assertions. No test coverage loss.
+`make build && make test` — all tests must pass. No test coverage loss. The Vect tests (BasicFunctionality, CopyAndClear) must be rewritten to use public API before removing FRIEND_TEST.
 
 ---
 
-## Step 4: Slim DataStatsInterface (6d)
+## Step 4: Prune DataStatsInterface (6d)
 
 ### Goal
 
-Reduce DataStatsInterface from 679 LOC / 166 methods to only the methods actually used by its two consumers, and remove the `.std()` wrapping layer.
+Remove unused methods from DataStatsInterface. The only consumer of DataStatsInterface is the Python/SWIG binding (`plotDataStats.py` via `python/DataStats.i`). The `queryProfile` CLI command uses `DataStats` directly — it is NOT a DataStatsInterface consumer.
 
 ### Design
 
-#### 4a: Audit Usage
+#### 4a: Audit Python Usage
 
-Grep `queryProfile` CLI command and `plotDataStats.py` for all DataStatsInterface method calls. Remove every method not called by either consumer.
+Grep `plotDataStats.py` and `python/DataStats.i` for all DataStatsInterface method calls. Remove every method from DataStatsInterface.h/.cpp that is not called by either file.
 
-#### 4b: Remove `.std()` Wrapping
+#### 4b: Keep `.std()` Wrapping (No Binding Contract Change)
 
-Currently every getter wraps `Vect<T>` via `.std()` to return `pair<size_type, vector<T>>&`. This exists for Python/SWIG compatibility.
+The current `.std()` wrapping converts `Vect<T>` to `pair<size_type, vector<T>>&`, which matches the SWIG `%template` declarations in `python/DataStats.i`. Changing this return type would require redesigning the SWIG bindings — a separate concern with its own risk profile.
 
-**Change:** Return `const Vect<T>&` directly from DataStatsInterface. Push the conversion to the Python side:
+**Decision:** Keep the `.std()` wrapping pattern for this phase. A SWIG binding redesign (removing `.std()`, exposing `Vect<T>` to Python) can be a follow-up phase if desired.
 
-- Add a SWIG `%extend` or typemap that converts `Vect<T>` to a Python-friendly form, OR
-- Add a small helper in `plotDataStats.py` that extracts offset + data from Vect objects
+#### 4c: Simplify Where Possible
 
-The choice depends on SWIG binding complexity — if typemaps are straightforward, use them; otherwise, handle in Python.
-
-#### 4c: Simplify Forwarding
-
-For remaining methods, keep the single-line forwarding pattern but with cleaner return types (no `.std()` call).
-
-#### 4d: Update Consumers
-
-- `queryProfile` CLI command: Update to use new return types (likely minimal changes — it already works with Vect through DataStats public API in other contexts).
-- `plotDataStats.py`: Update to handle Vect objects or use the new SWIG typemap.
+For remaining methods, look for opportunities to consolidate or simplify forwarding chains, but do not change return types or the SWIG contract.
 
 ### Expected Outcome
 
-- DataStatsInterface: ~60-100 methods (down from 166), ~200-300 LOC (down from 679)
-- No `.std()` wrapping in C++
-- Python compatibility maintained via SWIG or script-side conversion
+- DataStatsInterface: reduced to only Python-consumed methods, ~200-400 LOC (down from 679)
+- `.std()` wrapping unchanged — SWIG bindings remain stable
+- `queryProfile` CLI unaffected (it does not use DataStatsInterface)
 
 ### Verification
 
 - `make build && make test`
 - Run `plotDataStats.py` on a real `.reseq` profile to verify Python output is correct
-- Run `queryProfile` on a real `.reseq` profile to verify CLI output is correct
 
 ---
 
@@ -281,8 +257,8 @@ For remaining methods, keep the single-line forwarding pattern but with cleaner 
 |------|-------|------------------|
 | 6b | ~15 Stats/utility files | Replace magic numbers with constants |
 | 6c | ~8 Stats headers | Replace nested type declarations with aliases |
-| 6e | 4 production headers + 3 test files | Remove FRIEND_TEST, add Peer classes, remove gtest include |
-| 6d | DataStatsInterface.h/.cpp, plotDataStats.py, queryProfile CLI | Remove dead methods, remove .std() wrapping |
+| 6e | 5 production headers + 2-3 test files | Remove FRIEND_TEST macros, remove gtest include from Vect.hpp, rewrite Vect/DataStats tests to use public API |
+| 6d | DataStatsInterface.h/.cpp | Audit Python usage, remove uncalled methods |
 
 ## Risk Mitigations
 
@@ -290,6 +266,7 @@ For remaining methods, keep the single-line forwarding pattern but with cleaner 
 |------|------------|
 | Wrong magic number replaced | Each replacement verified in context; `4` in non-base contexts left as-is |
 | Container alias breaks serialization | Aliases are transparent to compiler; serialization order unchanged |
-| FRIEND_TEST removal loses test coverage | Rewrite tests to use public API or Peer; verify same assertions |
-| DataStatsInterface slimming breaks Python | Test plotDataStats.py against real profile after changes |
+| FRIEND_TEST removal loses test coverage | Rewrite Vect/DataStats tests to use public API; other tests keep existing `friend class` access |
+| DataStatsInterface pruning breaks Python | Test plotDataStats.py against real profile after changes; SWIG contract (.std() wrapping) unchanged |
 | Type alias confuses IDE/tooling | Standard C++ using declarations; all major IDEs resolve them |
+| gtest include removal breaks compilation | Verify all production headers compile without transitive gtest from Vect.hpp |
