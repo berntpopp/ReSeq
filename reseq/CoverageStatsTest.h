@@ -23,6 +23,11 @@ class CoverageStatsTest : public BasicTestClassWithReference {
     virtual void TearDown();
 
     void TestNonSystematicErrorRate();
+    CoverageStats::CoverageBlock* BootstrapFirstBlock(CoverageStats& cs, uintRefSeqId seq_id, uintSeqLen start_pos);
+    void TestDequeLifecycle();
+    void TestFindByIndex();
+    void TestCleanupRecyclesIndices();
+    void TestConcurrentCoverageIncrement();
 
   public:
     CoverageStatsTest() {}
