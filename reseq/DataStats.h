@@ -333,7 +333,7 @@ class DataStats {
                  bool calculate_bias = true); // Fill the class with the information from a bam file
 
     bool Load(const char* archive_file);
-    bool Save(const char* archive_file) const;
+    bool Save(const char* archive_file, bool text_format = false) const;
 
     void PrepareProcessing();
     void PreparePlotting();

@@ -473,6 +473,6 @@ bool DataStatsInterface::Load(const char* archive_file) {
     return true;
 }
 
-bool DataStatsInterface::Save(const char* archive_file) const {
-    return stats_.Save(archive_file);
+bool DataStatsInterface::Save(const char* archive_file, bool text_format) const {
+    return stats_.Save(archive_file, text_format);
 }
