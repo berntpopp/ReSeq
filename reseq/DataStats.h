@@ -22,6 +22,7 @@
 #include <seqan/bam_io.h>
 
 #include "AdapterStats.h"
+#include "BamIngestionEngine.h"
 #include "CoverageStats.h"
 #include "ErrorStats.h"
 #include "FragmentDistributionStats.h"
@@ -29,55 +30,19 @@
 #include "QualityStats.h"
 #include "ReadSequenceStats.h"
 #include "Reference.h"
-#include "SeqQualityStats.hpp"
 #include "TileStats.h"
 #include "utilities.hpp"
 #include "Vect.hpp"
 
 namespace reseq {
 class DataStats {
-  public:
-    // Operator Definitions
-    struct RecordHasher {
-        size_t operator()(CoverageStats::FullRecord* const& record) const;
-    };
-    struct RecordEqual {
-        bool operator()(CoverageStats::FullRecord* const& lhs, CoverageStats::FullRecord* const& rhs) const;
-    };
-
   private:
-    struct ThreadData {
-        std::vector<std::pair<CoverageStats::FullRecord*, CoverageStats::FullRecord*>> rec_store_;
-
-        CoverageStats::ThreadData coverage_;
-        FragmentDistributionStats::ThreadData fragment_distribution_;
-
-        uintSeqLen last_exclusion_region_id_;
-        uintRefSeqId last_exclusion_ref_seq_;
-
-        ThreadData(uintSeqLen maximum_insert_length, uintSeqLen start_exclusion_length)
-            : fragment_distribution_(maximum_insert_length, start_exclusion_length), last_exclusion_region_id_(0),
-              last_exclusion_ref_seq_(0) {}
-    };
-
-    // Definitions
-    const uintFragCount kBatchSize = 10000; // Number of reads after which the progress is reported
-
     // User parameter
     Reference* reference_;
 
     const uintSeqLen maximum_insert_length_;
     const uintQual minimum_mapping_quality_; // Minimum mapping quality required for both reads to use read pair for
                                              // insert_lengths_, fragment_duplication_number_, ...
-
-    // Mutex
-    std::mutex read_mutex_;
-    std::mutex print_mutex_;
-
-    std::atomic<uintNumThreads> running_threads_;
-    std::mutex finish_threads_mutex_;
-    std::condition_variable finish_threads_cv_;
-    bool finish_threads_;
 
     // Subclasses
     AdapterStats adapters_;
@@ -90,10 +55,6 @@ class DataStats {
     ReadSequenceStats read_sequence_stats_;
 
     // Temporary variables
-    std::unordered_set<CoverageStats::FullRecord*, RecordHasher, RecordEqual> first_read_records_;
-    std::atomic<bool> reading_success_;
-    uintFragCount read_records_;
-
     std::array<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>, 2>
         tmp_read_lengths_by_fragment_length_;
     std::array<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>, 2>
@@ -104,12 +65,6 @@ class DataStats {
 
     std::array<std::array<std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, 4>, 2>, 2>
         tmp_sequence_content_reference_;
-
-    std::vector<uintFragCount>
-        reads_per_frag_len_bin_; // reads_per_frag_len_bin_[BinOfReferenceSequenceBinnedInBinsOfFragmentLength] = #Reads
-    std::vector<uintFragCount>
-        lowq_reads_per_frag_len_bin_; // lowq_reads_per_frag_len_bin_[BinOfReferenceSequenceBinnedInBinsOfFragmentLength]
-                                      // = #LowQReads
 
     // Collected variables for simulation
     uint64_t creation_time_; // Store time when bam file was completelly read, can be used to check whether the stats
@@ -140,44 +95,10 @@ class DataStats {
 
     // Collected variables for output
     uintFragCount total_number_reads_;
-    std::atomic<uintFragCount> reads_in_unmapped_pairs_without_adapters_;
-    std::atomic<uintFragCount> reads_in_unmapped_pairs_with_adapters_;
-    std::atomic<uintFragCount> reads_with_low_quality_with_adapters_;
-    std::atomic<uintFragCount> reads_with_low_quality_without_adapters_;
-    std::atomic<uintFragCount> reads_on_too_short_fragments_;
-    std::atomic<uintFragCount> reads_in_excluded_regions_;
-    std::atomic<uintFragCount> reads_used_;
 
     // Private functions
-    inline bool PotentiallyValidGeneral(const seqan::BamAlignmentRecord& record) const;
-    inline bool PotentiallyValidFirst(const seqan::BamAlignmentRecord& record_first) const;
-    inline bool PotentiallyValidSecond(const seqan::BamAlignmentRecord& record_second) const;
-    inline bool PotentiallyValid(const seqan::BamAlignmentRecord& record) const;
-    bool IsSecondRead(CoverageStats::FullRecord* record, CoverageStats::FullRecord*& record_first,
-                      CoverageStats::CoverageBlock*& block);
-
-    bool CheckForAdapters(const seqan::BamAlignmentRecord& record_first,
-                          const seqan::BamAlignmentRecord& record_second);
-    bool EvalReferenceStatistics(CoverageStats::FullRecord* record, uintTempSeq template_segment,
-                                 CoverageStats::CoverageBlock* coverage_block);
-    bool EvalRecord(std::pair<CoverageStats::FullRecord*, CoverageStats::FullRecord*> record,
-                    ThreadData& thread); // Don't use a reference hear, so it isn't affected by a pointer switch
-
-    bool SignsOfPairsWithNamesNotIdentical();
-    void PrepareReadIn(uintQual size_mapping_quality, uintReadLen size_indel, uintSeqLen max_ref_seq_bin_size,
-                       uintNumThreads num_threads);
-    void FinishReadIn();
-    void Shrink(); // Reduce all arrays to minimal size by removing unused bins at the beginning and end
-    bool Calculate(uintNumThreads num_threads);
+    void Shrink();
     void PrepareGeneral();
-
-    bool OrderOfBamFileCorrect(const seqan::BamAlignmentRecord& record,
-                               std::pair<uintRefSeqId, uintSeqLen> last_record_pos);
-    bool PreRun(seqan::BamFileIn& bam, const char* bam_file, seqan::BamHeader& header, uintQual& size_mapping_quality,
-                uintReadLen& size_indel);
-    bool ReadRecords(seqan::BamFileIn& bam, bool& not_done, ThreadData& thread_data);
-
-    static void ReadThread(DataStats& self, seqan::BamFileIn& bam, size_t thread_idx);
 
     // boost serialization
     friend class boost::serialization::access;
@@ -302,8 +223,8 @@ class DataStats {
     }
     static uintReadLen GetReadLengthOnReference(const seqan::BamAlignmentRecord& record);
     static uintReadLen GetReadLengthOnReference(const seqan::BamAlignmentRecord& record, uintReadLen& max_indel);
-    inline void GetReadPosOnReference(uintSeqLen& start_pos, uintSeqLen& end_pos,
-                                      const seqan::BamAlignmentRecord& record) const;
+    void GetReadPosOnReference(uintSeqLen& start_pos, uintSeqLen& end_pos,
+                               const seqan::BamAlignmentRecord& record) const;
     inline bool InProperDirection(const seqan::BamAlignmentRecord& record_first, uintSeqLen end_pos_second,
                                   uintSeqLen start_pos_first, uintSeqLen start_pos_second) const {
         // Proper forward reverse direction or read sized pair (proper direction is only checked if they are on same

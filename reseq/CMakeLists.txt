@@ -10,6 +10,7 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 add_library(reseq_lib STATIC
   AdapterStats.cpp
   archive_format.cpp
+  BamIngestionEngine.cpp
   CoverageStats.cpp
   DataStats.cpp
   DataStatsInterface.cpp

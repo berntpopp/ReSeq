@@ -99,8 +99,6 @@ void DataStatsTest::TestSrr490124Equality(const char* context, bool test_tile_in
         << '\n';
 
     CoverageStatsTest::TestSrr490124Equality(test_->coverage_, context);
-    EXPECT_EQ(0, test_->first_read_records_.size())
-        << "SRR490124-4pairs first_read_records_ wrong for " << context << '\n';
 
     ErrorStatsTest::TestSrr490124Equality(test_->errors_, context);
     FragmentDistributionStatsTest::TestSrr490124Equality(test_->fragment_distribution_, context);
@@ -300,7 +298,6 @@ void DataStatsTest::TestTiles() {
 
 void DataStatsTest::TestDuplicates() {
     CoverageStatsTest::TestDuplicates(test_->coverage_);
-    EXPECT_EQ(0, test_->first_read_records_.size()) << "first_read_records_ wrong in duplicates test\n";
 
     ErrorStatsTest::TestDuplicates(test_->errors_);
     FragmentDistributionStatsTest::TestDuplicates(test_->fragment_distribution_);
@@ -398,7 +395,6 @@ void DataStatsTest::TestCrossDuplicates() {
         << test_->reference_->ReferenceIdFirstPart(1) << " wrong for reference_ in cross duplicates test\n";
 
     CoverageStatsTest::TestCrossDuplicates(test_->coverage_);
-    EXPECT_EQ(0, test_->first_read_records_.size()) << "first_read_records_ wrong for in cross duplicates test\n";
 
     FragmentDistributionStatsTest::TestCrossDuplicates(test_->fragment_distribution_);
     FragmentDuplicationStatsTest::TestCrossDuplicates(test_->duplicates_);
@@ -417,7 +413,6 @@ void DataStatsTest::TestCrossDuplicates() {
 
 void DataStatsTest::TestCoverage() {
     CoverageStatsTest::TestCoverage(test_->coverage_);
-    EXPECT_EQ(0, test_->first_read_records_.size()) << "first_read_records_ wrong in coverage test\n";
 
     FragmentDistributionStatsTest::TestCoverage(test_->fragment_distribution_);
     QualityStatsTest::TestCoverage(test_->qualities_);
