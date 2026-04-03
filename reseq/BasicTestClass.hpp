@@ -21,6 +21,7 @@ class BasicTestClass : public ::testing::Test {
 
   protected:
     inline void ReduceVerbosity(uint16_t reduced_verbosity = kTestVerbosity) {
+        // Single-threaded context (SetUp/TearDown) — no concurrent writers
         if (kVerbosityLevel > reduced_verbosity) {
             kVerbosityLevel.store(reduced_verbosity);
         }

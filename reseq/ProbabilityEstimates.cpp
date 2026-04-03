@@ -31,7 +31,6 @@ using std::stringstream;
 // include <string>
 using std::string;
 #include <thread>
-using std::jthread;
 using std::thread;
 // include <utility>
 using std::pair;
