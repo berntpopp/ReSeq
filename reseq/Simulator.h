@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <random>
@@ -127,10 +128,14 @@ class Simulator {
         std::vector<SysErrorVariant> err_variants_;
         intVariantId first_variant_id_;
         intVariantId first_methylation_id_;
+        size_t block_idx_;         // Index in blocks_ deque
+        size_t next_block_idx_;    // Index of next block (SIZE_MAX = null) — will replace atomic next_block_
+        size_t partner_block_idx_; // Index of partner block (SIZE_MAX = null) — will replace partner_block_
 
         SimBlock(uintRefSeqBin id, uintSeqLen start_pos, SimBlock* partner_block, uintSeed seed)
             : id_(id), start_pos_(start_pos), finished_(false), next_block_(nullptr), partner_block_(partner_block),
-              seed_(seed), first_variant_id_(0), first_methylation_id_(0) {}
+              seed_(seed), first_variant_id_(0), first_methylation_id_(0),
+              block_idx_(SIZE_MAX), next_block_idx_(SIZE_MAX), partner_block_idx_(SIZE_MAX) {}
     };
 
     // See ownership model comment above SimBlock.
@@ -139,9 +144,14 @@ class Simulator {
         SimBlock* first_block_; // Owning pointer to first block in this unit's chain
         SimBlock* last_block_;  // Non-owning pointer to last block (for O(1) append)
         SimUnit* next_unit_;    // Owning pointer to next unit in the Simulator's chain
+        size_t unit_idx_;       // Index in units_ deque
+        size_t first_block_idx_; // Index of first block — will replace first_block_
+        size_t last_block_idx_;  // Index of last block — will replace last_block_
+        size_t next_unit_idx_;   // Index of next unit — will replace next_unit_
 
         SimUnit(uintRefSeqId ref_seq_id)
-            : ref_seq_id_(ref_seq_id), first_block_(nullptr), last_block_(nullptr), next_unit_(nullptr) {}
+            : ref_seq_id_(ref_seq_id), first_block_(nullptr), last_block_(nullptr), next_unit_(nullptr),
+              unit_idx_(SIZE_MAX), first_block_idx_(SIZE_MAX), last_block_idx_(SIZE_MAX), next_unit_idx_(SIZE_MAX) {}
     };
 
     class GeneralRandomDistributions {
@@ -280,6 +290,14 @@ class Simulator {
     uintRefSeqBin deletion_buffer_; // If we have long deletions we need to add additional blocks as buffer to ensure
                                     // that the end of a fragment lies in a valid block
     std::atomic<uintRefSeqBin> req_deletion_buffer_; // Request this size for the deletion buffer
+    std::deque<SimBlock> blocks_;                 // Indexed block storage (value semantics)
+    std::deque<SimUnit> units_;                   // Indexed unit storage (value semantics)
+    std::vector<size_t> free_block_indices_;      // Recycled block slots
+    std::vector<size_t> free_unit_indices_;       // Recycled unit slots
+    size_t first_unit_idx_{SIZE_MAX};
+    size_t last_unit_idx_{SIZE_MAX};
+    size_t current_unit_idx_{SIZE_MAX};
+    size_t current_block_idx_{SIZE_MAX};
     std::mt19937_64 block_seed_gen_;
     std::atomic<bool> simulation_error_;
 
