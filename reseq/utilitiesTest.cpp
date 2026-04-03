@@ -5,8 +5,12 @@ using reseq::utilities::VectorAtomic;
 // include <array>
 using std::array;
 #include <stdint.h>
+#include <thread>
+#include <vector>
 
 #include "gtest/gtest.h"
+
+#include "logging.hpp"
 
 // include <seqan/modifier.h>
 using seqan::Dna5StringReverseComplement;
@@ -341,6 +345,55 @@ TEST(utilitiesTest, Sign) {
     EXPECT_EQ(1, Sign(321421));
     EXPECT_EQ(0, Sign(0));
     EXPECT_EQ(-1, Sign(-14363));
+}
+TEST(utilitiesTest, AtomicVerbosityLevel) {
+    // kVerbosityLevel is std::atomic<uint16_t> — verify it works across threads
+    auto original = kVerbosityLevel.load();
+
+    // Verify atomic store/load round-trips
+    kVerbosityLevel.store(42);
+    EXPECT_EQ(42, kVerbosityLevel.load());
+
+    // Verify implicit conversion works (used in logging macros)
+    uint16_t val = kVerbosityLevel;
+    EXPECT_EQ(42, val);
+
+    // Verify comparison works (used in `if (0 < kVerbosityLevel)`)
+    EXPECT_TRUE(0 < kVerbosityLevel);
+
+    kVerbosityLevel.store(original);
+}
+
+TEST(utilitiesTest, JthreadCompletionSemantics) {
+    // Verify that jthread workers run to natural completion even when
+    // the vector goes out of scope (destructor calls request_stop + join).
+    // This is the pattern used in ProbabilityEstimates and DataStats.
+    std::atomic<int> completed{0};
+    constexpr int num_threads = 4;
+    constexpr int work_items = 100;
+    std::atomic<int> work_counter{0};
+
+    {
+        std::vector<std::jthread> threads;
+        threads.reserve(num_threads);
+        for (int i = 0; i < num_threads; ++i) {
+            threads.emplace_back([&work_counter, &completed, work_items](std::stop_token) {
+                // stop_token accepted but NOT checked — matches production pattern
+                int item = work_counter++;
+                while (item < work_items) {
+                    // Simulate work
+                    item = work_counter++;
+                }
+                ++completed;
+            });
+        }
+        // Scope exit: jthread destructors call request_stop() then join()
+    }
+
+    // All threads must have completed their work
+    EXPECT_EQ(num_threads, completed.load());
+    // All work items must have been claimed
+    EXPECT_GE(work_counter.load(), work_items);
 }
 } // namespace utilities
 } // namespace reseq

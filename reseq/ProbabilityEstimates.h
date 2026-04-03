@@ -1541,9 +1541,6 @@ class ProbabilityEstimates {
                                       uintTempSeq template_segment, uintTileId tile_id, uintBaseCall ref_base,
                                       uintBaseCall dom_error, uintBaseCall last_ref_base, uintNumFits max_iterations,
                                       double precision_aim);
-    static void IPFThread(ProbabilityEstimates& self, const DataStats& stats,
-                          const std::vector<IPFThreadParams>& params, uintNumFits max_iterations, double precision_aim);
-
     // boost serialization
     friend class boost::serialization::access;
     template <class Archive> void serialize(Archive& ar, const unsigned int UNUSED(version)) {

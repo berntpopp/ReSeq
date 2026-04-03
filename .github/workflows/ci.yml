@@ -75,6 +75,36 @@ jobs:
       - name: Test with sanitizers
         run: cd build && ctest --output-on-failure -j1
 
+  thread-sanitizer:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13 \
+            libboost-all-dev libbz2-dev zlib1g-dev
+
+      - name: Download test data
+        run: ./test/download_test_data.sh
+
+      - name: Configure with TSan
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Test with TSan
+        run: cd build && ctest --output-on-failure -j1
+
   coverage:
     runs-on: ubuntu-24.04
     steps:
@@ -137,6 +167,32 @@ jobs:
           pip install ruff
           ruff check python/*.py
           ruff format --check python/*.py
+
+  lint:
+    # Informational: pre-existing warnings cause non-zero exit from clang-tidy
+    continue-on-error: true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy-17 clang-17 clang++-17 \
+            libboost-all-dev libbz2-dev zlib1g-dev
+
+      - name: Generate compile_commands.json
+        env:
+          CC: clang-17
+          CXX: clang++-17
+        run: cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Run clang-tidy on production sources
+        run: |
+          git ls-files 'reseq/*.cpp' \
+            | grep -v Test | grep -v test_main \
+            | xargs clang-tidy-17 -p build
 
   version-check:
     if: startsWith(github.ref, 'refs/tags/v')

@@ -1,6 +1,7 @@
 #include <algorithm>
 using std::count;
 using std::max;
+#include <atomic>
 #include <exception>
 using std::exception;
 #include <iostream>
@@ -17,7 +18,7 @@ using std::to_string;
 using std::vector;
 
 namespace reseq {
-uint16_t kVerbosityLevel = 99;
+std::atomic<uint16_t> kVerbosityLevel{99};
 bool kNoDebugOutput = false;
 } // namespace reseq
 #include "logging.hpp"
@@ -406,11 +407,12 @@ void PrepareSimulation(string& sim_output_first, string& sim_output_second, cons
 // Main
 int main(int argc, char* argv[]) {
     uintNumThreads num_threads;
+    uint16_t verbosity_opt = 4;
     options_description opt_desc_full("General");
     opt_desc_full.add_options() // Returns a special object with defined operator ()
         ("help,h", "Prints help information and exits")(
             "threads,j", value<uintNumThreads>(&num_threads)->default_value(0), "Number of threads used (0=auto)")(
-            "verbosity", value<uint16_t>(&reseq::kVerbosityLevel)->default_value(4),
+            "verbosity", value<uint16_t>(&verbosity_opt)->default_value(4),
             "Sets the level of verbosity (4=everything, 0=nothing)")("version", "Prints version info and exits");
 
     vector<string> unrecognized_opts;
@@ -421,6 +423,7 @@ int main(int argc, char* argv[]) {
 
         store(general_opts, general_opts_map);
         notify(general_opts_map);
+        kVerbosityLevel.store(verbosity_opt);
     } catch (const exception& e) {
         printErr << "Could not parse general command line arguments: " << e.what() << std::endl;
         if (0 < kVerbosityLevel) {

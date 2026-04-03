@@ -16,17 +16,18 @@
 namespace reseq {
 class BasicTestClass : public ::testing::Test {
   private:
-    static const uint16_t kTestVerbosity = 2;
+    static constexpr uint16_t kTestVerbosity = 2;
     uint16_t real_verbosity_;
 
   protected:
     inline void ReduceVerbosity(uint16_t reduced_verbosity = kTestVerbosity) {
+        // Single-threaded context (SetUp/TearDown) — no concurrent writers
         if (kVerbosityLevel > reduced_verbosity) {
-            kVerbosityLevel = reduced_verbosity;
+            kVerbosityLevel.store(reduced_verbosity);
         }
     }
-    inline void RestoreTestVerbosity() { kVerbosityLevel = std::min((uint16_t)kTestVerbosity, real_verbosity_); }
-    inline void RestoreVerbosity() { kVerbosityLevel = real_verbosity_; }
+    inline void RestoreTestVerbosity() { kVerbosityLevel.store(std::min(kTestVerbosity, real_verbosity_)); }
+    inline void RestoreVerbosity() { kVerbosityLevel.store(real_verbosity_); }
 
     virtual void SetUp() { ReduceVerbosity(); }
     virtual void TearDown() { RestoreVerbosity(); }

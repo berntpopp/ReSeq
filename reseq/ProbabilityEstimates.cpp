@@ -980,19 +980,6 @@ void ProbabilityEstimates::IterativeProportionalFitting(const DataStats& stats, 
     }
 }
 
-void ProbabilityEstimates::IPFThread(ProbabilityEstimates& self, const DataStats& stats,
-                                     const std::vector<IPFThreadParams>& params, uintNumFits max_iterations,
-                                     double precision_aim) {
-    decltype(params.size()) cur_par(self.current_param_++);
-
-    for (; cur_par < params.size() && !self.error_during_fitting_; cur_par = self.current_param_++) {
-        self.IterativeProportionalFitting(stats, params.at(cur_par).selected_data, params.at(cur_par).template_segment,
-                                          params.at(cur_par).tile_id, params.at(cur_par).ref_base,
-                                          params.at(cur_par).dom_error, params.at(cur_par).last_ref_base,
-                                          max_iterations, precision_aim);
-    }
-}
-
 void ProbabilityEstimates::PrepareResult() {
     for (auto template_segment = 2; template_segment--;) {
         quality_result_.at(template_segment).resize(quality_.at(template_segment).size());
@@ -1195,13 +1182,24 @@ bool ProbabilityEstimates::Estimate(const DataStats& stats, uintNumFits max_iter
     if (num_threads > params.size()) {
         num_threads = params.size();
     }
-    thread t[num_threads];
-    for (auto i = num_threads; i--;) {
-        t[i] = std::thread(IPFThread, std::ref(*this), std::cref(stats), std::ref(params), max_iterations,
-                           precision_aim / 100); // Change precision aim from % into factor
-    }
-    for (auto i = num_threads; i--;) {
-        t[i].join();
+    {
+        std::vector<std::jthread> threads;
+        threads.reserve(num_threads);
+        for (decltype(num_threads) i = 0; i < num_threads; ++i) {
+            threads.emplace_back([this, &stats, &params, max_iterations, precision_aim](std::stop_token) {
+                // stop_token accepted but NOT checked — workers run to natural completion
+                decltype(params.size()) cur_par(current_param_++);
+                for (; cur_par < params.size() && !error_during_fitting_; cur_par = current_param_++) {
+                    IterativeProportionalFitting(stats, params.at(cur_par).selected_data,
+                                                 params.at(cur_par).template_segment, params.at(cur_par).tile_id,
+                                                 params.at(cur_par).ref_base, params.at(cur_par).dom_error,
+                                                 params.at(cur_par).last_ref_base, max_iterations,
+                                                 precision_aim / 100); // Change precision aim from % into factor
+                }
+            });
+        }
+        // Block scope exit: jthread destructors call request_stop() then join().
+        // Workers ignore stop_token — they complete all remaining work.
     }
 
     if (error_during_fitting_) {
