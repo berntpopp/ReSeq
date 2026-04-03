@@ -39,10 +39,12 @@ template <size_t MaxSlots> class BoundedWorkQueue {
     }
 
     void publish(size_t idx, uint32_t total) {
-        slots_[idx].finished_count = 0;
+        slots_[idx].finished_count.store(0, std::memory_order_relaxed);
         slots_[idx].total_params = total;
-        slots_[idx].published = true;
-        slots_[idx].current_param = 0;
+        slots_[idx].current_param.store(0, std::memory_order_relaxed);
+        // published must be set LAST with release semantics so consumers
+        // reading published.load(acquire) see all preceding writes.
+        slots_[idx].published.store(true, std::memory_order_release);
     }
 
     void release_empty(size_t idx) {

@@ -148,6 +148,7 @@ class CoverageStats {
     // Mutex
     std::mutex clean_up_mutex_;
     std::mutex reuse_mutex_;
+    std::mutex blocks_growth_mutex_; // Protects blocks_.emplace_back() — deque growth is not thread-safe
     std::mutex variant_loading_mutex_;
 
     // Temporary variables

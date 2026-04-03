@@ -468,8 +468,11 @@ CoverageStats::CoverageBlock* CoverageStats::CreateBlock(uintRefSeqId seq_id, ui
             new_block->next_block_idx_ = SIZE_MAX;
         } else {
             lock.unlock();
-            blocks_.emplace_back(std::make_unique<CoverageBlock>(seq_id, start_pos));
-            new_idx = blocks_.size() - 1;
+            {
+                std::lock_guard growth_lock(blocks_growth_mutex_);
+                blocks_.emplace_back(std::make_unique<CoverageBlock>(seq_id, start_pos));
+                new_idx = blocks_.size() - 1;
+            }
             new_block = blocks_[new_idx].get();
             new_block->block_idx_ = new_idx;
             new_block->prev_block_idx_ = prev_idx;
@@ -477,8 +480,11 @@ CoverageStats::CoverageBlock* CoverageStats::CreateBlock(uintRefSeqId seq_id, ui
             new_block->previous_coverage_.reserve(maximum_read_length_on_reference_);
         }
     } else {
-        blocks_.emplace_back(std::make_unique<CoverageBlock>(seq_id, start_pos));
-        new_idx = blocks_.size() - 1;
+        {
+            std::lock_guard growth_lock(blocks_growth_mutex_);
+            blocks_.emplace_back(std::make_unique<CoverageBlock>(seq_id, start_pos));
+            new_idx = blocks_.size() - 1;
+        }
         new_block = blocks_[new_idx].get();
         new_block->block_idx_ = new_idx;
         new_block->prev_block_idx_ = prev_idx;
@@ -928,8 +934,12 @@ bool CoverageStats::EnsureSpace(uintRefSeqId ref_seq_id, uintSeqLen start_pos, u
         num_exclusion_regions_ += reference.NumExcludedRegions(ref_seq_id);
 
         // Create new block
-        blocks_.emplace_back(std::make_unique<CoverageBlock>(ref_seq_id, start_pos));
-        size_t new_idx = blocks_.size() - 1;
+        size_t new_idx;
+        {
+            std::lock_guard growth_lock(blocks_growth_mutex_);
+            blocks_.emplace_back(std::make_unique<CoverageBlock>(ref_seq_id, start_pos));
+            new_idx = blocks_.size() - 1;
+        }
         auto* new_block = blocks_[new_idx].get();
         new_block->coverage_.resize(kBlockSize);
         new_block->previous_coverage_.reserve(maximum_read_length_on_reference_);

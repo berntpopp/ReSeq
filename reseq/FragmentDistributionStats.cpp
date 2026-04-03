@@ -2972,7 +2972,7 @@ void FragmentDistributionStats::ExecuteBiasCalculations(const Reference& referen
                                                         size_t thread_idx) {
     auto queue_bin_size = bias_calc_params_.size() / kMaxBinsQueuedForBiasCalc;
     for (uint16_t queue_bin = 0; queue_bin < kMaxBinsQueuedForBiasCalc; ++queue_bin) {
-        if (!bias_queue_.slot(queue_bin).published) {
+        if (!bias_queue_.slot(queue_bin).published.load(std::memory_order_acquire)) {
             continue; // Skip unpublished slots
         }
 
