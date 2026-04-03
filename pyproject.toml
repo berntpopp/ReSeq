@@ -13,3 +13,13 @@ select = ["E", "F", "W", "I", "B", "SIM"]
 [tool.ruff.lint.per-file-ignores]
 # plotDataStats.py has long lines in matplotlib calls and a try/except/pass pattern
 "python/plotDataStats.py" = ["E501", "SIM105"]
+
+[tool.mypy]
+python_version = "3.9"
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+exclude_gitignore = true
+files = ["python/reseq-prepare-names.py", "python/tests"]
