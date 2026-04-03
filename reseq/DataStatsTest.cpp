@@ -538,6 +538,21 @@ TEST_F(DataStatsTest, Ecoli) {
     TestSrr490124Equality("save and reload", false);
     EXPECT_EQ(0, remove(save_test_file.c_str())) << "Error deleting file: " << save_test_file << '\n';
 
+    // Text format round-trip
+    DeleteTestObject();
+    CreateTestObject(&species_reference_);
+    LoadStats(test_dir + "ecoli-SRR490124-4pairs.bam");
+    string save_text_file = test_dir + "saveTestText.reseq";
+    ASSERT_TRUE(test_->Save(save_text_file.c_str(), true)); // text_format = true
+    TestSrr490124Equality("text save");
+
+    DeleteTestObject();
+    CreateTestObject(&species_reference_);
+    ASSERT_TRUE(test_->Load(save_text_file.c_str()));
+    test_->PrepareTesting();
+    TestSrr490124Equality("text save and reload", false);
+    EXPECT_EQ(0, remove(save_text_file.c_str())) << "Error deleting file: " << save_text_file << '\n';
+
     DeleteTestObject();
     CreateTestObject(&species_reference_);
     // bwa mem ecoli-GCF_000005845.2_ASM584v2_genomic.fa <(reseq-prepare-names.py ecoli-SRR490124-4pairs-R1.fq
@@ -621,6 +636,21 @@ TEST_F(DataStatsTest, Adapter) {
     test_->PrepareTesting();
     TestAdapters("loading");
     EXPECT_EQ(0, remove(save_test_file.c_str())) << "Error deleting file: " << save_test_file << '\n';
+
+    // Text format round-trip (adapters)
+    DeleteTestObject();
+    CreateTestObject(&species_reference_);
+    LoadStats(test_dir + "ecoli-SRR490124-adapter.bam");
+    string save_text_file = test_dir + "saveTestText.reseq";
+    ASSERT_TRUE(test_->Save(save_text_file.c_str(), true)); // text_format = true
+    TestAdapters("text save");
+
+    DeleteTestObject();
+    CreateTestObject(&species_reference_);
+    ASSERT_TRUE(test_->Load(save_text_file.c_str()));
+    test_->PrepareTesting();
+    TestAdapters("text loading");
+    EXPECT_EQ(0, remove(save_text_file.c_str())) << "Error deleting file: " << save_text_file << '\n';
 
     DeleteTestObject();
     CreateTestObject(&species_reference_);

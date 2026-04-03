@@ -82,7 +82,7 @@ bool DefaultExtensionFile(string& file_name, const string extension) {
 
 void GetDataStats(DataStats& real_data_stats, string& stats_file, bool& loaded_stats, bool stats_only,
                   uintSeqLen max_ref_seq_bin_size, const variables_map& opts_map, const options_description& opt_desc,
-                  const string& usage_str, uintNumThreads num_threads) {
+                  const string& usage_str, uintNumThreads num_threads, bool text_format, bool both_formats) {
     auto it_bam_in = opts_map.find("bamIn");
     auto it_stats_in = opts_map.find("statsIn");
     auto it_stats_out = opts_map.find("statsOut");
@@ -239,7 +239,11 @@ void GetDataStats(DataStats& real_data_stats, string& stats_file, bool& loaded_s
 
                 if (real_data_stats.ReadBam(bam_input.c_str(), adapter_file.c_str(), adapter_matrix.c_str(),
                                             variant_file, max_ref_seq_bin_size, num_threads, !no_bias_calculation)) {
-                    real_data_stats.Save(stats_file.c_str());
+                    real_data_stats.Save(stats_file.c_str(), text_format);
+                    if (both_formats) {
+                        string alt_path = stats_file + (text_format ? ".bin" : ".text");
+                        real_data_stats.Save(alt_path.c_str(), !text_format);
+                    }
                     real_data_stats.PrepareProcessing();
                     real_data_stats.ClearReference(); // It shouldn't be used after the read in to guarantee that we can
                                                       // remove or change the reference
@@ -358,7 +362,12 @@ int RunIlluminaPE(const std::vector<std::string>& args, uintNumThreads num_threa
                                                      "Skips statistics generation and reads directly from stats file")(
         "statsOut,S", value<string>(), "Stores the real data statistics for reuse in given file [<bamIn>.reseq]")(
         "tiles", "Use tiles for the statistics")("vcfIn,v", value<string>(),
-                                                 "Ignore all positions with a listed variant for stats generation");
+                                                 "Ignore all positions with a listed variant for stats generation")(
+        "textFormat",
+        "Write profile files in legacy text format instead of compressed binary. "
+        "Text format is portable across platforms; binary format is faster but not portable across different "
+        "architectures or compilers")("bothFormats", "Write profile files in both binary and text formats. The "
+                                                     "alternate format is saved with a .text or .bin suffix");
 
     options_description opt_desc_ipf("Probabilities");
     opt_desc_ipf.add_options()("ipfIterations", value<uintNumFits>(&ipf_iterations)->default_value(200),
@@ -441,6 +450,8 @@ int RunIlluminaPE(const std::vector<std::string>& args, uintNumThreads num_threa
         auto it_ref_in = opts_map.find("refIn");
         auto it_ref_out = opts_map.find("refSim");
         bool stop_after_estimation = opts_map.count("stopAfterEstimation");
+        bool text_format = opts_map.count("textFormat");
+        bool both_formats = opts_map.count("bothFormats");
         if (opts_map.end() == it_ref_in && opts_map.end() == it_ref_out &&
             (!stop_after_estimation || !opts_map.count("statsIn") || opts_map.count("writeSysError"))) {
             printErr << "refIn or refSim option mandatory." << std::endl;
@@ -471,7 +482,7 @@ int RunIlluminaPE(const std::vector<std::string>& args, uintNumThreads num_threa
                 bool loaded_stats = false; // defensive init (see design spec)
 
                 GetDataStats(real_data_stats, stats_file, loaded_stats, stats_only, max_ref_seq_bin_size, opts_map,
-                             opt_desc_full, usage_str, num_threads);
+                             opt_desc_full, usage_str, num_threads, text_format, both_formats);
 
                 if (0 == real_data_stats.TotalNumberReads()) {
                     return 1;
@@ -485,8 +496,12 @@ int RunIlluminaPE(const std::vector<std::string>& args, uintNumThreads num_threa
                     ProbabilityEstimates probabilities;
 
                     if (!probabilities.Estimate(real_data_stats, ipf_iterations, ipf_precision, num_threads,
-                                                probs_out.c_str(), probs_in.c_str())) {
+                                                probs_out.c_str(), probs_in.c_str(), text_format)) {
                         return 1;
+                    }
+                    if (both_formats) {
+                        string alt_probs = probs_out + (text_format ? ".bin" : ".text");
+                        probabilities.Save(alt_probs.c_str(), !text_format);
                     }
 
                     if (!stop_after_estimation || opts_map.count("writeSysError")) {

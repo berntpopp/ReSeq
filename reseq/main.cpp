@@ -27,6 +27,7 @@ using boost::program_options::store;
 using boost::program_options::value;
 using boost::program_options::variables_map;
 
+#include "cli/convert_profile.h"
 #include "cli/illumina_pe.h"
 #include "cli/query_profile.h"
 #include "cli/replace_n.h"
@@ -78,7 +79,8 @@ int main(int argc, char* argv[]) {
         "Usage:  reseq <command> [options]\n" + "Commands:\n" + "  illuminaPE\t\t" +
         "simulates illumina paired-end data\n" + "  queryProfile\t\t" +
         "queries reseq statistic files for information\n" + "  replaceN\t\t" + "replaces N's in reference\n" +
-        "  seqToIllumina\t\t" + "applies illumina quality and error model to input sequences\n";
+        "  seqToIllumina\t\t" + "applies illumina quality and error model to input sequences\n" + "  convertProfile\t" +
+        "converts profiles between text and binary formats\n";
 
     int return_code = 0;
     if (0 == unrecognized_opts.size()) {
@@ -111,6 +113,12 @@ int main(int argc, char* argv[]) {
             }
             unrecognized_opts.erase(unrecognized_opts.begin());
             return_code = reseq::cli::RunSeqToIllumina(unrecognized_opts, num_threads, general_opts_map, opt_desc_full);
+        } else if ("convertProfile" == unrecognized_opts.at(0)) {
+            if (2 < kVerbosityLevel) {
+                cerr << " in convertProfile mode" << std::endl;
+            }
+            unrecognized_opts.erase(unrecognized_opts.begin());
+            return_code = reseq::cli::RunConvertProfile(unrecognized_opts, general_opts_map, opt_desc_full);
         } else {
             if (2 < kVerbosityLevel) {
                 cerr << std::endl;

@@ -9,6 +9,7 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 # Core library -- all production source except main.cpp and *Test.*
 add_library(reseq_lib STATIC
   AdapterStats.cpp
+  archive_format.cpp
   CoverageStats.cpp
   DataStats.cpp
   DataStatsInterface.cpp
@@ -35,7 +36,7 @@ target_compile_options(reseq_lib PRIVATE ${PRIVATE_COMPILE_OPTIONS})
 
 # Production executable
 add_executable(reseq main.cpp)
-target_sources(reseq PRIVATE cli/cli_common.cpp cli/illumina_pe.cpp cli/query_profile.cpp cli/replace_n.cpp cli/seq_to_illumina.cpp)
+target_sources(reseq PRIVATE cli/cli_common.cpp cli/convert_profile.cpp cli/illumina_pe.cpp cli/query_profile.cpp cli/replace_n.cpp cli/seq_to_illumina.cpp)
 target_link_libraries(reseq PRIVATE reseq_lib)
 target_compile_options(reseq PRIVATE ${PRIVATE_COMPILE_OPTIONS})
 

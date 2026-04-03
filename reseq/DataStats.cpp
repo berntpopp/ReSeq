@@ -34,7 +34,13 @@ using std::thread;
 // include <vector>
 using std::vector;
 
+#include "archive_format.h"
 #include "logging.hpp"
+
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
 
 // include <seqan/bam_io.h>
 using seqan::atEnd;
@@ -1411,12 +1417,28 @@ bool DataStats::Load(const char* archive_file) {
     }
 
     try {
-        // create and open an archive for input
-        ifstream ifs(archive_file);
-        boost::archive::text_iarchive ia(ifs);
+        ifstream ifs(archive_file, std::ios::binary);
+        auto fmt = reseq::format::DetectFormat(ifs, reseq::format::kStatsMagic);
 
-        // read class state from archive
-        ia >> *this;
+        switch (fmt) {
+        case reseq::format::ArchiveFormat::kCompressedBinaryV1: {
+            boost::iostreams::filtering_istream fis;
+            fis.push(boost::iostreams::gzip_decompressor());
+            fis.push(ifs);
+            boost::archive::binary_iarchive ia(fis);
+            ia >> *this;
+            break;
+        }
+        case reseq::format::ArchiveFormat::kText: {
+            boost::archive::text_iarchive ia(ifs);
+            ia >> *this;
+            break;
+        }
+        case reseq::format::ArchiveFormat::kUnsupportedBinaryVersion:
+            printErr << "Unsupported profile format version in '" << archive_file << "'. Please upgrade ReSeq."
+                     << std::endl;
+            return false;
+        }
     } catch (const exception& e) {
         printErr << "Could not load data statistics: " << e.what() << std::endl;
         return false;
@@ -1425,17 +1447,23 @@ bool DataStats::Load(const char* archive_file) {
     return true;
 }
 
-bool DataStats::Save(const char* archive_file) const {
+bool DataStats::Save(const char* archive_file, bool text_format) const {
     try {
-        // create all missing directories
         CreateDir(archive_file);
 
-        // create and open a character archive for output
-        ofstream ofs(archive_file);
-        boost::archive::text_oarchive oa(ofs);
-
-        // save data to archive
-        oa << *this;
+        ofstream ofs(archive_file, std::ios::binary);
+        if (text_format) {
+            boost::archive::text_oarchive oa(ofs);
+            oa << *this;
+        } else {
+            reseq::format::WriteHeader(ofs, reseq::format::kStatsMagic);
+            boost::iostreams::filtering_ostream fos;
+            fos.push(boost::iostreams::gzip_compressor());
+            fos.push(ofs);
+            boost::archive::binary_oarchive oa(fos);
+            oa << *this;
+            fos.flush();
+        }
     } catch (const exception& e) {
         printErr << "Could not save data statistics: " << e.what() << std::endl;
         return false;

@@ -37,7 +37,13 @@ using std::pair;
 // include <vector>
 using std::vector;
 
+#include "archive_format.h"
 #include "logging.hpp"
+
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
 
 #include <iomanip>
 using std::setw;
@@ -1070,12 +1076,28 @@ bool ProbabilityEstimates::Load(const char* archive_file) {
     }
 
     try {
-        // create and open an archive for input
-        ifstream ifs(archive_file);
-        boost::archive::text_iarchive ia(ifs);
+        ifstream ifs(archive_file, std::ios::binary);
+        auto fmt = reseq::format::DetectFormat(ifs, reseq::format::kIpfMagic);
 
-        // read class state from archive
-        ia >> *this;
+        switch (fmt) {
+        case reseq::format::ArchiveFormat::kCompressedBinaryV1: {
+            boost::iostreams::filtering_istream fis;
+            fis.push(boost::iostreams::gzip_decompressor());
+            fis.push(ifs);
+            boost::archive::binary_iarchive ia(fis);
+            ia >> *this;
+            break;
+        }
+        case reseq::format::ArchiveFormat::kText: {
+            boost::archive::text_iarchive ia(ifs);
+            ia >> *this;
+            break;
+        }
+        case reseq::format::ArchiveFormat::kUnsupportedBinaryVersion:
+            printErr << "Unsupported probability format version in '" << archive_file << "'. Please upgrade ReSeq."
+                     << std::endl;
+            return false;
+        }
     } catch (const exception& e) {
         printErr << "Could not load probability estimates from '" << archive_file << "': " << e.what() << std::endl;
         return false;
@@ -1087,17 +1109,23 @@ bool ProbabilityEstimates::Load(const char* archive_file) {
     return true;
 }
 
-bool ProbabilityEstimates::Save(const char* archive_file) const {
+bool ProbabilityEstimates::Save(const char* archive_file, bool text_format) const {
     try {
-        // create all missing directories
         CreateDir(archive_file);
 
-        // create and open a character archive for output
-        ofstream ofs(archive_file);
-        boost::archive::text_oarchive oa(ofs);
-
-        // save data to archive
-        oa << *this;
+        ofstream ofs(archive_file, std::ios::binary);
+        if (text_format) {
+            boost::archive::text_oarchive oa(ofs);
+            oa << *this;
+        } else {
+            reseq::format::WriteHeader(ofs, reseq::format::kIpfMagic);
+            boost::iostreams::filtering_ostream fos;
+            fos.push(boost::iostreams::gzip_compressor());
+            fos.push(ofs);
+            boost::archive::binary_oarchive oa(fos);
+            oa << *this;
+            fos.flush();
+        }
     } catch (const exception& e) {
         printErr << "Could not save probability estimates to '" << archive_file << "': " << e.what() << std::endl;
         return false;
@@ -1107,7 +1135,8 @@ bool ProbabilityEstimates::Save(const char* archive_file) const {
 }
 
 bool ProbabilityEstimates::Estimate(const DataStats& stats, uintNumFits max_iterations, double precision_aim,
-                                    uintNumThreads num_threads, const char* output, const char* input) {
+                                    uintNumThreads num_threads, const char* output, const char* input,
+                                    bool text_format) {
     if (string("") == input) {
         printInfo << "Starting new probability estimates" << std::endl;
         stats_creation_time_ = stats.CreationTime();
@@ -1216,7 +1245,7 @@ bool ProbabilityEstimates::Estimate(const DataStats& stats, uintNumFits max_iter
                 printInfo << "Updating probability estimates in " << output << std::endl;
             }
 
-            if (!this->Save(output)) {
+            if (!this->Save(output, text_format)) {
                 return false;
             }
         } else {

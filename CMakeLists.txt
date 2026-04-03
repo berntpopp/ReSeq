@@ -41,7 +41,7 @@ find_package(BZip2 REQUIRED)
 
 # Add boost
 cmake_policy(SET CMP0057 NEW)
-find_package(Boost 1.48.0 REQUIRED filesystem math_c99 math_c99f math_c99l math_tr1 math_tr1f math_tr1l program_options serialization system)
+find_package(Boost 1.48.0 REQUIRED filesystem iostreams math_c99 math_c99f math_c99l math_tr1 math_tr1f math_tr1l program_options serialization system)
 
 # NLopt via FetchContent (or system install)
 find_package(NLopt QUIET)
