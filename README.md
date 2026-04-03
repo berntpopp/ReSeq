@@ -9,6 +9,7 @@ More realistic simulator for genomic DNA sequences from Illumina machines that a
 - [Bioconda](#conda)
 - [Quick start examples](#quickstart)
 - [Apply errors and qualities directly to sequences](#errormodel)
+- [Profile format conversion](#convertprofile)
 - [Parameter](#parameter)
 - [File Formats](#formats)
 - [FAQ](#faq)
@@ -129,6 +130,19 @@ For it to work, all necessary informations need to be provided to ReSeq's error 
 
 This call creates a fastq file with two sequences per reference sequence (one for each strand with the reverse strand first). From this file the corresponding error tendencies and rates can be extracted. Note that the the sequence for the reverse strand is already reverse complemented.
 
+## <a name="convertprofile"></a>Profile format conversion
+ReSeq writes profiles in gzip-compressed binary format by default, which is ~65% smaller and loads ~2-3x faster than text format. However, binary profiles are **not portable** across different CPU architectures or compilers (e.g., a profile generated on x86 with GCC may not load on ARM or with Clang). For cross-platform sharing, use text format:
+```
+# Convert binary profile to portable text format
+reseq convertProfile -s my_mappings.bam.reseq --textFormat
+
+# Convert text profile to binary (for faster local use)
+reseq convertProfile -s my_mappings.bam.reseq
+
+# Generate both formats during stats creation
+reseq illuminaPE -j 32 -r my_reference.fa -b my_mappings.bam --statsOnly --bothFormats
+```
+
 ## <a name="parameter"></a>Parameter
 `reseq illuminaPE [options]`
 
@@ -154,6 +168,8 @@ This call creates a fastq file with two sequences per reference sequence (one fo
 | `-S` `--statsOut` | `--bamIn`.reseq | Stores the real data statistics for reuse in given file |
 | `--tiles`         |         | Use tiles for the statistics |
 | `-v` `--vcfIn`    | None    | Ignore all positions with a listed variant for stats generation |
+| `--textFormat`    |         | Write profile files in portable text format instead of compressed binary |
+| `--bothFormats`   |         | Write profiles in both binary and text formats (alternate gets `.text` or `.bin` suffix) |
 | **Probabilities** |
 | `--ipfIterations` | 200     | Maximum number of iterations for iterative proportional fitting |
 | `--ipfPrecision`  | 5       | Iterative proportional fitting procedure stops after reaching this precision (%) |
@@ -230,6 +246,24 @@ This call creates a fastq file with two sequences per reference sequence (one fo
 | `-P` `--probabilitiesOut` | `--probabilitiesIn` | Stores the probabilities estimated by iterative proportional fitting |
 | `--seed`          | None    | Seed used for simulation, if none is given random seed will be used |
 | `-s` `--statsIn`  | None    | Profile file that contains the statistics used for simulation |
+| `--textFormat`    |         | Write profile files in portable text format instead of compressed binary |
+| `--bothFormats`   |         | Write profiles in both binary and text formats (alternate gets `.text` or `.bin` suffix) |
+
+`reseq convertProfile [options]`
+
+| Parameter         | Default | Description |
+|-------------------|---------|-------------|
+| **General**       |
+| `-h` `--help`     |         | Prints help information and exits |
+| `-j` `--threads`  | 0       | Number of threads used (0=auto) |
+| `--verbosity`     | 4       | Sets the level of verbosity (4=everything, 0=nothing) |
+| `--version`       |         | Prints version info and exits |
+| **convertProfile**|
+| `-s` `--statsIn`  | None    | Input stats file (.reseq) |
+| `-o` `--statsOut` | Overwrites input | Output stats file |
+| `-p` `--probsIn`  | None    | Input probabilities file (.reseq.ipf) |
+| `-P` `--probsOut` | Overwrites input | Output probabilities file |
+| `--textFormat`    |         | Write in portable text format (default: compressed binary) |
 
 ## <a name="formats"></a>File Formats
 | File type             | Ending     | Information |
@@ -240,8 +274,8 @@ This call creates a fastq file with two sequences per reference sequence (one fo
 | Adapter matrix        | .mat       | 0/1 matrix stating if the adapters can occur in a read pair together. (0:no; 1:yes). The n-th row/column is the n-th entry in the adapter file. Rows represent the adapter in the first read and columns represent the adapter in the second read. Columns are consecutive digits in a row. Number of rows and columns need to match the number of entries in the adapter file. |
 | Variant file          | .vcf       | Standard vcf format. The reference information in the header and in the reference column must match the given reference file. Ambiguous bases (e.g. N's) are not supported in the reference and alternative column. Except of this only the CHROM, POS, ALT columns and the genotype information are used. No filtering by quality etc. takes place. All genotypes in the file will be simulated. No distinction is made if genotypes are in a single sample or spread out over multiple samples. All genotype information is considered phased independent of what is encoded in the file. At most 128 genotypes are supported by default (see FAQ). |
 | Methylation file	| .bed	     | Extended bed graph format with possibility of multiple score columns for individual alleles. Number of columns must be either 1 or the same number of alleles specified in the variant file. The number of columns need to be the same within each reference sequence. Bisulfite sequencing is simulated, so C->T conversions are inserted with a probability of 1-methylation value specified in this file. |
-| Stats file            | .reseq     | Boost archive: Not recommended to modify or create by hand even though it is in ASCII format |
-| Probability file      | .reseq.ipf | Boost archive: Not recommended to modify or create by hand even though it is in ASCII format |
+| Stats file            | .reseq     | Boost archive containing sequencing statistics. Written in gzip-compressed binary format by default (faster, ~65% smaller) or legacy text format with `--textFormat`. Binary format is not portable across different architectures or compilers; use `--textFormat` or `convertProfile` for cross-platform sharing. |
+| Probability file      | .reseq.ipf | Boost archive containing estimated probabilities. Same format options as stats file. Both text and binary formats are auto-detected on load. |
 | Systematic error file | .fq        | Standard fastq format. The sequence represents the error tendency and the quality the error rate in percent at that position. There are two entries per reference sequence. The order of the reference sequences must be kept. The length must match the length of the reference sequence. The first entry per reference sequence is the reverse strand and reverse complemented. So an A in the first position means that a systematic error towards a T is simulated for the last base of the reference sequence in reads on the reverse strand. The second entry is the forward strand taken as is, so not reverse complemented. The error rate in percent is encoded similar to quality values with an offset of 33. Since the fastq format is limited to 94 quality values odd percentages over 86 are omitted. This mean `~` encodes 100% and `}` 98%. |
 | Reference bias file   | .txt       | One line per specified bias. The line starts by a unique identifier of the reference sequence (the part before the first space in the reference sequence name in the reference file). The identifier can be followed by a space and after it some arbitrary information. The line ends with a space or tab separating a floating point number representing the bias for this sequence. It must be positive. All reference sequences in the reference file must have a bias given. However, the order of the sequences doesn't need to be kept and the bias for additional reference sequences could be specified. The biases will be automatically normalized and define the relative base coverage of the reference sequences. Simulated base coverage will differ from this due to other biases additionally taken into account. |
 
