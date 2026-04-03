@@ -46,8 +46,6 @@ jobs:
         run: cd build && ctest --output-on-failure -j1
 
   sanitizers:
-    # Informational: pre-existing memory bugs cause failures (Phase 3 fixes these)
-    continue-on-error: true
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -68,7 +66,8 @@ jobs:
         run: |
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
 
       - name: Build
         run: cmake --build build -j$(nproc)
@@ -77,8 +76,6 @@ jobs:
         run: cd build && ctest --output-on-failure -j1
 
   coverage:
-    # Informational: pre-existing memory bugs cause test failures under coverage (Phase 3 fixes these)
-    continue-on-error: true
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4

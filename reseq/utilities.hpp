@@ -383,10 +383,11 @@ template <typename T> struct VectorAtomic {
 
     template <typename U> inline T operator-=(const U& rhs) { return value_ -= rhs; }
 };
-template <typename T, typename U>
-bool operator==(U lhs, const VectorAtomic<T>& rhs) { // Compares the size_t value to the size
-    return rhs == lhs;
-}
+// In C++20, the member operator== supports reversed arguments automatically
+// (i.e. `5 == vectorAtomic` resolves to `vectorAtomic.operator==(5)`).
+// A free-function reverse delegation (`return rhs == lhs`) causes infinite
+// recursion because C++20 overload resolution can pick it as the reversed
+// candidate for its own body.
 
 // Functions
 template <typename T> void Acquire(std::vector<T>& receiver, std::vector<VectorAtomic<T>>& donator) {
@@ -417,10 +418,16 @@ inline void DeleteFile(const char* file) {
 inline bool GetReSeqDir(std::string& full_dir, const std::string dir, const std::string test_file) {
     full_dir = std::string(PROJECT_SOURCE_DIR) + '/' + dir + '/';
     if (!FileExists(full_dir + test_file)) {
-        full_dir = std::string(std::getenv("CONDA_PREFIX")) + "/etc/reseq/" + dir + '/';
-        if (!FileExists(full_dir + test_file)) {
-            full_dir = std::string(std::getenv("RESEQ_FOLDER")) + '/' + dir + '/';
-            if (!FileExists(full_dir + test_file)) {
+        const char* conda_prefix = std::getenv("CONDA_PREFIX");
+        if (conda_prefix) {
+            full_dir = std::string(conda_prefix) + "/etc/reseq/" + dir + '/';
+        }
+        if (!conda_prefix || !FileExists(full_dir + test_file)) {
+            const char* reseq_folder = std::getenv("RESEQ_FOLDER");
+            if (reseq_folder) {
+                full_dir = std::string(reseq_folder) + '/' + dir + '/';
+            }
+            if (!reseq_folder || !FileExists(full_dir + test_file)) {
                 printErr << "Could not find " << dir << " folder. Searching at " << std::endl
                          << (std::string(PROJECT_SOURCE_DIR) + '/' + dir + '/') << std::endl
                          << ("${CONDA_PREFIX}/etc/reseq/" + dir + '/') << std::endl
