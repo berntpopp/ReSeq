@@ -1,10 +1,11 @@
+#include <atomic>
 #include <iostream>
 #include <string>
 
 #include "gtest/gtest.h"
 
 namespace reseq {
-uint16_t kVerbosityLevel = 2;
+std::atomic<uint16_t> kVerbosityLevel{2};
 bool kNoDebugOutput = false;
 } // namespace reseq
 #include "logging.hpp"

@@ -22,11 +22,11 @@ class BasicTestClass : public ::testing::Test {
   protected:
     inline void ReduceVerbosity(uint16_t reduced_verbosity = kTestVerbosity) {
         if (kVerbosityLevel > reduced_verbosity) {
-            kVerbosityLevel = reduced_verbosity;
+            kVerbosityLevel.store(reduced_verbosity);
         }
     }
-    inline void RestoreTestVerbosity() { kVerbosityLevel = std::min((uint16_t)kTestVerbosity, real_verbosity_); }
-    inline void RestoreVerbosity() { kVerbosityLevel = real_verbosity_; }
+    inline void RestoreTestVerbosity() { kVerbosityLevel.store(std::min(kTestVerbosity, real_verbosity_)); }
+    inline void RestoreVerbosity() { kVerbosityLevel.store(real_verbosity_); }
 
     virtual void SetUp() { ReduceVerbosity(); }
     virtual void TearDown() { RestoreVerbosity(); }

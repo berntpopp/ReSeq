@@ -9,6 +9,7 @@
 #ifndef RESEQ_LOGGING_HPP
 #define RESEQ_LOGGING_HPP
 
+#include <atomic>
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
@@ -20,7 +21,7 @@
 
 namespace reseq {
 
-extern uint16_t kVerbosityLevel;
+extern std::atomic<uint16_t> kVerbosityLevel;
 extern bool kNoDebugOutput;
 
 class NullBuffer : public std::streambuf {
