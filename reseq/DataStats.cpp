@@ -1301,15 +1301,15 @@ bool DataStats::ReadBam(const char* bam_file, const char* adapter_file, const ch
 
                                     printInfo << "Starting main read-in" << std::endl;
 
-                                    thread threads[num_threads];
                                     running_threads_ = num_threads;
                                     finish_threads_ = false;
-
-                                    for (auto i = num_threads; i--;) {
-                                        threads[i] = thread(ReadThread, std::ref(*this), std::ref(bam));
-                                    }
-                                    for (auto i = num_threads; i--;) {
-                                        threads[i].join();
+                                    {
+                                        std::vector<std::jthread> threads;
+                                        threads.reserve(num_threads);
+                                        for (decltype(num_threads) i = 0; i < num_threads; ++i) {
+                                            threads.emplace_back([this, &bam](std::stop_token) { ReadThread(*this, bam); });
+                                        }
+                                        // jthread destructors join on scope exit
                                     }
 
                                     if (reading_success_) {
