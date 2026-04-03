@@ -14,9 +14,6 @@
 #include "Simulator.h"
 #include "utilities.hpp"
 
-using std::cerr;
-using std::exception;
-using std::string;
 using boost::program_options::command_line_parser;
 using boost::program_options::notify;
 using boost::program_options::options_description;
@@ -29,6 +26,9 @@ using reseq::Simulator;
 using reseq::uintNumFits;
 using reseq::uintNumThreads;
 using reseq::uintSeed;
+using std::cerr;
+using std::exception;
+using std::string;
 
 namespace reseq::cli {
 
@@ -39,16 +39,16 @@ int RunSeqToIllumina(const std::vector<std::string>& args, uintNumThreads num_th
     double ipf_precision;
 
     options_description opt_desc("seqToIllumina");
-    opt_desc.add_options()("errorMutliplier", value<double>(&error_multiplier)->default_value(1.0),
-                           "Divides the original probability of correct base calls(no substitution error) by this value "
-                           "and renormalizes")(
-        "input,i", value<string>(), "Input file (fasta format, gz and bz2 supported) [stdin]")(
+    opt_desc.add_options()(
+        "errorMutliplier", value<double>(&error_multiplier)->default_value(1.0),
+        "Divides the original probability of correct base calls(no substitution error) by this value "
+        "and renormalizes")("input,i", value<string>(), "Input file (fasta format, gz and bz2 supported) [stdin]")(
         "ipfIterations", value<uintNumFits>(&ipf_iterations)->default_value(200),
         "Maximum number of iterations for iterative proportional fitting")(
         "ipfPrecision", value<double>(&ipf_precision)->default_value(5),
         "Iterative proportional fitting procedure stops after reaching this precision (%)")(
-        "noInDelErrors", "Simulate reads without InDel errors")(
-        "noSubstitutionErrors", "Simulate reads without substitution errors")(
+        "noInDelErrors", "Simulate reads without InDel errors")("noSubstitutionErrors",
+                                                                "Simulate reads without substitution errors")(
         "output,o", value<string>(), "Output file (fastq format, gz and bz2 supported) [stdout]")(
         "probabilitiesIn,p", value<string>(),
         "Loads last estimated probabilities and continues from there if precision is not met [<statsIn>.ipf]")(

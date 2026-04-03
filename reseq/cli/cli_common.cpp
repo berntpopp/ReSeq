@@ -9,15 +9,15 @@
 #include "logging.hpp"
 #include "utilities.hpp"
 
-using std::string;
 using reseq::uintNumThreads;
 using reseq::uintSeed;
 using reseq::utilities::TrueRandom;
+using std::string;
 
 namespace reseq::cli {
 
-bool AutoDetectThreads(uintNumThreads& num_threads,
-                       const boost::program_options::options_description& opt_desc, const string& usage_str) {
+bool AutoDetectThreads(uintNumThreads& num_threads, const boost::program_options::options_description& opt_desc,
+                       const string& usage_str) {
     if (0 == num_threads) {
         num_threads = std::thread::hardware_concurrency();
         if (0 == num_threads) {
@@ -49,8 +49,7 @@ uintSeed GetSeed(const boost::program_options::variables_map& opts_map) {
     return seed;
 }
 
-void GetProbsOut(string& probs_out, const string& fallback_out,
-                 const boost::program_options::variables_map& opts_map) {
+void GetProbsOut(string& probs_out, const string& fallback_out, const boost::program_options::variables_map& opts_map) {
     auto it_probs_out = opts_map.find("probabilitiesOut");
     if (opts_map.end() == it_probs_out) {
         probs_out = fallback_out;

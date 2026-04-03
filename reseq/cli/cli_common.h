@@ -17,9 +17,8 @@ uintSeed GetSeed(const boost::program_options::variables_map& opts_map);
 void GetProbsOut(std::string& probs_out, const std::string& fallback_out,
                  const boost::program_options::variables_map& opts_map);
 
-void PrepareProbabilityEstimation(std::string& probs_in, std::string& probs_out,
-                                  const std::string& standard_probs_out, bool loaded_stats,
-                                  const boost::program_options::variables_map& opts_map);
+void PrepareProbabilityEstimation(std::string& probs_in, std::string& probs_out, const std::string& standard_probs_out,
+                                  bool loaded_stats, const boost::program_options::variables_map& opts_map);
 
 } // namespace reseq::cli
 

@@ -12,9 +12,6 @@
 #include "Reference.h"
 #include "utilities.hpp"
 
-using std::cerr;
-using std::exception;
-using std::string;
 using boost::program_options::command_line_parser;
 using boost::program_options::notify;
 using boost::program_options::options_description;
@@ -24,6 +21,9 @@ using boost::program_options::variables_map;
 using reseq::Reference;
 using reseq::uintNumThreads;
 using reseq::uintSeed;
+using std::cerr;
+using std::exception;
+using std::string;
 
 namespace reseq::cli {
 

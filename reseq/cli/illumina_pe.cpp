@@ -17,10 +17,6 @@
 #include "Simulator.h"
 #include "utilities.hpp"
 
-using std::cerr;
-using std::count;
-using std::exception;
-using std::string;
 using boost::program_options::command_line_parser;
 using boost::program_options::notify;
 using boost::program_options::options_description;
@@ -28,9 +24,10 @@ using boost::program_options::store;
 using boost::program_options::value;
 using boost::program_options::variables_map;
 using reseq::DataStats;
+using reseq::kVerbosityLevel;
 using reseq::ProbabilityEstimates;
-using reseq::RefSeqBiasSimulation;
 using reseq::Reference;
+using reseq::RefSeqBiasSimulation;
 using reseq::Simulator;
 using reseq::uintFragCount;
 using reseq::uintNumFits;
@@ -41,7 +38,10 @@ using reseq::uintSeqLen;
 using reseq::utilities::DeleteFile;
 using reseq::utilities::FileExists;
 using reseq::utilities::GetReSeqDir;
-using reseq::kVerbosityLevel;
+using std::cerr;
+using std::count;
+using std::exception;
+using std::string;
 
 namespace {
 
@@ -354,11 +354,11 @@ int RunIlluminaPE(const std::vector<std::string>& args, uintNumThreads num_threa
         "noBias", "Do not perform bias fit. Results in uniform coverage if simulated from")(
         "noTiles", "Ignore tiles for the statistics [default]")(
         "refIn,r", value<string>(), "Reference sequences in fasta format (gz and bz2 supported)")(
-        "statsOnly", "Only generate the statistics")(
-        "statsIn,s", value<string>(), "Skips statistics generation and reads directly from stats file")(
+        "statsOnly", "Only generate the statistics")("statsIn,s", value<string>(),
+                                                     "Skips statistics generation and reads directly from stats file")(
         "statsOut,S", value<string>(), "Stores the real data statistics for reuse in given file [<bamIn>.reseq]")(
-        "tiles", "Use tiles for the statistics")(
-        "vcfIn,v", value<string>(), "Ignore all positions with a listed variant for stats generation");
+        "tiles", "Use tiles for the statistics")("vcfIn,v", value<string>(),
+                                                 "Ignore all positions with a listed variant for stats generation");
 
     options_description opt_desc_ipf("Probabilities");
     opt_desc_ipf.add_options()("ipfIterations", value<uintNumFits>(&ipf_iterations)->default_value(200),
@@ -383,8 +383,8 @@ int RunIlluminaPE(const std::vector<std::string>& args, uintNumThreads num_threa
         "methylation", value<string>(&meth_file)->default_value(""),
         "Extended bed graph file specifying methylation for regions. Multiple score columns for individual "
         "alleles are possible, but must match with vcfSim. C->T conversions for 1-specified value in region.")(
-        "noInDelErrors", "Simulate reads without InDel errors")(
-        "noSubstitutionErrors", "Simulate reads without substitution errors")(
+        "noInDelErrors", "Simulate reads without InDel errors")("noSubstitutionErrors",
+                                                                "Simulate reads without substitution errors")(
         "numReads", value<uintFragCount>(&num_read_pairs)->default_value(0),
         "Approximate number of read pairs simulated (0 = Use <coverage>)")(
         "readSysError", value<string>(),
@@ -572,9 +572,10 @@ int RunIlluminaPE(const std::vector<std::string>& args, uintNumThreads num_threa
                                         }
                                     } else {
                                         if (opts_map.end() != it_ref_bias_file) {
-                                            printErr << "refBiasFile option only allowed if for refBias option file was "
-                                                        "chosen"
-                                                     << std::endl;
+                                            printErr
+                                                << "refBiasFile option only allowed if for refBias option file was "
+                                                   "chosen"
+                                                << std::endl;
                                             if (0 < kVerbosityLevel) {
                                                 cerr << usage_str;
                                                 cerr << opt_desc_full << std::endl;

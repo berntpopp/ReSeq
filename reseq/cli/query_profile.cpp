@@ -14,11 +14,6 @@
 #include "Reference.h"
 #include "utilities.hpp"
 
-using std::cerr;
-using std::cout;
-using std::exception;
-using std::max;
-using std::string;
 using boost::program_options::command_line_parser;
 using boost::program_options::notify;
 using boost::program_options::options_description;
@@ -28,11 +23,16 @@ using boost::program_options::variables_map;
 using reseq::DataStats;
 using reseq::Reference;
 using reseq::uintNumThreads;
+using std::cerr;
+using std::cout;
+using std::exception;
+using std::max;
+using std::string;
 
 namespace reseq::cli {
 
-int RunQueryProfile(const std::vector<std::string>& args, uintNumThreads num_threads,
-                    const variables_map& general_opts, options_description& opt_desc_full) {
+int RunQueryProfile(const std::vector<std::string>& args, uintNumThreads num_threads, const variables_map& general_opts,
+                    options_description& opt_desc_full) {
     options_description opt_desc("queryProfile");
     opt_desc.add_options()("fragLenBias", value<string>(),
                            "Output fragment length bias to file (tsv format; - for stdout)")(
