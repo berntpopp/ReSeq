@@ -781,6 +781,7 @@ void CoverageStats::CountBlock(CoverageBlock* block, const Reference& reference)
 
 CoverageStats::CoverageBlock* CoverageStats::RemoveBlock(CoverageBlock* block) {
     CoverageBlock* next = block->next_block_;
+    free_indices_.push_back(block->block_idx_);
     reusable_blocks_.push_back(std::unique_ptr<CoverageBlock>(block));
 
     return next;
@@ -1021,10 +1022,12 @@ reseq::uintRefSeqId CoverageStats::CleanUp(uintSeqLen& still_needed_position, Re
             until_block = until_block->next_block_;
             first_block_ = until_block;
         }
+        first_live_idx_.store(until_block->block_idx_, std::memory_order_release);
         until_block = until_block->previous_block_;
 
         if (until_block) {
             (*first_block_).previous_block_ = nullptr;
+            blocks_[first_live_idx_.load(std::memory_order_relaxed)]->prev_block_idx_ = SIZE_MAX;
             until_block->next_block_ = nullptr;
             still_needed_reference_sequence = (*first_block_).sequence_id_;
             still_needed_position = (*first_block_).start_pos_;
