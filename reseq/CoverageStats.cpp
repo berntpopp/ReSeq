@@ -857,14 +857,16 @@ void CoverageStats::Prepare(uintCovCount average_coverage, uintReadLen average_r
 }
 
 CoverageStats::CoverageBlock* CoverageStats::FindBlock(uintRefSeqId ref_seq_id, uintSeqLen ref_pos) {
-    CoverageBlock* block = last_block_;
+    size_t idx = last_live_idx_.load(std::memory_order_acquire);
+    CoverageBlock* block = blocks_[idx];
     while (block->sequence_id_ > ref_seq_id) {
-        block = block->previous_block_;
+        idx = block->prev_block_idx_;
+        block = blocks_[idx];
     }
     while (block->start_pos_ > ref_pos) {
-        block = block->previous_block_;
+        idx = block->prev_block_idx_;
+        block = blocks_[idx];
     }
-
     return block;
 }
 
@@ -930,6 +932,15 @@ bool CoverageStats::EnsureSpace(uintRefSeqId ref_seq_id, uintSeqLen start_pos, u
         new_block->previous_coverage_.reserve(maximum_read_length_on_reference_);
         new_block->reads_.reserve(2 * kBlockSize);
         InitBlock(*new_block, reference);
+
+        // Register in index-based deque (CreateBlock is not called here, so do it manually)
+        blocks_.emplace_back(new_block);
+        size_t new_idx = blocks_.size() - 1;
+        new_block->block_idx_ = new_idx;
+        new_block->prev_block_idx_ = SIZE_MAX; // first block has no predecessor
+        new_block->next_block_idx_ = SIZE_MAX;
+        first_live_idx_.store(new_idx, std::memory_order_release);
+        last_live_idx_.store(new_idx, std::memory_order_release);
 
         first_block_ = new_block;
         last_block_ = new_block;
