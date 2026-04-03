@@ -1144,6 +1144,17 @@ TEST_F(ProbabilityEstimatesTest, IPFforQuality) {
     auto iterations = GetIterationsQual(test_, base);
     auto precision = GetPrecisionQual(test_, base);
 
+    // Text format round-trip (before PrepareResult modifies state)
+    string text_file = test_dir + "saveTestText.reseq.ipf";
+    ASSERT_TRUE(test_.Save(text_file.c_str(), true)); // text_format = true
+    ProbabilityEstimates test_text;
+    ASSERT_TRUE(test_text.Load(text_file.c_str()));
+    auto text_iterations = GetIterationsQual(test_text, base);
+    auto text_precision = GetPrecisionQual(test_text, base);
+    EXPECT_EQ(iterations, text_iterations) << "Text round-trip iterations mismatch";
+    EXPECT_EQ(precision, text_precision) << "Text round-trip precision mismatch";
+    EXPECT_EQ(0, remove(text_file.c_str())) << "Error deleting file: " << text_file << '\n';
+
     Vect<Vect<Vect<Vect<Vect<double>>>>> estimated_counts;
     GetIPFResultQual(test_, base, estimated_counts, margins);
 
@@ -1271,6 +1282,17 @@ TEST_F(ProbabilityEstimatesTest, IPFforBaseCalls) {
     auto iterations = GetIterationsBaseCall(test_);
     auto precision = GetPrecisionBaseCall(test_);
 
+    // Text format round-trip (before PrepareResult modifies state)
+    string text_file = test_dir + "saveTestText.reseq.ipf";
+    ASSERT_TRUE(test_.Save(text_file.c_str(), true)); // text_format = true
+    ProbabilityEstimates test_text;
+    ASSERT_TRUE(test_text.Load(text_file.c_str()));
+    auto text_iterations = GetIterationsBaseCall(test_text);
+    auto text_precision = GetPrecisionBaseCall(test_text);
+    EXPECT_EQ(iterations, text_iterations) << "Text round-trip iterations mismatch";
+    EXPECT_EQ(precision, text_precision) << "Text round-trip precision mismatch";
+    EXPECT_EQ(0, remove(text_file.c_str())) << "Error deleting file: " << text_file << '\n';
+
     Vect<Vect<Vect<Vect<Vect<double>>>>> estimated_counts;
     GetIPFResultBaseCall(test_, estimated_counts, margins);
 
@@ -1328,6 +1350,18 @@ TEST_F(ProbabilityEstimatesTest, IPFforDominantError) {
     CheckIPFResult(iterations, precision, margins, margin_quality_position, margin_def, estimated_counts, "loading");
 
     EXPECT_EQ(0, remove(save_file.c_str())) << "Error deleting file: " << save_file << '\n';
+
+    // Text format round-trip
+    auto text_save_iterations = GetIterationsDomError(test_);
+    auto text_save_precision = GetPrecisionDomError(test_);
+    ASSERT_TRUE(test_.Save(save_file.c_str(), true)); // text_format = true
+    ProbabilityEstimates test_text;
+    ASSERT_TRUE(test_text.Load(save_file.c_str()));
+    auto text_iterations = GetIterationsDomError(test_text);
+    auto text_precision = GetPrecisionDomError(test_text);
+    EXPECT_EQ(text_save_iterations, text_iterations) << "Text round-trip iterations mismatch";
+    EXPECT_EQ(text_save_precision, text_precision) << "Text round-trip precision mismatch";
+    EXPECT_EQ(0, remove(save_file.c_str())) << "Error deleting file: " << save_file << '\n';
 }
 
 TEST_F(ProbabilityEstimatesTest, IPFforErrorRate) {
@@ -1364,6 +1398,18 @@ TEST_F(ProbabilityEstimatesTest, IPFforErrorRate) {
     test2.PrepareResult();
     CheckIPFResult(iterations, precision, margins, margin_quality_position, margin_def, estimated_counts, "loading");
 
+    EXPECT_EQ(0, remove(save_file.c_str())) << "Error deleting file: " << save_file << '\n';
+
+    // Text format round-trip
+    auto text_save_iterations = GetIterationsErrorRate(test_);
+    auto text_save_precision = GetPrecisionErrorRate(test_);
+    ASSERT_TRUE(test_.Save(save_file.c_str(), true)); // text_format = true
+    ProbabilityEstimates test_text;
+    ASSERT_TRUE(test_text.Load(save_file.c_str()));
+    auto text_iterations = GetIterationsErrorRate(test_text);
+    auto text_precision = GetPrecisionErrorRate(test_text);
+    EXPECT_EQ(text_save_iterations, text_iterations) << "Text round-trip iterations mismatch";
+    EXPECT_EQ(text_save_precision, text_precision) << "Text round-trip precision mismatch";
     EXPECT_EQ(0, remove(save_file.c_str())) << "Error deleting file: " << save_file << '\n';
 }
 } // namespace reseq
