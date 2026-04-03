@@ -22,6 +22,8 @@ using std::uniform_real_distribution;
 using std::string;
 #include <atomic>
 using std::atomic;
+#include <future>
+using std::async;
 #include <thread>
 using std::thread;
 #include <vector>
@@ -1205,6 +1207,57 @@ void FragmentDistributionStatsTest::TestRefBinProcessing() {
     }
 }
 
+void FragmentDistributionStatsTest::TestNonBlockingProgressGuarantee() {
+    // Acquire all slots from the bias queue (friend access to private bias_queue_)
+    const size_t queue_capacity = test_->bias_queue_.max_slots();
+    std::vector<size_t> slots;
+    slots.reserve(queue_capacity);
+    for (size_t i = 0; i < queue_capacity; ++i) {
+        size_t idx = test_->bias_queue_.try_acquire();
+        if (idx == SIZE_MAX)
+            break;
+        slots.push_back(idx);
+    }
+    ASSERT_EQ(slots.size(), queue_capacity) << "Should be able to acquire all slots before the queue is full";
+
+    // When the queue is full, try_acquire must return SIZE_MAX immediately (non-blocking).
+    // We verify with a timeout: if try_acquire ever blocks, the future won't be ready in time.
+    auto future = std::async(std::launch::async, [this]() { return test_->bias_queue_.try_acquire(); });
+    auto status = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(status, std::future_status::ready) << "try_acquire blocked when queue was full";
+    EXPECT_EQ(future.get(), SIZE_MAX) << "try_acquire should return SIZE_MAX when queue is full";
+
+    // Release all acquired slots so the object can be cleanly destroyed
+    for (auto idx : slots) {
+        test_->bias_queue_.release(idx);
+    }
+}
+
+void FragmentDistributionStatsTest::TestThreadIndexPoolExclusiveAccess() {
+    // Verify the bias queue capacity is non-zero (structural sanity check)
+    const size_t capacity = test_->bias_queue_.max_slots();
+    ASSERT_GT(capacity, 0u) << "bias_queue_ must have at least one slot";
+
+    // Verify all slots are initially available (i.e., no slot has been pre-acquired)
+    std::vector<size_t> acquired;
+    acquired.reserve(capacity);
+    for (size_t i = 0; i < capacity; ++i) {
+        size_t idx = test_->bias_queue_.try_acquire();
+        ASSERT_NE(idx, SIZE_MAX) << "Slot " << i << " should be available on a freshly prepared object";
+        acquired.push_back(idx);
+    }
+
+    // Verify that every returned index is unique (exclusive access guarantee)
+    std::sort(acquired.begin(), acquired.end());
+    auto dup = std::adjacent_find(acquired.begin(), acquired.end());
+    EXPECT_EQ(dup, acquired.end()) << "Duplicate slot index detected — slots are not exclusive";
+
+    // Release all slots
+    for (auto idx : acquired) {
+        test_->bias_queue_.release(idx);
+    }
+}
+
 namespace reseq {
 TEST_F(FragmentDistributionStatsTest, BiasCalculationVectors) {
     string test_dir;
@@ -1282,6 +1335,24 @@ TEST_F(FragmentDistributionStatsTest, Functionality) {
     TestDrawCounts();
     TestRefSeqSplitting();
     TestRefBinProcessing();
+}
+
+TEST_F(FragmentDistributionStatsTest, NonBlockingProgressGuarantee) {
+    string test_dir;
+    ASSERT_TRUE(GetTestDir(test_dir));
+    LoadReference(test_dir + "reference-test.fa");
+    SetExlusionRegionsAtEnds();
+    CreateTestObject(&species_reference_);
+    TestNonBlockingProgressGuarantee();
+}
+
+TEST_F(FragmentDistributionStatsTest, ThreadIndexPoolExclusiveAccess) {
+    string test_dir;
+    ASSERT_TRUE(GetTestDir(test_dir));
+    LoadReference(test_dir + "reference-test.fa");
+    SetExlusionRegionsAtEnds();
+    CreateTestObject(&species_reference_);
+    TestThreadIndexPoolExclusiveAccess();
 }
 } // namespace reseq
 
