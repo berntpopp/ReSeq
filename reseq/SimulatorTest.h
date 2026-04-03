@@ -3,6 +3,7 @@
 #include "Simulator.h"
 
 #include <array>
+#include <memory>
 #include <stdint.h>
 #include <vector>
 
@@ -16,7 +17,7 @@ class SimulatorTest : public BasicTestClassWithReference {
     static void Register();
 
   protected:
-    Simulator* test_;
+    std::unique_ptr<Simulator> test_;
 
     void CreateTestObject();
     void DeleteTestObject();
@@ -40,7 +41,7 @@ class SimulatorTest : public BasicTestClassWithReference {
     void TestVariationInSimulateFromGivenBlock();
 
   public:
-    SimulatorTest() : test_(NULL) {}
+    SimulatorTest() {}
 };
 } // namespace reseq
 

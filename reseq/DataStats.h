@@ -306,7 +306,7 @@ class DataStats {
 
     // Setter functions
     void IgnoreTiles() { tiles_.IgnoreTiles(); }
-    void ClearReference() { reference_ = NULL; }
+    void ClearReference() { reference_ = nullptr; }
     void SetReference(Reference* ref) { reference_ = ref; }
     void SetUniformBias() { fragment_distribution_.SetUniformBias(); }
 

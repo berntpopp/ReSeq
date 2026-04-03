@@ -36,14 +36,12 @@ void SimulatorTest::Register() {
 }
 
 void SimulatorTest::CreateTestObject() {
-    ASSERT_TRUE(test_ = new Simulator) << "Could not allocate memory for FragmentDuplicationStats object\n";
+    test_ = std::make_unique<Simulator>();
+    ASSERT_TRUE(test_) << "Could not allocate memory for Simulator object\n";
 }
 
 void SimulatorTest::DeleteTestObject() {
-    if (test_) {
-        delete test_;
-        test_ = NULL;
-    }
+    test_.reset();
 }
 
 void SimulatorTest::TearDown() {
@@ -74,7 +72,7 @@ void SimulatorTest::ChooseAlleles(vector<uintAlleleId>& chosen_allele_ids, vecto
 
 void SimulatorTest::TestCoverageConversion() {
     // CoveragePropLostFromAdapters
-    DataStats stats(NULL);
+    DataStats stats(nullptr);
 
     stats.read_lengths_by_fragment_length_.at(1)[200][150] = 10;
     stats.read_lengths_by_fragment_length_.at(0)[150][150] = 10;
@@ -134,7 +132,7 @@ void SimulatorTest::TestVariationInInnerLoopOfSimulateFromGivenBlock(
     array<vector<intSeqShift>, 2> gc_mod, array<vector<intSeqShift>, 2> end_pos_shift,
     array<uintSeqLen, 2> modified_start_pos, array<Reference*, 2> comp_ref) {
     // Preparation
-    DataStats stats(NULL);
+    DataStats stats(nullptr);
     stats.read_lengths_.at(0)[100];
     stats.read_lengths_.at(1)[100];
     stats.errors_.PrepareSimulation();
@@ -379,7 +377,7 @@ void SimulatorTest::TestVariationInSimulateFromGivenBlock() {
     TestVariationInInnerLoopOfSimulateFromGivenBlock(
         bias_mod, ref_seq_id, cur_start_position, 1, 11, 1, {{{}, {3, 3, 3, 3, 3, 4, 4, 5, 6, 6}}},
         {{{}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}}, {{{}, {0, 0, 0, 0, 0, 0, 0, 1, 0, 0}}},
-        {{{}, {0, -1, -1, -1, -1, 0, 0, 0, 1, 1}}}, {0, 1006}, {NULL, &test_ref});
+        {{{}, {0, -1, -1, -1, -1, 0, 0, 0, 1, 1}}}, {0, 1006}, {nullptr, &test_ref});
 
     test_->CheckForInsertedBasesToStartFrom(bias_mod, 0, cur_start_position, species_reference_);
     EXPECT_EQ(2, bias_mod.first_variant_id_);
@@ -406,7 +404,7 @@ void SimulatorTest::TestVariationInSimulateFromGivenBlock() {
     TestVariationInInnerLoopOfSimulateFromGivenBlock(
         bias_mod, ref_seq_id, cur_start_position, 1, 10, 1, {{{}, {3, 3, 3, 3, 4, 4, 5, 6, 6}}},
         {{{}, {0, 0, 0, 0, 0, 0, 0, 0, 0}}}, {{{}, {-1, -1, -1, -1, -1, -1, 0, -1, -1}}},
-        {{{}, {0, 0, 0, 0, 1, 1, 1, 2, 2}}}, {0, 1007}, {NULL, &test_ref});
+        {{{}, {0, 0, 0, 0, 1, 1, 1, 2, 2}}}, {0, 1007}, {nullptr, &test_ref});
 
     test_->CheckForInsertedBasesToStartFrom(bias_mod, 0, cur_start_position, species_reference_);
     EXPECT_EQ(3, bias_mod.first_variant_id_);
@@ -425,7 +423,7 @@ void SimulatorTest::TestVariationInSimulateFromGivenBlock() {
     TestVariationInInnerLoopOfSimulateFromGivenBlock(bias_mod, ref_seq_id, cur_start_position, 1, 8, 1,
                                                      {{{4, 4, 4, 5, 6, 6, 6}, {}}}, {{{0, 0, 0, 0, 0, 0, 0}, {}}},
                                                      {{{0, 0, 0, 0, 0, 0, 0}, {}}}, {{{0, 0, 0, 0, 0, 0, 0}, {}}},
-                                                     {cur_start_position, 0}, {&species_reference_, NULL});
+                                                     {cur_start_position, 0}, {&species_reference_, nullptr});
 
     test_->CheckForInsertedBasesToStartFrom(bias_mod, 0, cur_start_position, species_reference_);
     EXPECT_EQ(4, bias_mod.first_variant_id_);

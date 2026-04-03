@@ -6,11 +6,12 @@
 #include <atomic>
 #include <cmath>
 #include <deque>
+#include <memory>
 #include <mutex>
 #include <stdint.h>
 #include <utility>
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 #include <seqan/bam_io.h>
 
@@ -55,8 +56,18 @@ class CoverageStats {
             }
         }
 
-        CoveragePosition(const CoveragePosition& UNUSED(right)) {
-            throw std::runtime_error("This function should never be called.");
+        CoveragePosition(const CoveragePosition&) = delete;
+        CoveragePosition& operator=(const CoveragePosition&) = delete;
+
+        CoveragePosition(CoveragePosition&& other) noexcept
+            : dom_error_(other.dom_error_), error_rate_(other.error_rate_), valid_(other.valid_),
+              coverage_sufficient_(other.coverage_sufficient_) {
+            for (int i = 5; i--;) {
+                coverage_forward_.at(i).store(other.coverage_forward_.at(i).load(std::memory_order_relaxed),
+                                              std::memory_order_relaxed);
+                coverage_reverse_.at(i).store(other.coverage_reverse_.at(i).load(std::memory_order_relaxed),
+                                              std::memory_order_relaxed);
+            }
         }
     };
 
@@ -84,13 +95,13 @@ class CoverageStats {
         std::vector<ProcessedCoveragePosition>
             previous_coverage_; // End of coverage information from previous_block_ (max read length dependent)
         std::atomic<uintFragCount> unprocessed_fragments_;
-        std::vector<FullRecord*> reads_;
+        std::vector<std::unique_ptr<FullRecord>> reads_;
         intVariantId first_variant_id_;
         std::atomic_flag scheduled_for_processing_;
         std::atomic<bool> processed_;
 
         CoverageBlock(uintRefSeqId seq_id, uintSeqLen start_pos, CoverageBlock* prev_block)
-            : sequence_id_(seq_id), start_pos_(start_pos), previous_block_(prev_block), next_block_(NULL),
+            : sequence_id_(seq_id), start_pos_(start_pos), previous_block_(prev_block), next_block_(nullptr),
               unprocessed_fragments_(0), first_variant_id_(0) {
             scheduled_for_processing_.clear();
             processed_ = false;
@@ -268,7 +279,7 @@ class CoverageStats {
     // Temporary variables for read in
     std::atomic<CoverageBlock*> first_block_;
     std::atomic<CoverageBlock*> last_block_;
-    std::vector<CoverageBlock*> reusable_blocks_;
+    std::vector<std::unique_ptr<CoverageBlock>> reusable_blocks_;
 
     uintRefLenCalc zero_coverage_region_;
     uintRefLenCalc excluded_bases_;
@@ -382,8 +393,8 @@ class CoverageStats {
 
   public:
     CoverageStats()
-        : coverage_threshold_(100), first_block_(NULL), last_block_(NULL), zero_coverage_region_(0), excluded_bases_(0),
-          num_exclusion_regions_(0) {}
+        : coverage_threshold_(100), first_block_(nullptr), last_block_(nullptr), zero_coverage_region_(0),
+          excluded_bases_(0), num_exclusion_regions_(0) {}
 
     // Getter functions
     inline const Vect<Vect<uintNucCount>>& DominantErrorsByDistance(seqan::Dna ref_base, seqan::Dna5 last_ref_base,

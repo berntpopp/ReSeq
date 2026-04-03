@@ -37,7 +37,7 @@ using std::pair;
 // include <vector>
 using std::vector;
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 #include <iomanip>
 using std::setw;
@@ -422,19 +422,20 @@ bool DataStorage<N>::SetUp(const array<pair<const Vect<Vect<uintMatrixCount>>*, 
         // Check control
         if (dim_control.at(dim_a).size()) {
             if (!(dim_control_a == dim_control.at(dim_a))) {
-                print_mutex.lock();
-                printErr << "The dimension " << dim_a << " is inconsistent in margin " << n << ":" << std::endl;
-                if (0 < kVerbosityLevel) {
-                    for (auto element : dim_control_a) {
-                        std::cerr << element << ' ';
+                {
+                    std::scoped_lock lock(print_mutex);
+                    printErr << "The dimension " << dim_a << " is inconsistent in margin " << n << ":" << std::endl;
+                    if (0 < kVerbosityLevel) {
+                        for (auto element : dim_control_a) {
+                            std::cerr << element << ' ';
+                        }
+                        std::cerr << std::endl;
+                        for (auto element : dim_control.at(dim_a)) {
+                            std::cerr << element << ' ';
+                        }
+                        std::cerr << std::endl;
                     }
-                    std::cerr << std::endl;
-                    for (auto element : dim_control.at(dim_a)) {
-                        std::cerr << element << ' ';
-                    }
-                    std::cerr << std::endl;
                 }
-                print_mutex.unlock();
                 return false;
             }
         } else {
@@ -443,19 +444,20 @@ bool DataStorage<N>::SetUp(const array<pair<const Vect<Vect<uintMatrixCount>>*, 
 
         if (dim_control.at(dim_b).size()) {
             if (!(dim_control_b == dim_control.at(dim_b))) {
-                print_mutex.lock();
-                printErr << "The dimension " << dim_b << " is inconsistent in margin " << n << ":" << std::endl;
-                if (0 < kVerbosityLevel) {
-                    for (auto element : dim_control_b) {
-                        std::cerr << element << ' ';
+                {
+                    std::scoped_lock lock(print_mutex);
+                    printErr << "The dimension " << dim_b << " is inconsistent in margin " << n << ":" << std::endl;
+                    if (0 < kVerbosityLevel) {
+                        for (auto element : dim_control_b) {
+                            std::cerr << element << ' ';
+                        }
+                        std::cerr << std::endl;
+                        for (auto element : dim_control.at(dim_b)) {
+                            std::cerr << element << ' ';
+                        }
+                        std::cerr << std::endl;
                     }
-                    std::cerr << std::endl;
-                    for (auto element : dim_control.at(dim_b)) {
-                        std::cerr << element << ' ';
-                    }
-                    std::cerr << std::endl;
                 }
-                print_mutex.unlock();
                 return false;
             }
         } else {
@@ -850,7 +852,7 @@ void ProbabilityEstimates::IterativeProportionalFitting(const DataStats& stats, 
                                                         uintBaseCall last_ref_base, uintNumFits max_iterations,
                                                         double precision_aim) {
     switch (selected_data) {
-    case kIPFQuality:
+    case IPFDataSelector::kIPFQuality:
         if (stats.Qualities().BaseQualityForErrorRateReference(template_segment, tile_id, ref_base).size()) {
             // Something has to be done as data is not empty
             // Start with defining the margins (Dimension order: quality, sequence quality, previous quality, position,
@@ -872,7 +874,7 @@ void ProbabilityEstimates::IterativeProportionalFitting(const DataStats& stats, 
             return;
         }
         break;
-    case kIPFSequenceQuality:
+    case IPFDataSelector::kIPFSequenceQuality:
         if (stats.Qualities().SequenceQualityMeanForGCPerTileReference(template_segment, tile_id).size()) {
             // Something has to be done as data is not empty
             // Start with defining the margins (Dimension order: quality, previous quality, position, error rate)
@@ -892,7 +894,7 @@ void ProbabilityEstimates::IterativeProportionalFitting(const DataStats& stats, 
             return;
         }
         break;
-    case kIPFBaseCall:
+    case IPFDataSelector::kIPFBaseCall:
         if (stats.Qualities().BaseQualityForErrorRateReference(template_segment, tile_id, ref_base, dom_error).size()) {
             // Something has to be done as data is not empty
             // Start with defining the margins (Dimension order: called base, quality, position, error number, error
@@ -916,7 +918,7 @@ void ProbabilityEstimates::IterativeProportionalFitting(const DataStats& stats, 
             return;
         }
         break;
-    case kIPFDominantError:
+    case IPFDataSelector::kIPFDominantError:
         if (stats.Coverage().GCByDistance(ref_base, last_ref_base, dom_error).size()) {
             // Something has to be done as data is not empty
             // Start with defining the margins (Dimension order: dominant error, distance, gc)
@@ -933,11 +935,11 @@ void ProbabilityEstimates::IterativeProportionalFitting(const DataStats& stats, 
                 .at(last_ref_base)
                 .at(dom_error)
                 .IterativeProportionalFitting(error_during_fitting_, precision_improved_, precision_aim, max_iterations,
-                                              margins, NULL, descriptor.str(), print_mutex_);
+                                              margins, nullptr, descriptor.str(), print_mutex_);
             return;
         }
         break;
-    case kIPFErrorRate:
+    case IPFDataSelector::kIPFErrorRate:
         if (stats.Coverage().GCByDistance(ref_base, dom_error).size()) {
             // Something has to be done as data is not empty
             // Start with defining the margins (Dimension order: error rate, distance, gc)
@@ -950,12 +952,12 @@ void ProbabilityEstimates::IterativeProportionalFitting(const DataStats& stats, 
 
             // Run the iterative proportional fitting
             error_rate_.at(ref_base).at(dom_error).IterativeProportionalFitting(
-                error_during_fitting_, precision_improved_, precision_aim, max_iterations, margins, NULL,
+                error_during_fitting_, precision_improved_, precision_aim, max_iterations, margins, nullptr,
                 descriptor.str(), print_mutex_);
             return;
         }
         break;
-    case kIPFInDels:
+    case IPFDataSelector::kIPFInDels:
         if (stats.Errors().InDelByInDelPos(template_segment, last_ref_base).size()) {
             // Something has to be done as data is not empty
             // Start with defining the margins (Dimension order: error rate, distance, gc)
@@ -971,7 +973,7 @@ void ProbabilityEstimates::IterativeProportionalFitting(const DataStats& stats, 
             indels_.at(template_segment)
                 .at(last_ref_base)
                 .IterativeProportionalFitting(error_during_fitting_, precision_improved_, precision_aim, max_iterations,
-                                              margins, NULL, descriptor.str(), print_mutex_);
+                                              margins, nullptr, descriptor.str(), print_mutex_);
             return;
         }
         break;
@@ -1146,7 +1148,7 @@ bool ProbabilityEstimates::Estimate(const DataStats& stats, uintNumFits max_iter
     for (uintTempSeq template_segment = 0; template_segment < 2; ++template_segment) {
         for (uintTileId tile_id = 0; tile_id < stats.Tiles().NumTiles(); ++tile_id) {
             for (uintBaseCall ref_base = base_call_.at(template_segment).at(tile_id).size(); ref_base--;) {
-                params.push_back({kIPFQuality, template_segment, tile_id, ref_base, 0, 0});
+                params.push_back({IPFDataSelector::kIPFQuality, template_segment, tile_id, ref_base, 0, 0});
             }
         }
     }
@@ -1155,7 +1157,8 @@ bool ProbabilityEstimates::Estimate(const DataStats& stats, uintNumFits max_iter
             for (uintBaseCall ref_base = base_call_.at(template_segment).at(tile_id).size(); ref_base--;) {
                 for (uintBaseCall dom_error = base_call_.at(template_segment).at(tile_id).at(ref_base).size();
                      dom_error--;) {
-                    params.push_back({kIPFBaseCall, template_segment, tile_id, ref_base, dom_error, 0});
+                    params.push_back(
+                        {IPFDataSelector::kIPFBaseCall, template_segment, tile_id, ref_base, dom_error, 0});
                 }
             }
         }
@@ -1163,19 +1166,19 @@ bool ProbabilityEstimates::Estimate(const DataStats& stats, uintNumFits max_iter
 
     for (uintTempSeq template_segment = 0; template_segment < 2; ++template_segment) {
         for (uintTileId tile_id = 0; tile_id < stats.Tiles().NumTiles(); ++tile_id) {
-            params.push_back({kIPFSequenceQuality, template_segment, tile_id, 0, 0, 0});
+            params.push_back({IPFDataSelector::kIPFSequenceQuality, template_segment, tile_id, 0, 0, 0});
         }
     }
 
     for (uintBaseCall ref_base = 4; ref_base--;) {
         for (uintBaseCall dom_error = 5; dom_error--;) {
             if (ref_base != dom_error) {
-                params.push_back({kIPFErrorRate, 0, 0, ref_base, dom_error, 0});
+                params.push_back({IPFDataSelector::kIPFErrorRate, 0, 0, ref_base, dom_error, 0});
             }
         }
         for (uintBaseCall dom_base = 4; dom_base--;) {
             for (uintBaseCall last_ref_base = 5; last_ref_base--;) {
-                params.push_back({kIPFDominantError, 0, 0, ref_base, dom_base, last_ref_base});
+                params.push_back({IPFDataSelector::kIPFDominantError, 0, 0, ref_base, dom_base, last_ref_base});
             }
         }
     }
@@ -1183,7 +1186,7 @@ bool ProbabilityEstimates::Estimate(const DataStats& stats, uintNumFits max_iter
     std::array<std::pair<const Vect<Vect<uintMatrixCount>>*, bool>, 6> indel_margins;
     for (uintInDelType type = 0; type < 2; ++type) {
         for (uintBaseCall last_call = 6; last_call--;) {
-            params.push_back({kIPFInDels, type, 0, 0, 0, last_call});
+            params.push_back({IPFDataSelector::kIPFInDels, type, 0, 0, 0, last_call});
         }
     }
     current_param_ = 0;

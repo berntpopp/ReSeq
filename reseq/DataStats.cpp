@@ -34,7 +34,7 @@ using std::thread;
 // include <vector>
 using std::vector;
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 // include <seqan/bam_io.h>
 using seqan::atEnd;
@@ -285,7 +285,8 @@ bool DataStats::EvalReferenceStatistics(CoverageStats::FullRecord* record, uintT
                               .at(read_pos_ref);
 
                         errors_.AddBasePlotting(template_segment, ref_base, base, qual, last_base);
-                        errors_.AddInDel(indel_type, last_base, ErrorStats::kNoInDel, indel_pos, read_pos, gc_percent);
+                        errors_.AddInDel(indel_type, last_base, ErrorStats::InDelDef::kNoInDel, indel_pos, read_pos,
+                                         gc_percent);
 
                         ++seq_content_mapped.at(base);
                     }
@@ -329,7 +330,8 @@ bool DataStats::EvalReferenceStatistics(CoverageStats::FullRecord* record, uintT
                               .at(ref_base)
                               .at(read_pos_ref);
 
-                        errors_.AddInDel(indel_type, last_base, ErrorStats::kDeletion, indel_pos, read_pos, gc_percent);
+                        errors_.AddInDel(indel_type, last_base, ErrorStats::InDelDef::kDeletion, indel_pos, read_pos,
+                                         gc_percent);
                     }
 
                     ++read_pos_ref;
@@ -928,7 +930,7 @@ bool DataStats::PreRun(BamFileIn& bam, const char* bam_file, BamHeader& header, 
 
 bool DataStats::ReadRecords(BamFileIn& bam, bool& not_done, ThreadData& thread_data) {
     CoverageStats::FullRecord* record;
-    CoverageStats::CoverageBlock* cov_block(NULL);
+    CoverageStats::CoverageBlock* cov_block(nullptr);
     lock_guard<mutex> lock(read_mutex_);
     try {
         while (thread_data.rec_store_.size() < kBatchSize && !atEnd(bam) && reading_success_) {
@@ -1032,7 +1034,7 @@ void DataStats::ReadThread(DataStats& self, BamFileIn& bam) {
         // length on reference yet unknown), so the coverage part can be handled after all coverage information are
         // gathered
         if (self.ReadRecords(bam, not_done, thread_data)) {
-            cov_block = NULL;
+            cov_block = nullptr;
             // Process batch
             for (auto& rec : thread_data.rec_store_) {
                 // EvalRecord:

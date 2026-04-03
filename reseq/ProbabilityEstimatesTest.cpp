@@ -771,14 +771,14 @@ void ProbabilityEstimatesTest::SetUpDataStorageErrorRate(ProbabilityEstimatesSub
     SetMarginDefErrorRate(margin_def);
     CalculateMargins(margin_def, margins, margin_quality_position, counts);
 
-    DataStats stats(NULL);
+    DataStats stats(nullptr);
     SetUpDataErrorRate(stats, margins);
 
     array<pair<const Vect<Vect<uintMatrixCount>>*, bool>, 6> margin_def2;
     test_.DefineMarginsErrorRate(stats, margin_def2, 0, 0);
 
     mutex print_mutex;
-    data.SetUp(margin_def2, NULL, dim_indices, initial_dim_indices, print_mutex);
+    data.SetUp(margin_def2, nullptr, dim_indices, initial_dim_indices, print_mutex);
 }
 
 void ProbabilityEstimatesTest::TestDataStorageSetUpErrorRate(ProbabilityEstimatesSubClasses::DataStorage<4>& data,
@@ -848,10 +848,10 @@ void ProbabilityEstimatesTest::IterativeProportionalFittingQual(
     uintBaseCall base, const vector<Vect<Vect<uintMatrixCount>>>& margins,
     const Vect<SeqQualityStats<uintMatrixCount>>& margin_quality_position) {
     // Run iterative proportional fitting
-    DataStats stats(NULL);
+    DataStats stats(nullptr);
     SetUpDataQual(stats, base, margins, margin_quality_position);
-    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::kIPFQuality, kTemplateSegment, 0, base, 0, 0,
-                                       kMaxIterations, kPrecisionAim);
+    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::IPFDataSelector::kIPFQuality, kTemplateSegment, 0,
+                                       base, 0, 0, kMaxIterations, kPrecisionAim);
 }
 
 void ProbabilityEstimatesTest::GetIPFResultQual(const ProbabilityEstimates& estimate, uintBaseCall base,
@@ -889,7 +889,7 @@ void ProbabilityEstimatesTest::GetIPFResultQual(const ProbabilityEstimates& esti
 
 void ProbabilityEstimatesTest::IPFStepWiseQual(uintBaseCall base, const vector<Vect<Vect<uintMatrixCount>>>& margins,
                                                const Vect<SeqQualityStats<uintMatrixCount>>& margin_quality_position) {
-    DataStats stats(NULL);
+    DataStats stats(nullptr);
     SetUpDataQual(stats, base, margins, margin_quality_position);
 
     std::array<std::pair<const Vect<Vect<uintMatrixCount>>*, bool>, 10> margin_defs;
@@ -920,10 +920,10 @@ void ProbabilityEstimatesTest::IterativeProportionalFittingBaseCall(
     const vector<Vect<Vect<uintMatrixCount>>>& margins,
     const Vect<SeqQualityStats<uintMatrixCount>>& margin_quality_position) {
     // Run iterative proportional fitting
-    DataStats stats(NULL);
+    DataStats stats(nullptr);
     SetUpDataBaseCall(stats, margins, margin_quality_position);
-    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::kIPFBaseCall, kTemplateSegment, 0, 0, 0, 0,
-                                       kMaxIterations, kPrecisionAim);
+    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::IPFDataSelector::kIPFBaseCall, kTemplateSegment, 0,
+                                       0, 0, 0, kMaxIterations, kPrecisionAim);
 }
 
 void ProbabilityEstimatesTest::GetIPFResultBaseCall(const ProbabilityEstimates& estimate,
@@ -963,10 +963,10 @@ void ProbabilityEstimatesTest::GetIPFResultBaseCall(const ProbabilityEstimates& 
 void ProbabilityEstimatesTest::IterativeProportionalFittingDomError(
     const vector<Vect<Vect<uintMatrixCount>>>& margins) {
     // Run iterative proportional fitting
-    DataStats stats(NULL);
+    DataStats stats(nullptr);
     SetUpDataDomError(stats, margins);
-    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::kIPFDominantError, kTemplateSegment, 0, 0, 0, 0,
-                                       kMaxIterations, kPrecisionAim);
+    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::IPFDataSelector::kIPFDominantError,
+                                       kTemplateSegment, 0, 0, 0, 0, kMaxIterations, kPrecisionAim);
 }
 
 void ProbabilityEstimatesTest::GetIPFResultDomError(const ProbabilityEstimates& estimate,
@@ -1010,10 +1010,10 @@ void ProbabilityEstimatesTest::SetMarginDefErrorRate(vector<pair<bool, bool>>& m
 void ProbabilityEstimatesTest::IterativeProportionalFittingErrorRate(
     const vector<Vect<Vect<uintMatrixCount>>>& margins) {
     // Run iterative proportional fitting
-    DataStats stats(NULL);
+    DataStats stats(nullptr);
     SetUpDataErrorRate(stats, margins);
-    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::kIPFErrorRate, kTemplateSegment, 0, 0, 0, 0,
-                                       kMaxIterations, kPrecisionAim);
+    test_.IterativeProportionalFitting(stats, ProbabilityEstimates::IPFDataSelector::kIPFErrorRate, kTemplateSegment, 0,
+                                       0, 0, 0, kMaxIterations, kPrecisionAim);
 }
 
 void ProbabilityEstimatesTest::GetIPFResultErrorRate(const ProbabilityEstimates& estimate,

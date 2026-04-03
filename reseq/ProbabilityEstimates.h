@@ -262,7 +262,7 @@ template <uintMarginId N> class LogArrayCalc {
 
     void Expand(const std::array<std::vector<uintMatrixIndex>, N>& dim_indices_reduced,
                 const std::array<std::vector<uintMatrixIndex>, N>& dim_indices_count,
-                const std::array<std::vector<uintMatrixIndex>, N>* dim_indices_new_count = NULL) {
+                const std::array<std::vector<uintMatrixIndex>, N>* dim_indices_new_count = nullptr) {
         // Each value dim2[0] * dim2[1] * ... is divided by the number of new values it will become and then filled into
         // those values This happens by equally splitting the division over all N-1 margins containing the variable
 
@@ -316,10 +316,11 @@ template <uintMarginId N> class LogArrayCalc {
 
             for (auto i = dim2_.at(n).size(); i--;) {
                 if (std::isnan(dim2_.at(n).at(i))) {
-                    print_mutex.lock();
-                    printErr << "dim2_[" << n << "][" << i / dim_size_.at(dim_b) << "][" << i % dim_size_.at(dim_b)
-                             << "] is NaN for " << descriptor << std::endl;
-                    print_mutex.unlock();
+                    {
+                        std::scoped_lock lock(print_mutex);
+                        printErr << "dim2_[" << n << "][" << i / dim_size_.at(dim_b) << "][" << i % dim_size_.at(dim_b)
+                                 << "] is NaN for " << descriptor << std::endl;
+                    }
                     return false;
                 }
             }
@@ -946,9 +947,10 @@ template <uintMarginId N> class LogIPF {
 
     bool CheckConsistency(const std::string& descriptor, std::mutex& print_mutex) {
         if (std::isnan(precision_)) {
-            print_mutex.lock();
-            printErr << "precision_ is NaN for " << descriptor << std::endl;
-            print_mutex.unlock();
+            {
+                std::scoped_lock lock(print_mutex);
+                printErr << "precision_ is NaN for " << descriptor << std::endl;
+            }
             return false;
         } else {
             return estimates_.CheckConsistency(descriptor, print_mutex);
@@ -1093,10 +1095,11 @@ template <uintMarginId N> class LogIPF {
         std::array<std::vector<uintMatrixIndex>, N> dim_indices_count, expansion_indices, expansion_count;
         auto old_steps(steps_);
         if (steps_) {
-            print_mutex.lock();
-            printInfo << "Loaded " << descriptor << " at step " << steps_ << " with precision " << precision_ * 100
-                      << "%" << std::endl;
-            print_mutex.unlock();
+            {
+                std::scoped_lock lock(print_mutex);
+                printInfo << "Loaded " << descriptor << " at step " << steps_ << " with precision " << precision_ * 100
+                          << "%" << std::endl;
+            }
             steps_ = 0;
 
             if (precision_ > precision_aim) {
@@ -1123,10 +1126,9 @@ template <uintMarginId N> class LogIPF {
 
                     // Print information to screen
                     if (!error_during_fitting && 0 == steps_ % (50 * step_multiplier)) {
-                        print_mutex.lock();
+                        std::scoped_lock lock(print_mutex);
                         printInfo << descriptor << reduction_descriptor << " step " << steps_ + old_steps
                                   << ": Current precision " << precision_ * 100 << "%" << std::endl;
-                        print_mutex.unlock();
                     }
                 }
 
@@ -1136,11 +1138,10 @@ template <uintMarginId N> class LogIPF {
 
                     // Print information to screen
                     if (!error_during_fitting && 0 == steps_ % (50 * step_multiplier)) {
-                        print_mutex.lock();
+                        std::scoped_lock lock(print_mutex);
                         printInfo << "Confirming " << descriptor << reduction_descriptor << " step "
                                   << steps_ + old_steps << ": Current precision " << precision_ * 100 << "%"
                                   << std::endl;
-                        print_mutex.unlock();
                     }
                 } while (steps_ <= kNumMargins * max_iterations * step_multiplier && precision_ > precision_aim &&
                          !error_during_fitting);
@@ -1170,10 +1171,9 @@ template <uintMarginId N> class LogIPF {
                     // Print information to screen
                     if (!error_during_fitting &&
                         steps_ % (50 * step_multiplier) < (steps_ - kNumMargins) % (50 * step_multiplier)) {
-                        print_mutex.lock();
+                        std::scoped_lock lock(print_mutex);
                         printInfo << descriptor << reduction_descriptor << " step " << steps_ + old_steps
                                   << ": Current precision " << precision_ * 100 << "%" << std::endl;
-                        print_mutex.unlock();
                     }
                 } else {
                     // We already reached completely expanded data
@@ -1194,15 +1194,16 @@ template <uintMarginId N> class LogIPF {
                     precision_improved = true;
 
                     steps_ += old_steps;
-                    print_mutex.lock();
-                    if (precision_ > precision_aim) {
-                        printWarn << descriptor << " did not reach precision aim: " << precision_ * 100 << "%"
-                                  << std::endl;
-                    } else {
-                        printInfo << "Finished iterative proportional fitting for " << descriptor << " after step "
-                                  << steps_ << " with precision " << precision_ * 100 << "%" << std::endl;
+                    {
+                        std::scoped_lock lock(print_mutex);
+                        if (precision_ > precision_aim) {
+                            printWarn << descriptor << " did not reach precision aim: " << precision_ * 100 << "%"
+                                      << std::endl;
+                        } else {
+                            printInfo << "Finished iterative proportional fitting for " << descriptor << " after step "
+                                      << steps_ << " with precision " << precision_ * 100 << "%" << std::endl;
+                        }
                     }
-                    print_mutex.unlock();
                 }
             }
 
@@ -1300,7 +1301,7 @@ inline void LogIPF<5>::IPFStepCallerTemp(const DataStorage<5>& data) {
 
 class ProbabilityEstimates {
   private:
-    enum IPFDataSelector {
+    enum class IPFDataSelector {
         kIPFQuality,
         kIPFSequenceQuality,
         kIPFBaseCall,
@@ -1389,7 +1390,7 @@ class ProbabilityEstimates {
                          true};
         margins.at(9) = {&stats.Qualities().ErrorRateForPositionReference(template_segment, tile_id, ref_base), false};
 
-        margins.at(2) = {NULL, true};
+        margins.at(2) = {nullptr, true};
         return &stats.Qualities().BaseQualityStatsReference(template_segment, tile_id, ref_base); // alternative_margin
     }
     inline const Vect<SeqQualityStats<uintMatrixCount>>*
@@ -1406,7 +1407,7 @@ class ProbabilityEstimates {
         margins.at(5) = {&stats.Qualities().MeanErrorRateForFragmentLengthPerTileReference(template_segment, tile_id),
                          true};
 
-        margins.at(0) = {NULL, true};
+        margins.at(0) = {nullptr, true};
         return &stats.Qualities().SequenceQualityMeanForGCPerTileReference(template_segment, tile_id);
     }
     inline const Vect<SeqQualityStats<uintMatrixCount>>* DefineMarginsBaseCall(
@@ -1426,7 +1427,7 @@ class ProbabilityEstimates {
             &stats.Qualities().ErrorRateForPositionReference(template_segment, tile_id, ref_base, dom_error), false};
         margins.at(9) = {&stats.Errors().ErrorNumByErrorRate(template_segment, tile_id, ref_base, dom_error), false};
 
-        margins.at(4) = {NULL, true};
+        margins.at(4) = {nullptr, true};
         return &stats.Qualities().BaseQualityStatsReference(template_segment, tile_id, ref_base, dom_error);
     }
     inline void DefineMarginsDominantError(const DataStats& stats,

@@ -24,7 +24,7 @@ using std::vector;
 #include <utility>
 using std::pair;
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 // include <seqan/bam_io.h>
 using seqan::BamAlignmentRecord;

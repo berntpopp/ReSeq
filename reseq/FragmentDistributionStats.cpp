@@ -55,7 +55,7 @@ using std::pair;
 // include <vector>
 using std::vector;
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 // include <seqan/bam_io.h>
 using seqan::BamAlignmentRecord;
@@ -3111,16 +3111,17 @@ void FragmentDistributionStats::BiasNormalizationThread(
             self.gc_fragment_content_bias_, self.fragment_surroundings_bias_);
     }
 
-    result_mutex.lock();
-    for (auto cov_group = max_bias.size(); cov_group--;) {
-        for (auto frag_len = max_bias.at(cov_group).size(); frag_len--;) {
-            SetToMax(max_bias.at(cov_group).at(frag_len).at(0), tmp_max_bias.at(cov_group).at(frag_len));
+    {
+        std::scoped_lock lock(result_mutex);
+        for (auto cov_group = max_bias.size(); cov_group--;) {
+            for (auto frag_len = max_bias.at(cov_group).size(); frag_len--;) {
+                SetToMax(max_bias.at(cov_group).at(frag_len).at(0), tmp_max_bias.at(cov_group).at(frag_len));
+            }
+        }
+        for (auto frag_len = norm.size(); frag_len--;) {
+            norm.at(frag_len) += tmp_norm.at(frag_len);
         }
     }
-    for (auto frag_len = norm.size(); frag_len--;) {
-        norm.at(frag_len) += tmp_norm.at(frag_len);
-    }
-    result_mutex.unlock();
 }
 
 double FragmentDistributionStats::CalculateNonZeroThreshold(double bias_normalization, double max_bias,
@@ -3538,7 +3539,7 @@ double FragmentDistributionStats::CorrectedCoverage(const Reference& ref, uintRe
 bool FragmentDistributionStats::UpdateRefSeqBias(RefSeqBiasSimulation model, const std::string& bias_file,
                                                  const Reference& ref, mt19937_64& rgen) {
     switch (model) {
-    case kKeep:
+    case RefSeqBiasSimulation::kKeep:
         if (ref.NumberSequences() == ref_seq_bias_.size()) {
             break;
         } else {
@@ -3547,11 +3548,11 @@ bool FragmentDistributionStats::UpdateRefSeqBias(RefSeqBiasSimulation model, con
                       << ref.NumberSequences() << " and there are " << ref_seq_bias_.size() << " biases stored."
                       << std::endl;
         }
-    case kNo:
+    case RefSeqBiasSimulation::kNo:
         ref_seq_bias_.clear();
         ref_seq_bias_.resize(ref.NumberSequences(), 1.0);
         break;
-    case kDraw: {
+    case RefSeqBiasSimulation::kDraw: {
         // Temporarily store the old one to draw from
         std::vector<double> old_bias_;
         old_bias_.resize(ref_seq_bias_.size());
@@ -3571,7 +3572,7 @@ bool FragmentDistributionStats::UpdateRefSeqBias(RefSeqBiasSimulation model, con
 
         break;
     }
-    case kFile: {
+    case RefSeqBiasSimulation::kFile: {
         // Clear out the old bias
         ref_seq_bias_.clear();
         ref_seq_bias_.resize(ref.NumberSequences(), 0.0);

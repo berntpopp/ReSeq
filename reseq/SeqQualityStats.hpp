@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <stdint.h>
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 #include "utilities.hpp"
 #include "Vect.hpp"

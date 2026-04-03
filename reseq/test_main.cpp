@@ -7,7 +7,7 @@ namespace reseq {
 uint16_t kVerbosityLevel = 2;
 bool kNoDebugOutput = false;
 } // namespace reseq
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 #include "AdapterStatsTest.h"
 #include "CoverageStatsTest.h"

@@ -6,7 +6,7 @@ using std::sort;
 // include <vector>
 using std::vector;
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 void FragmentDuplicationStats::AddDuplicates(vector<uintSeqLen>& fragment_positions) {
     sort(fragment_positions.begin(), fragment_positions.end());

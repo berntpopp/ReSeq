@@ -3,6 +3,7 @@
 #include "FragmentDistributionStats.h"
 
 #include <array>
+#include <memory>
 #include <mutex>
 #include <random>
 #include <stdint.h>
@@ -17,7 +18,7 @@ class FragmentDistributionStatsTest : public BasicTestClassWithReference {
     static void Register(uintNumThreads num_threads);
 
   protected:
-    FragmentDistributionStats* test_;
+    std::unique_ptr<FragmentDistributionStats> test_;
 
     void SetExlusionRegionsAtEnds();
     void AddExlusionRegionsDrosophila();
@@ -40,7 +41,7 @@ class FragmentDistributionStatsTest : public BasicTestClassWithReference {
                           const Surrounding& end_sur);
 
   public:
-    FragmentDistributionStatsTest() : test_(NULL) {}
+    FragmentDistributionStatsTest() {}
 
     static void TestSrr490124Equality(const FragmentDistributionStats& test, const char* context);
     static void TestDuplicates(const FragmentDistributionStats& test);

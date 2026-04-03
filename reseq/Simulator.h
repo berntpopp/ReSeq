@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <random>
 #include <set>
@@ -100,16 +101,27 @@ class Simulator {
         }
     };
 
+    // OWNERSHIP MODEL (Phase 3 documentation):
+    // SimBlock and SimUnit form intrusive singly-linked lists managed by Simulator.
+    // - SimUnit owns its chain of SimBlocks (first_block_ through next_block_ links).
+    //   Blocks are allocated with `new` in CreateRefSeqBlocks/Initialize and deleted
+    //   by walking the chain in HandleFinishedBlocks/Finalize.
+    // - Simulator owns its chain of SimUnits (first_unit_ through next_unit_ links).
+    //   Units are allocated in CreateRefSeqBlocks and deleted alongside their blocks.
+    // - partner_block_ is a non-owning cross-reference between forward/reverse block chains.
+    // - next_block_ is atomic for lock-free concurrent access during simulation.
+    // NOTE: Converting these linked lists to unique_ptr requires a container redesign
+    //   (e.g., std::deque or segmented vector) due to atomic next pointers and concurrent
+    //   traversal patterns. Deferred to Phase 4 (concurrency modernization).
     struct SimBlock {
         const uintRefSeqBin id_;
         const uintSeqLen start_pos_;
         std::atomic<bool>
             finished_; // In forward direction it stores that the simulation is finished and the block can be removed,
                        // in reverse direction it stores that a thread is already processing this block pair
-        std::atomic<SimBlock*> next_block_;
-        SimBlock*
-            partner_block_; // forward direction stores here the corresponding reverse direction; reverse direction
-                            // stores the previous block, which will be the partner for the next forward block
+        std::atomic<SimBlock*> next_block_; // Owning pointer to next block in chain (see ownership model above)
+        SimBlock* partner_block_;           // Non-owning cross-reference to corresponding block in
+                                            // forward/reverse direction
         uintSeed seed_;
         std::vector<std::pair<seqan::Dna5, uintPercent>> sys_errors_; // sys_errors_[pos] = {domError, errorRate}
         std::vector<SysErrorVariant> err_variants_;
@@ -117,18 +129,19 @@ class Simulator {
         intVariantId first_methylation_id_;
 
         SimBlock(uintRefSeqBin id, uintSeqLen start_pos, SimBlock* partner_block, uintSeed seed)
-            : id_(id), start_pos_(start_pos), finished_(false), next_block_(NULL), partner_block_(partner_block),
+            : id_(id), start_pos_(start_pos), finished_(false), next_block_(nullptr), partner_block_(partner_block),
               seed_(seed), first_variant_id_(0), first_methylation_id_(0) {}
     };
 
+    // See ownership model comment above SimBlock.
     struct SimUnit {
         const uintRefSeqId ref_seq_id_;
-        SimBlock* first_block_;
-        SimBlock* last_block_;
-        SimUnit* next_unit_;
+        SimBlock* first_block_; // Owning pointer to first block in this unit's chain
+        SimBlock* last_block_;  // Non-owning pointer to last block (for O(1) append)
+        SimUnit* next_unit_;    // Owning pointer to next unit in the Simulator's chain
 
         SimUnit(uintRefSeqId ref_seq_id)
-            : ref_seq_id_(ref_seq_id), first_block_(NULL), last_block_(NULL), next_unit_(NULL) {}
+            : ref_seq_id_(ref_seq_id), first_block_(nullptr), last_block_(nullptr), next_unit_(nullptr) {}
     };
 
     class GeneralRandomDistributions {
@@ -298,9 +311,9 @@ class Simulator {
     uintFragCount num_adapter_only_pairs_;
     std::atomic_flag adapter_only_simulated_; // Int instead of bool so atomic increment works
 
-    std::array<seqan::StringSet<seqan::CharString>*, 2> output_ids_;
-    std::array<seqan::StringSet<seqan::Dna5String>*, 2> output_seqs_;
-    std::array<seqan::StringSet<seqan::CharString>*, 2> output_quals_;
+    std::array<std::unique_ptr<seqan::StringSet<seqan::CharString>>, 2> output_ids_;
+    std::array<std::unique_ptr<seqan::StringSet<seqan::Dna5String>>, 2> output_seqs_;
+    std::array<std::unique_ptr<seqan::StringSet<seqan::CharString>>, 2> output_quals_;
 
     std::vector<double> tmp_probabilities_;
     std::uniform_real_distribution<double> rdist_zero_to_one_;
@@ -317,9 +330,10 @@ class Simulator {
     static double NumberPairsToCoverage(uintFragCount total_pairs, uintRefLenCalc total_ref_size,
                                         double average_read_length, double adapter_part);
 
-    void FlushCopyValues(uintTempSeq template_segment, seqan::StringSet<seqan::CharString>*& old_output_ids,
-                         seqan::StringSet<seqan::Dna5String>*& old_output_seqs,
-                         seqan::StringSet<seqan::CharString>*& old_output_quals);
+    void FlushCopyValues(uintTempSeq template_segment,
+                         std::unique_ptr<seqan::StringSet<seqan::CharString>>& old_output_ids,
+                         std::unique_ptr<seqan::StringSet<seqan::Dna5String>>& old_output_seqs,
+                         std::unique_ptr<seqan::StringSet<seqan::CharString>>& old_output_quals);
     bool FlushWriteValues(uintTempSeq template_segment, seqan::StringSet<seqan::CharString>* old_output_ids,
                           seqan::StringSet<seqan::Dna5String>* old_output_seqs,
                           seqan::StringSet<seqan::CharString>* old_output_quals);
@@ -578,7 +592,8 @@ class Simulator {
                                       const ProbabilityEstimates& estimates, uintSeed seed);
     bool Simulate(const char* destination_file_first, const char* destination_file_second, Reference& ref,
                   DataStats& stats, const ProbabilityEstimates& estimates, uintNumThreads num_threads, uintSeed seed,
-                  uintFragCount num_read_pairs = 0, double coverage = 0.0, RefSeqBiasSimulation ref_bias_model = kKeep,
+                  uintFragCount num_read_pairs = 0, double coverage = 0.0,
+                  RefSeqBiasSimulation ref_bias_model = RefSeqBiasSimulation::kKeep,
                   const std::string& ref_bias_file = std::string(), const std::string& sys_error_file = std::string(),
                   const std::string& record_base_identifier = std::string(),
                   const std::string& var_file = std::string(), const std::string& meth_file = std::string());

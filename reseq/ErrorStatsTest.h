@@ -2,6 +2,7 @@
 #define ERRORSTATSTEST_H
 #include "ErrorStats.h"
 
+#include <memory>
 #include <stdint.h>
 
 #include "gtest/gtest.h"
@@ -11,7 +12,7 @@
 namespace reseq {
 class ErrorStatsTest : public BasicTestClass {
   protected:
-    ErrorStats* test_;
+    std::unique_ptr<ErrorStats> test_;
 
     void CreateTestObject();
     void DeleteTestObject();
@@ -19,7 +20,7 @@ class ErrorStatsTest : public BasicTestClass {
     virtual void TearDown();
 
   public:
-    ErrorStatsTest() : test_(NULL) {}
+    ErrorStatsTest() {}
 
     static void TestSrr490124Equality(const ErrorStats& test, const char* context);
     static void TestDuplicates(const ErrorStats& test);

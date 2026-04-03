@@ -74,12 +74,6 @@ separate_arguments(SEQAN_CXX_FLAGS_LIST NATIVE_COMMAND "${SEQAN_CXX_FLAGS}")
 target_compile_options(vendored_seqan INTERFACE ${SEQAN_CXX_FLAGS_LIST})
 target_link_libraries(vendored_seqan INTERFACE ${SEQAN_LIBRARIES})
 
-# Vendored ROOTPWA utilities as INTERFACE target
-add_library(vendored_rootpwa INTERFACE)
-target_include_directories(vendored_rootpwa SYSTEM INTERFACE
-  "${PROJECT_SOURCE_DIR}/2016-05-15_ROOTPWA/utilities"
-)
-
 # Output directories
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

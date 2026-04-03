@@ -42,7 +42,7 @@ using std::pair;
 // include <vector>
 using std::vector;
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 // include <seqan/seq_io.h>
 using seqan::appendValue;
@@ -118,18 +118,19 @@ double Simulator::NumberPairsToCoverage(uintFragCount total_pairs, uintRefLenCal
     return static_cast<double>(total_pairs) / total_ref_size * average_read_length * 2 * (1 - adapter_part);
 }
 
-void Simulator::FlushCopyValues(uintTempSeq template_segment, StringSet<CharString>*& old_output_ids,
-                                StringSet<Dna5String>*& old_output_seqs, StringSet<CharString>*& old_output_quals) {
-    old_output_ids = output_ids_.at(template_segment);
-    output_ids_.at(template_segment) = new StringSet<CharString>;
+void Simulator::FlushCopyValues(uintTempSeq template_segment, std::unique_ptr<StringSet<CharString>>& old_output_ids,
+                                std::unique_ptr<StringSet<Dna5String>>& old_output_seqs,
+                                std::unique_ptr<StringSet<CharString>>& old_output_quals) {
+    old_output_ids = std::move(output_ids_.at(template_segment));
+    output_ids_.at(template_segment) = std::make_unique<StringSet<CharString>>();
     reserve(*output_ids_.at(template_segment), kBatchSize, Exact());
 
-    old_output_seqs = output_seqs_.at(template_segment);
-    output_seqs_.at(template_segment) = new StringSet<Dna5String>;
+    old_output_seqs = std::move(output_seqs_.at(template_segment));
+    output_seqs_.at(template_segment) = std::make_unique<StringSet<Dna5String>>();
     reserve(*output_seqs_.at(template_segment), kBatchSize, Exact());
 
-    old_output_quals = output_quals_.at(template_segment);
-    output_quals_.at(template_segment) = new StringSet<CharString>;
+    old_output_quals = std::move(output_quals_.at(template_segment));
+    output_quals_.at(template_segment) = std::make_unique<StringSet<CharString>>();
     reserve(*output_quals_.at(template_segment), kBatchSize, Exact());
 }
 
@@ -139,10 +140,11 @@ bool Simulator::FlushWriteValues(uintTempSeq template_segment, StringSet<CharStr
         writeRecords(dest_.at(template_segment), *old_output_ids, *old_output_seqs, *old_output_quals);
     } catch (const Exception& e) {
         simulation_error_ = true;
-        print_mutex_.lock();
-        printErr << "Could not write records " << written_records_ + 1 << " to "
-                 << (written_records_ + length(*old_output_ids)) << ": " << e.what() << std::endl;
-        print_mutex_.unlock();
+        {
+            std::scoped_lock lock(print_mutex_);
+            printErr << "Could not write records " << written_records_ + 1 << " to "
+                     << (written_records_ + length(*old_output_ids)) << ": " << e.what() << std::endl;
+        }
         return false;
     }
 
@@ -151,9 +153,12 @@ bool Simulator::FlushWriteValues(uintTempSeq template_segment, StringSet<CharStr
 
 bool Simulator::Flush() {
     // output_mutex_ MUST be locked before calling this function
-    array<StringSet<CharString>*, 2> old_output_ids;
-    array<StringSet<Dna5String>*, 2> old_output_seqs;
-    array<StringSet<CharString>*, 2> old_output_quals;
+    // NOTE: output_mutex_ and flush_mutex_ use complex multi-mutex ordering
+    // that cannot be safely converted to scoped_lock without redesigning the
+    // output pipeline. Deferred to Phase 4 (concurrency modernization).
+    array<std::unique_ptr<StringSet<CharString>>, 2> old_output_ids;
+    array<std::unique_ptr<StringSet<Dna5String>>, 2> old_output_seqs;
+    array<std::unique_ptr<StringSet<CharString>>, 2> old_output_quals;
 
     for (uintTempSeq template_segment = 2; template_segment--;) {
         FlushCopyValues(template_segment, old_output_ids.at(template_segment), old_output_seqs.at(template_segment),
@@ -162,26 +167,25 @@ bool Simulator::Flush() {
     output_mutex_.unlock();
 
     flush_mutex_.at(0).lock();
-    bool success = FlushWriteValues(0, old_output_ids.at(0), old_output_seqs.at(0), old_output_quals.at(0));
+    bool success =
+        FlushWriteValues(0, old_output_ids.at(0).get(), old_output_seqs.at(0).get(), old_output_quals.at(0).get());
     flush_mutex_.at(1).lock(); // Segment 1 must be locked before releasing segment 0 to guarantee that both files have
                                // the same order in writing the reads
     flush_mutex_.at(0).unlock();
-    success = success && FlushWriteValues(1, old_output_ids.at(1), old_output_seqs.at(1), old_output_quals.at(1));
+    success = success && FlushWriteValues(1, old_output_ids.at(1).get(), old_output_seqs.at(1).get(),
+                                          old_output_quals.at(1).get());
     flush_mutex_.at(1).unlock();
 
     if (success) {
         written_records_ += length(*old_output_ids.at(0));
-        print_mutex_.lock();
-        printInfo << "Generated " << written_records_ << " read pairs ("
-                  << static_cast<uintPercentPrint>(Percent(written_records_, total_pairs_)) << "%)." << std::endl;
-        print_mutex_.unlock();
+        {
+            std::scoped_lock lock(print_mutex_);
+            printInfo << "Generated " << written_records_ << " read pairs ("
+                      << static_cast<uintPercentPrint>(Percent(written_records_, total_pairs_)) << "%)." << std::endl;
+        }
     }
 
-    for (uintTempSeq template_segment = 2; template_segment--;) {
-        delete old_output_ids.at(template_segment);
-        delete old_output_seqs.at(template_segment);
-        delete old_output_quals.at(template_segment);
-    }
+    // old_output_ids/seqs/quals unique_ptrs cleaned up automatically
 
     return success;
 }
@@ -206,9 +210,10 @@ bool Simulator::WriteSingleReads(uintFragCount cur_block, StringSet<CharString>&
 
     if (success) {
         written_records_ += length(output_ids);
-        print_mutex_.lock();
-        printInfo << "Generated " << written_records_ << " reads." << std::endl;
-        print_mutex_.unlock();
+        {
+            std::scoped_lock lock(print_mutex_);
+            printInfo << "Generated " << written_records_ << " reads." << std::endl;
+        }
     }
 
     clear(output_ids);
@@ -317,10 +322,10 @@ bool Simulator::FillReadPart(SimRead& sim_read, uintTempSeq template_segment, ui
             estimates.InDels(par.previous_indel_type_, par.base_call_)
                 .Draw(prob_indel, prob_sum, {par.indel_pos_, par.read_pos_, par.gc_seq_}, rdist.ZeroToOne(rgen)));
         if (0.0 == prob_sum) {
-            indel = ErrorStats::kNoInDel;
+            indel = ErrorStats::InDelDef::kNoInDel;
         }
 
-        if (ErrorStats::kNoInDel == indel) {
+        if (ErrorStats::InDelDef::kNoInDel == indel) {
             // Load systematic error
             if (block) {
                 GetSysErrorFromBlock(dom_error, par.error_rate_, block, block_pos, cur_var, var_pos, allele);
@@ -372,7 +377,7 @@ bool Simulator::FillReadPart(SimRead& sim_read, uintTempSeq template_segment, ui
             // Update position
             ++par.read_pos_;
             ++org_pos;
-        } else if (ErrorStats::kDeletion == indel) {
+        } else if (ErrorStats::InDelDef::kDeletion == indel) {
             // Load systematic error
             if (block) {
                 par.error_rate_ = block->sys_errors_.at(block_pos).second;
@@ -419,8 +424,9 @@ bool Simulator::FillReadPart(SimRead& sim_read, uintTempSeq template_segment, ui
             }
 
             // Take base call from indel
-            at(sim_read.seq_, par.read_pos_) = indel - 2; // This base call is not stored in par.base_call, because the
-                                                          // normal calls have more predictive power for indel calls
+            at(sim_read.seq_, par.read_pos_) =
+                static_cast<int>(indel) - 2; // This base call is not stored in par.base_call, because the
+                                             // normal calls have more predictive power for indel calls
 
             // Update cigar
             if ('I' == cigar_element) {
@@ -546,7 +552,7 @@ bool Simulator::FillRead(SimRead& sim_read, uintReadLen& num_errors, uintTempSeq
 
         // Adapter part of the sequence
         if (!FillReadPart(sim_read, template_segment, tile_id, stats.Adapters().Sequence(template_segment, adapter_id),
-                          adapter_pos, 'S', NULL, 0, adapter_id, par, {0, 0}, 0, stats, estimates, rdist, rgen)) {
+                          adapter_pos, 'S', nullptr, 0, adapter_id, par, {0, 0}, 0, stats, estimates, rdist, rgen)) {
             return false;
         }
 
@@ -680,7 +686,7 @@ bool Simulator::CreateReads(const Reference& ref, const DataStats& stats, const 
         block_id = 0;
         print_start_position = 0;
         print_end_position = 0;
-        block.fill(NULL);
+        block.fill(nullptr);
         block_start_pos.fill(0);
     }
 
@@ -929,11 +935,11 @@ bool Simulator::CreateUnit(uintRefSeqId ref_id, uintRefSeqBin first_block_id, Re
     // at the end of the function block will be filled with the reverse block at the beginning of the reference sequence
 
     // Create all blocks for the reverse strand of the unit
-    auto block = new SimBlock(first_block_id, 0, NULL, block_seed_gen_());
+    auto block = new SimBlock(first_block_id, 0, nullptr, block_seed_gen_());
     first_reverse_block = block;
     auto old_block(block);
     while (block->start_pos_ + kBlockSize < ref.SequenceLength(ref_id)) {
-        block = new SimBlock(block->id_ + 1, block->start_pos_ + kBlockSize, NULL, block_seed_gen_());
+        block = new SimBlock(block->id_ + 1, block->start_pos_ + kBlockSize, nullptr, block_seed_gen_());
         block->next_block_ = old_block;    // Reverse direction
         old_block->partner_block_ = block; // partner_block_ is previous block for reverse strand
         old_block = block;
@@ -1243,7 +1249,7 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
             SkipSequencesShorterThanMinFragLen(ref_id, ref, stats.FragmentDistribution().InsertLengths());
             if (ref.NumberSequences() > ref_id) {
                 if (!CreateUnit(ref_id, last_unit_->last_block_->id_ + 1, ref, stats, estimates, block, unit)) {
-                    current_unit_ = NULL;
+                    current_unit_ = nullptr;
                     return false;
                 }
                 block = new SimBlock(last_unit_->last_block_->id_ + 1, 0, block, block_seed_gen_());
@@ -1314,7 +1320,7 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
             } else {
                 printErr << "Ran out of simulation blocks, but simulation is not complete.";
                 simulation_error_ = true;
-                current_unit_ = NULL;
+                current_unit_ = nullptr;
                 return false;
             }
 
@@ -1325,7 +1331,9 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
 
         return true;
     } else {
-        current_unit_ = NULL;
+        // simulation_error_ was set by another thread — skip systematic error setup
+        // and signal the caller to stop. Block cleanup happens in Finalize().
+        current_unit_ = nullptr;
         return false;
     }
 }
@@ -1335,30 +1343,25 @@ bool Simulator::GetNextBlock(Reference& ref, const DataStats& stats, const Proba
     // See if we can already read in more variants, so we are always one reference sequence ahead of the simulation
     if (!ref.VariantsCompletelyLoaded() && current_unit_ &&
         !ref.VariantsLoadedForSequence(current_unit_->ref_seq_id_ + 2)) {
-        if (var_read_mutex_.try_lock()) {
+        if (std::unique_lock lock(var_read_mutex_, std::try_to_lock); lock.owns_lock()) {
             uintSeqLen max_del_shift = 0;
             if (!ref.ReadVariants(
                     max_del_shift, current_unit_->ref_seq_id_ + 2,
                     2 * stats.MaxReadLenOnReference())) { // Use twice the read length to be absolutely sure, because
                                                           // the InDel distribution in the simulation is not necessary
                                                           // exactly the same as in the real data
-                var_read_mutex_.unlock();
                 return false;
             }
             RequestBufferSize(max_del_shift);
-            var_read_mutex_.unlock();
         }
     }
 
     if (!ref.MethylationCompletelyLoaded() && current_unit_ &&
         !ref.MethylationLoadedForSequence(current_unit_->ref_seq_id_ + 2)) {
-        if (methylation_read_mutex_.try_lock()) {
+        if (std::unique_lock lock(methylation_read_mutex_, std::try_to_lock); lock.owns_lock()) {
             if (!ref.ReadMethylation(current_unit_->ref_seq_id_ + 2)) {
-                methylation_read_mutex_.unlock();
                 return false;
             }
-
-            methylation_read_mutex_.unlock();
         }
     }
 
@@ -2508,7 +2511,7 @@ bool Simulator::SimulateAdapterOnlyPairs(const Reference& ref, const DataStats& 
         uintFragCount read_number(0);
 
         if (!CreateReads(ref, stats, estimates, rdist, sim_reads, rgen, num_adapter_only_pairs_, false, 0, 0, 0,
-                         read_number, NULL, 0, 0)) {
+                         read_number, nullptr, 0, 0)) {
             return false;
         }
     }
@@ -2543,7 +2546,7 @@ bool Simulator::ApplyErrorsAndQualityToFastaInput(StringSet<CharString>& input_i
                                                   GeneralRandomDistributions& rdist, mt19937_64& rgen,
                                                   const DataStats& stats, const ProbabilityEstimates& estimates) {
     SimRead sim_read;
-    SimBlock block(0, 0, NULL, 0);
+    SimBlock block(0, 0, nullptr, 0);
     stringstream readid_stream(std::ios_base::in | std::ios_base::out | std::ios_base::ate);
 
     for (uintFragCount i = 0; i < length(input_ids); ++i) {
@@ -2675,22 +2678,22 @@ void Simulator::ErrorModelOnlyThread(Simulator& self, SeqFileIn& org_seq_reader,
     uintFragCount cur_block(0);
     while (keep_running && !self.simulation_error_) {
         // Read original sequences
-        self.block_creation_mutex_.lock();
+        {
+            std::scoped_lock lock(self.block_creation_mutex_);
 
-        if (atEnd(org_seq_reader)) {
-            keep_running = false;
-        } else {
-            rgen.seed(self.block_seed_gen_());
-            rdist.Reset();
-            cur_block = self.read_blocks_++;
-
-            readRecords(input_ids, input_seqs, org_seq_reader, self.kBatchSizeErrorModelOnly);
-            if (0 == length(input_ids)) {
+            if (atEnd(org_seq_reader)) {
                 keep_running = false;
+            } else {
+                rgen.seed(self.block_seed_gen_());
+                rdist.Reset();
+                cur_block = self.read_blocks_++;
+
+                readRecords(input_ids, input_seqs, org_seq_reader, self.kBatchSizeErrorModelOnly);
+                if (0 == length(input_ids)) {
+                    keep_running = false;
+                }
             }
         }
-
-        self.block_creation_mutex_.unlock();
 
         if (keep_running) {
             // Apply error and quality model
@@ -2734,7 +2737,7 @@ bool Simulator::WriteOutSystematicErrorProfile(const string& id, vector<pair<Dna
     return true;
 }
 
-Simulator::Simulator() : written_records_(0), last_unit_(NULL), deletion_buffer_(0), rdist_zero_to_one_(0, 1) {
+Simulator::Simulator() : written_records_(0), last_unit_(nullptr), deletion_buffer_(0), rdist_zero_to_one_(0, 1) {
     req_deletion_buffer_ = 0;
 }
 
@@ -2823,11 +2826,11 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
         if (stats.FragmentDistribution().UpdateRefSeqBias(ref_bias_model, ref_bias_file, ref, block_seed_gen_)) {
             // Provide StringSets to store reads in before writing them out
             for (int i = 2; i--;) {
-                output_ids_.at(i) = new StringSet<CharString>;
+                output_ids_.at(i) = std::make_unique<StringSet<CharString>>();
                 reserve(*output_ids_.at(i), kBatchSize, Exact());
-                output_seqs_.at(i) = new StringSet<Dna5String>;
+                output_seqs_.at(i) = std::make_unique<StringSet<Dna5String>>();
                 reserve(*output_seqs_.at(i), kBatchSize, Exact());
-                output_quals_.at(i) = new StringSet<CharString>;
+                output_quals_.at(i) = std::make_unique<StringSet<CharString>>();
                 reserve(*output_quals_.at(i), kBatchSize, Exact());
             }
 
@@ -3002,7 +3005,7 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
                         del_unit = first_unit_;
                     } else {
                         // Terminate loop
-                        first_unit_->first_block_ = NULL;
+                        first_unit_->first_block_ = nullptr;
                     }
 
                     delete del_block->partner_block_;
@@ -3010,8 +3013,8 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
                     del_block = first_unit_->first_block_;
                 }
                 delete del_unit;
-                first_unit_ = NULL;
-                last_unit_ = NULL;
+                first_unit_ = nullptr;
+                last_unit_ = nullptr;
             }
         }
 
@@ -3072,11 +3075,11 @@ bool Simulator::SimulateErrorModelOnly(const string& destination_file, const str
     block_seed_gen_.seed(seed);
 
     // Provide StringSet to store reads in before writing them out
-    output_ids_.at(0) = new StringSet<CharString>;
+    output_ids_.at(0) = std::make_unique<StringSet<CharString>>();
     reserve(*output_ids_.at(0), kBatchSize, Exact());
-    output_seqs_.at(0) = new StringSet<Dna5String>;
+    output_seqs_.at(0) = std::make_unique<StringSet<Dna5String>>();
     reserve(*output_seqs_.at(0), kBatchSize, Exact());
-    output_quals_.at(0) = new StringSet<CharString>;
+    output_quals_.at(0) = std::make_unique<StringSet<CharString>>();
     reserve(*output_quals_.at(0), kBatchSize, Exact());
 
     simulation_error_ = false;

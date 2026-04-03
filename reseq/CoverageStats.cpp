@@ -205,7 +205,7 @@ void CoverageStats::EvalRead(FullRecord* record, CoverageStats::CoverageBlock* c
 
     if (255 > record->sequence_quality_) { // 255 marks reads that have not yet been processed by DataStats::EvalRecord
                                            // (because the other read of the pair has not been found yet)
-        delete record;
+        // Record cleanup handled by unique_ptr in reads_ vector
     } else {
         printWarn << "Did not yet find the paired read for:\n(ReferenceSequence:StartPosition): "
                   << reference.ReferenceIdFirstPart(record->record_.rID) << ":" << record->record_.beginPos
@@ -446,23 +446,23 @@ void CoverageStats::UpdateDistances(uintSeqLen& distance_to_start_of_error_regio
 
 CoverageStats::CoverageBlock* CoverageStats::CreateBlock(uintRefSeqId seq_id, uintSeqLen start_pos) {
     CoverageBlock* new_block;
-    if (reuse_mutex_.try_lock()) {
+    if (std::unique_lock lock(reuse_mutex_, std::try_to_lock); lock.owns_lock()) {
         if (reusable_blocks_.size()) {
-            new_block = reusable_blocks_.back();
+            new_block = reusable_blocks_.back().release();
             reusable_blocks_.pop_back();
-            reuse_mutex_.unlock();
+            lock.unlock(); // Keep early unlock — deliberate
 
             new_block->sequence_id_ = seq_id;
             new_block->start_pos_ = start_pos;
             new_block->previous_block_ = last_block_;
-            new_block->next_block_ = NULL;
+            new_block->next_block_ = nullptr;
             new_block->coverage_.clear();
             new_block->previous_coverage_.clear();
             new_block->reads_.clear();
             new_block->scheduled_for_processing_.clear();
             new_block->processed_ = false;
         } else {
-            reuse_mutex_.unlock();
+            lock.unlock();
             new_block = new CoverageBlock(seq_id, start_pos, last_block_);
             new_block->previous_coverage_.reserve(maximum_read_length_on_reference_);
         }
@@ -753,9 +753,10 @@ void CoverageStats::CountBlock(CoverageBlock* block, const Reference& reference)
 }
 
 CoverageStats::CoverageBlock* CoverageStats::RemoveBlock(CoverageBlock* block) {
-    reusable_blocks_.push_back(block);
+    CoverageBlock* next = block->next_block_;
+    reusable_blocks_.push_back(std::unique_ptr<CoverageBlock>(block));
 
-    return block->next_block_;
+    return next;
 }
 
 void CoverageStats::Prepare(uintCovCount average_coverage, uintReadLen average_read_length,
@@ -892,7 +893,7 @@ bool CoverageStats::EnsureSpace(uintRefSeqId ref_seq_id, uintSeqLen start_pos, u
         num_exclusion_regions_ += reference.NumExcludedRegions(ref_seq_id);
 
         // Create new block
-        auto new_block = new CoverageBlock(ref_seq_id, start_pos, NULL);
+        auto new_block = new CoverageBlock(ref_seq_id, start_pos, nullptr);
         new_block->coverage_.resize(kBlockSize);
         new_block->previous_coverage_.reserve(maximum_read_length_on_reference_);
         new_block->reads_.reserve(2 * kBlockSize);
@@ -912,7 +913,7 @@ bool CoverageStats::EnsureSpace(uintRefSeqId ref_seq_id, uintSeqLen start_pos, u
     // Add read to last block it potentially overlaps (most of the time it is last_block_, but it is not guaranteed so
     // use FindBlock)
     auto reg_block = FindBlock(ref_seq_id, end_pos);
-    reg_block->reads_.push_back(record);
+    reg_block->reads_.push_back(std::unique_ptr<FullRecord>(record));
 
     return true;
 }
@@ -992,8 +993,8 @@ reseq::uintRefSeqId CoverageStats::CleanUp(uintSeqLen& still_needed_position, Re
         until_block = until_block->previous_block_;
 
         if (until_block) {
-            (*first_block_).previous_block_ = NULL;
-            until_block->next_block_ = NULL;
+            (*first_block_).previous_block_ = nullptr;
+            until_block->next_block_ = nullptr;
             still_needed_reference_sequence = (*first_block_).sequence_id_;
             still_needed_position = (*first_block_).start_pos_;
         }
@@ -1008,15 +1009,15 @@ reseq::uintRefSeqId CoverageStats::CleanUp(uintSeqLen& still_needed_position, Re
     if (until_block) {
         while (until_block->previous_block_) {
             CountBlock(until_block, reference);
-            for (auto rec : until_block->reads_) {
-                EvalRead(rec, until_block, reference, qualities, errors, phred_quality_offset);
+            for (auto& rec : until_block->reads_) {
+                EvalRead(rec.get(), until_block, reference, qualities, errors, phred_quality_offset);
             }
             until_block = until_block->previous_block_;
         }
 
         CountBlock(until_block, reference);
-        for (auto rec : until_block->reads_) {
-            EvalRead(rec, until_block, reference, qualities, errors, phred_quality_offset);
+        for (auto& rec : until_block->reads_) {
+            EvalRead(rec.get(), until_block, reference, qualities, errors, phred_quality_offset);
         }
 
         lock_guard<mutex> lock(reuse_mutex_);
@@ -1033,13 +1034,11 @@ reseq::uintRefSeqId CoverageStats::CleanUp(uintSeqLen& still_needed_position, Re
 bool CoverageStats::PreLoadVariants(Reference& reference) {
     if (reference.VariantPositionsLoaded() && !reference.VariantPositionsCompletelyLoaded() &&
         !reference.VariantPositionsLoadedForSequence((*last_block_).sequence_id_ + 2)) {
-        if (variant_loading_mutex_.try_lock()) {
+        if (std::unique_lock lock(variant_loading_mutex_, std::try_to_lock); lock.owns_lock()) {
             if (!reference.ReadVariantPositions((*last_block_).sequence_id_ + 2)) {
-                variant_loading_mutex_.unlock();
-                return false;
+                return false; // unique_lock destructor handles unlock
             }
-
-            variant_loading_mutex_.unlock();
+            // lock destructor handles unlock
         }
     }
 
@@ -1048,10 +1047,7 @@ bool CoverageStats::PreLoadVariants(Reference& reference) {
 
 bool CoverageStats::Finalize(const Reference& reference, QualityStats& qualities, ErrorStats& errors,
                              uintQual phred_quality_offset, mutex& print_mutex, ThreadData& thread) {
-    // Remove all reusable_blocks_ as they are not needed anymore
-    for (auto block : reusable_blocks_) {
-        delete block;
-    }
+    // Remove all reusable_blocks_ as they are not needed anymore (unique_ptr handles cleanup)
     auto final_num_blocks = reusable_blocks_.size();
     reusable_blocks_.clear();
 
@@ -1068,15 +1064,15 @@ bool CoverageStats::Finalize(const Reference& reference, QualityStats& qualities
 
             // Update coverage of remaining blocks and delete them
             CoverageBlock* first_block = first_block_; // Use non atomic pointer for the finalization
-            first_block_ = NULL;
-            last_block_ = NULL;
+            first_block_ = nullptr;
+            last_block_ = nullptr;
 
             while (first_block->next_block_) {
                 ++final_num_blocks;
                 ProcessBlock(first_block, reference, thread);
                 CountBlock(first_block, reference);
-                for (auto rec : first_block->reads_) {
-                    EvalRead(rec, first_block, reference, qualities, errors, phred_quality_offset);
+                for (auto& rec : first_block->reads_) {
+                    EvalRead(rec.get(), first_block, reference, qualities, errors, phred_quality_offset);
                 }
 
                 first_block = first_block->next_block_;
@@ -1086,8 +1082,8 @@ bool CoverageStats::Finalize(const Reference& reference, QualityStats& qualities
             ++final_num_blocks;
             ProcessBlock(first_block, reference, thread);
             CountBlock(first_block, reference);
-            for (auto rec : first_block->reads_) {
-                EvalRead(rec, first_block, reference, qualities, errors, phred_quality_offset);
+            for (auto& rec : first_block->reads_) {
+                EvalRead(rec.get(), first_block, reference, qualities, errors, phred_quality_offset);
             }
             delete first_block;
         } else {

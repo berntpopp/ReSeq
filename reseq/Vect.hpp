@@ -11,7 +11,7 @@
 
 #include <boost/serialization/vector.hpp>
 
-#include "reportingUtils.hpp"
+#include "logging.hpp"
 
 #include "utilities.hpp"
 

@@ -2,6 +2,8 @@
 #define ADAPTERSTATSTEST_H
 #include "AdapterStats.h"
 
+#include <memory>
+
 #include "gtest/gtest.h"
 
 #include "BasicTestClass.hpp"
@@ -12,7 +14,7 @@ class AdapterStatsTest : public BasicTestClass {
     static void Register();
 
   protected:
-    AdapterStats* test_;
+    std::unique_ptr<AdapterStats> test_;
 
     void CreateTestObject();
     void DeleteTestObject();
@@ -24,7 +26,7 @@ class AdapterStatsTest : public BasicTestClass {
     virtual void TearDown();
 
   public:
-    AdapterStatsTest() : test_(NULL) {}
+    AdapterStatsTest() {}
 
     static void TestAdapters(const AdapterStats& test, const char* context);
     static void TestNexteraAdapters(const AdapterStats& test);

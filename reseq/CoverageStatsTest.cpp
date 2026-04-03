@@ -5,14 +5,12 @@ using reseq::CoverageStatsTest;
 using std::string;
 
 void CoverageStatsTest::CreateTestObject() {
-    ASSERT_TRUE(test_ = new CoverageStats()) << "Could not allocate memory for CoverageStats object\n";
+    test_ = std::make_unique<CoverageStats>();
+    ASSERT_TRUE(test_) << "Could not allocate memory for CoverageStats object\n";
 }
 
 void CoverageStatsTest::DeleteTestObject() {
-    if (test_) {
-        delete test_;
-        test_ = NULL;
-    }
+    test_.reset();
 }
 
 void CoverageStatsTest::TearDown() {
@@ -27,7 +25,7 @@ void CoverageStatsTest::TestNonSystematicErrorRate() {
 
     // samtools faidx ecoli-GCF_000005845.2_ASM584v2_genomic.fa NC_000913.3:101-110
     // TAAAATTTTA
-    CoverageStats::CoverageBlock block(0, 100, NULL);
+    CoverageStats::CoverageBlock block(0, 100, nullptr);
     block.coverage_.resize(10);
     block.coverage_.at(0).coverage_forward_.at(4) = 3;
     block.coverage_.at(0).coverage_forward_.at(1) = 1;
@@ -375,8 +373,8 @@ void CoverageStatsTest::TestSrr490124Equality(const CoverageStats& test, const c
     EXPECT_EQ(0, test.error_coverage_percent_stranded_min_strand_cov_20_.size())
         << "SRR490124-4pairs error_coverage_percent_stranded_min_strand_cov_20_.size() wrong for " << context << '\n';
 
-    EXPECT_TRUE(NULL == test.first_block_) << "SRR490124-4pairs first_block_ wrong for " << context << '\n';
-    EXPECT_TRUE(NULL == test.last_block_) << "SRR490124-4pairs last_block_ wrong for " << context << '\n';
+    EXPECT_TRUE(nullptr == test.first_block_) << "SRR490124-4pairs first_block_ wrong for " << context << '\n';
+    EXPECT_TRUE(nullptr == test.last_block_) << "SRR490124-4pairs last_block_ wrong for " << context << '\n';
     EXPECT_EQ(0, test.reusable_blocks_.size()) << "SRR490124-4pairs reusable_blocks_ wrong for " << context << '\n';
 }
 
@@ -389,8 +387,8 @@ void CoverageStatsTest::TestDuplicates(const CoverageStats& test) {
     TestVectEquality({0, {4641252, 1, 101, 98, 24, 1, 0, 0, 25, 3, 22, 0, 0, 2, 21, 0, 2}}, test.coverage_,
                      "duplicates test", "coverage_", " not correct for ");
 
-    EXPECT_TRUE(NULL == test.first_block_) << "SRR490124-4pairs first_block_ wrong in duplicates test\n";
-    EXPECT_TRUE(NULL == test.last_block_) << "SRR490124-4pairs last_block_ wrong in duplicates test\n";
+    EXPECT_TRUE(nullptr == test.first_block_) << "SRR490124-4pairs first_block_ wrong in duplicates test\n";
+    EXPECT_TRUE(nullptr == test.last_block_) << "SRR490124-4pairs last_block_ wrong in duplicates test\n";
     EXPECT_EQ(0, test.reusable_blocks_.size()) << "SRR490124-4pairs reusable_blocks_ wrong in duplicates test\n";
 }
 
@@ -541,8 +539,8 @@ void CoverageStatsTest::TestCrossDuplicates(const CoverageStats& test) {
     // length($0)-100}END{print sum}'
     TestVectEquality({0, {2940870}}, test.coverage_, "cross duplicates test", "coverage_", " not correct for ");
 
-    EXPECT_TRUE(NULL == test.first_block_) << "SRR490124-4pairs first_block_ wrong in cross duplicates test\n";
-    EXPECT_TRUE(NULL == test.last_block_) << "SRR490124-4pairs last_block_ wrong in cross duplicates test\n";
+    EXPECT_TRUE(nullptr == test.first_block_) << "SRR490124-4pairs first_block_ wrong in cross duplicates test\n";
+    EXPECT_TRUE(nullptr == test.last_block_) << "SRR490124-4pairs last_block_ wrong in cross duplicates test\n";
     EXPECT_EQ(0, test.reusable_blocks_.size()) << "SRR490124-4pairs reusable_blocks_ wrong in cross duplicates test\n";
 }
 
@@ -551,8 +549,8 @@ void CoverageStatsTest::TestCoverage(const CoverageStats& test) {
     // length($0)-100}END{print sum-300}'
     TestVectEquality({0, {2940670, 200}}, test.coverage_, "coverage test", "coverage_", " not correct for ");
 
-    EXPECT_TRUE(NULL == test.first_block_) << "SRR490124-4pairs first_block_ wrong in coverage test\n";
-    EXPECT_TRUE(NULL == test.last_block_) << "SRR490124-4pairs last_block_ wrong in coverage test\n";
+    EXPECT_TRUE(nullptr == test.first_block_) << "SRR490124-4pairs first_block_ wrong in coverage test\n";
+    EXPECT_TRUE(nullptr == test.last_block_) << "SRR490124-4pairs last_block_ wrong in coverage test\n";
     EXPECT_EQ(0, test.reusable_blocks_.size()) << "SRR490124-4pairs reusable_blocks_ wrong in coverage test\n";
 }
 

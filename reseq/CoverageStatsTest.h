@@ -2,6 +2,7 @@
 #define COVERAGESTATSTEST_H
 #include "CoverageStats.h"
 
+#include <memory>
 #include <stdint.h>
 
 #include "gtest/gtest.h"
@@ -14,7 +15,7 @@ class CoverageStatsTest : public BasicTestClassWithReference {
     static void Register();
 
   protected:
-    CoverageStats* test_;
+    std::unique_ptr<CoverageStats> test_;
 
     void CreateTestObject();
     void DeleteTestObject();
@@ -24,7 +25,7 @@ class CoverageStatsTest : public BasicTestClassWithReference {
     void TestNonSystematicErrorRate();
 
   public:
-    CoverageStatsTest() : test_(NULL) {}
+    CoverageStatsTest() {}
 
     static void TestSrr490124Equality(const CoverageStats& test, const char* context);
     static void TestDuplicates(const CoverageStats& test);

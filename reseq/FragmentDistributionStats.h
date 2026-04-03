@@ -22,7 +22,7 @@
 #include "Vect.hpp"
 
 namespace reseq {
-enum RefSeqBiasSimulation { kKeep, kNo, kDraw, kFile, kError };
+enum class RefSeqBiasSimulation { kKeep, kNo, kDraw, kFile, kError };
 
 struct BiasCalculationParams {
     uintRefSeqId ref_seq_id;
@@ -91,8 +91,8 @@ class BiasCalculationVectors {
                // without a toggle, so do not switch this to true and use the simulator
     static const bool kGCExp = true;
 
-    static constexpr const char* kParameterInfoFile = NULL;  //"maxlike_fit.csv";
-    static constexpr const char* kDispersionInfoFile = NULL; //"dispersion_fit.csv";
+    static constexpr const char* kParameterInfoFile = nullptr;  //"maxlike_fit.csv";
+    static constexpr const char* kDispersionInfoFile = nullptr; //"dispersion_fit.csv";
     static const uintDupCount kMaxDuplications =
         100; // Maximum number of duplications used for dispersion fit reported in kDispersionInfoFile
     static const uintSeqLen kDispersionBinSize =

@@ -11,15 +11,12 @@ void FragmentDuplicationStatsTest::Register() {
 }
 
 void FragmentDuplicationStatsTest::CreateTestObject() {
-    ASSERT_TRUE(test_ = new FragmentDuplicationStats)
-        << "Could not allocate memory for FragmentDuplicationStats object\n";
+    test_ = std::make_unique<FragmentDuplicationStats>();
+    ASSERT_TRUE(test_) << "Could not allocate memory for FragmentDuplicationStats object\n";
 }
 
 void FragmentDuplicationStatsTest::DeleteTestObject() {
-    if (test_) {
-        delete test_;
-        test_ = NULL;
-    }
+    test_.reset();
 }
 
 void FragmentDuplicationStatsTest::TearDown() {
