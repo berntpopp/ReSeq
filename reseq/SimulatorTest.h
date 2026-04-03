@@ -40,6 +40,10 @@ class SimulatorTest : public BasicTestClassWithReference {
         std::array<uintSeqLen, 2> modified_start_pos, std::array<Reference*, 2> comp_ref);
     void TestVariationInSimulateFromGivenBlock();
 
+    void TestBlockLifecycle();
+    void TestPartnerLinkage();
+    void TestCleanupFreesList();
+
   public:
     SimulatorTest() {}
 };
