@@ -47,7 +47,10 @@ int RunConvertProfile(const std::vector<std::string>& args, const variables_map&
         "statsOut,o", value<string>(), "Output stats file [overwrites input if omitted]")(
         "probsIn,p", value<string>(), "Input probabilities file (.reseq.ipf)")(
         "probsOut,P", value<string>(), "Output probabilities file [overwrites input if omitted]")(
-        "textFormat", "Write legacy text format (default: compressed binary)");
+        "textFormat",
+        "Write legacy text format (default: compressed binary). "
+        "Text format is portable across platforms; binary format is faster but not portable across different "
+        "architectures or compilers");
     opt_desc_full.add(opt_desc);
 
     string usage_str = "Usage:  reseq convertProfile -s <stats.reseq> [-p <probs.reseq.ipf>] [options]\n";

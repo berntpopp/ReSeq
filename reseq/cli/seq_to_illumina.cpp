@@ -56,7 +56,11 @@ int RunSeqToIllumina(const std::vector<std::string>& args, uintNumThreads num_th
         "Stores the probabilities estimated by iterative proportional fitting [<probabilitiesIn>]")(
         "seed", value<uintSeed>(), "Seed used for simulation, if none is given random seed will be used")(
         "statsIn,s", value<string>(), "Profile file that contains the statistics used for simulation")(
-        "textFormat", "Write profile files in legacy text format instead of compressed binary");
+        "textFormat",
+        "Write profile files in legacy text format instead of compressed binary. "
+        "Text format is portable across platforms; binary format is faster but not portable across different "
+        "architectures or compilers")("bothFormats", "Write profile files in both binary and text formats. The "
+                                                     "alternate format is saved with a .text or .bin suffix");
     opt_desc_full.add(opt_desc);
 
     string usage_str = "Usage:  reseq seqToIllumina -i <input.fa> -o <output.fq> -s <stats.reseq> [options]\n";
@@ -87,6 +91,7 @@ int RunSeqToIllumina(const std::vector<std::string>& args, uintNumThreads num_th
         return 1;
     } else {
         bool text_format = opts_map.count("textFormat");
+        bool both_formats = opts_map.count("bothFormats");
         DataStats real_data_stats(nullptr);
         string probs_in, probs_out;
 
@@ -116,6 +121,10 @@ int RunSeqToIllumina(const std::vector<std::string>& args, uintNumThreads num_th
                                         probs_in.c_str(), text_format)) {
                 return 1;
             } else {
+                if (both_formats && probs_out.size()) {
+                    string alt_probs = probs_out + (text_format ? ".bin" : ".text");
+                    probabilities.Save(alt_probs.c_str(), !text_format);
+                }
                 probabilities.PrepareResult();
 
                 string org_seq_file;
