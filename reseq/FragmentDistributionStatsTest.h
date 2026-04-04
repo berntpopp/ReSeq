@@ -3,10 +3,10 @@
 #include "FragmentDistributionStats.h"
 
 #include <array>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <random>
-#include <stdint.h>
 
 #include "gtest/gtest.h"
 

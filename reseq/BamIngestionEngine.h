@@ -29,9 +29,9 @@ class BamIngestionEngine {
         bool operator()(CoverageStats::FullRecord* const& lhs, CoverageStats::FullRecord* const& rhs) const;
     };
 
-    bool Run(const char* bam_file, const char* adapter_file, const char* adapter_matrix,
-             const std::string& variant_file, uintSeqLen max_ref_seq_bin_size, uintNumThreads num_threads,
-             bool calculate_bias, DataStats& target);
+    [[nodiscard]] bool Run(const char* bam_file, const char* adapter_file, const char* adapter_matrix,
+                           const std::string& variant_file, uintSeqLen max_ref_seq_bin_size, uintNumThreads num_threads,
+                           bool calculate_bias, DataStats& target);
 
     // Static geometry utilities (unchanged signatures)
     static uintReadLen GetReadLengthOnReference(const seqan::BamAlignmentRecord& record);

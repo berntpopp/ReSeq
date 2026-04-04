@@ -2,9 +2,9 @@
 #define VECT_HPP
 
 #include <algorithm>
+#include <cstdint>
 #include <limits>
 #include <ostream>
-#include <stdint.h>
 #include <vector>
 
 #include <boost/serialization/vector.hpp>

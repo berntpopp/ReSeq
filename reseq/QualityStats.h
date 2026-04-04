@@ -2,7 +2,7 @@
 #define QUALITYSTATS_H
 
 #include <array>
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 
 #include "container_types.hpp"
@@ -13,8 +13,8 @@
 namespace reseq {
 class QualityStats {
   public:
-    static const uintSeqLen kSqFragmentLengthBinSize = 10;
-    static const bool kWriteOut4dMatrixCsvs = false;
+    static constexpr uintSeqLen kSqFragmentLengthBinSize = 10;
+    static constexpr bool kWriteOut4dMatrixCsvs = false;
 
   private:
     // kWriteOut3dMatrixCsvs variables

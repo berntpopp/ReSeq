@@ -5,10 +5,10 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <deque>
 #include <memory>
 #include <mutex>
-#include <stdint.h>
 #include <utility>
 
 #include "logging.hpp"
@@ -133,8 +133,8 @@ class CoverageStats {
 
   private:
     // Definitions
-    static const uintSeqLen kBlockSize = 10000;
-    static const uintCovCount kMaxCoverage = 10000; // Maximum counted coverage (Only relevant for plotting)
+    static constexpr uintSeqLen kBlockSize = 10000;
+    static constexpr uintCovCount kMaxCoverage = 10000; // Maximum counted coverage (Only relevant for plotting)
     const double kSystematicErrorFDR = 0.05;
     const uint32_t kPValueHistBins = 100;
 

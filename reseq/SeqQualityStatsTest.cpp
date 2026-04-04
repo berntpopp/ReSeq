@@ -1,7 +1,7 @@
 #include "SeqQualityStatsTest.h"
 using reseq::SeqQualityStatsTest;
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "gtest/gtest.h"
 

@@ -1,8 +1,8 @@
 #ifndef TILESTATS_H
 #define TILESTATS_H
 
+#include <cstdint>
 #include <sstream>
-#include <stdint.h>
 #include <string>
 #include <unordered_map>
 #include <vector>

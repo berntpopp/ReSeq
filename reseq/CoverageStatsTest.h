@@ -2,8 +2,8 @@
 #define COVERAGESTATSTEST_H
 #include "CoverageStats.h"
 
+#include <cstdint>
 #include <memory>
-#include <stdint.h>
 
 #include "gtest/gtest.h"
 

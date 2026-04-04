@@ -15,13 +15,13 @@
 namespace reseq {
 template <uintSurBlockId N, uintSurPos R, int16_t S, typename I> class SurroundingBase {
   protected:
-    static const uintSurBlockId kNumBlocks = N; // Number of surrounding blocks
-    static const uintSurPos kRange = R;         // Length of a single surrounding block
+    static constexpr uintSurBlockId kNumBlocks = N; // Number of surrounding blocks
+    static constexpr uintSurPos kRange = R;         // Length of a single surrounding block
     static constexpr size_t Size() { return 1 << 2 * static_cast<size_t>(kRange); }
 
   public:
-    typedef I intType;
-    static const int16_t kStartPos =
+    using intType = I;
+    static constexpr int16_t kStartPos =
         S; // Position where the surrounding should start relative to the first base in the fragment (so 10 is 10 bases
            // before the fragment) [0 <= kStartPos < kNumBlocks*kRange]
     static constexpr uintSurPos Length() { return kNumBlocks * kRange; }

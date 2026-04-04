@@ -2,7 +2,7 @@
 #define DATASTATS_H
 
 #include <array>
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -209,7 +209,7 @@ class DataStats {
     void SetUniformBias() { fragment_distribution_.SetUniformBias(); }
 
     // Public functions
-    bool IsValidRecord(const seqan::BamAlignmentRecord& record);
+    [[nodiscard]] bool IsValidRecord(const seqan::BamAlignmentRecord& record);
     inline bool QualitySufficient(const seqan::BamAlignmentRecord& record) const {
         return minimum_mapping_quality_ <= record.mapQ;
     }
@@ -226,12 +226,13 @@ class DataStats {
                start_pos_first == start_pos_second;
     }
 
-    bool ReadBam(const char* bam_file, const char* adapter_file, const char* adapter_matrix,
-                 const std::string& variant_file, uintSeqLen max_ref_seq_bin_size, uintNumThreads num_threads,
-                 bool calculate_bias = true); // Fill the class with the information from a bam file
+    [[nodiscard]] bool ReadBam(const char* bam_file, const char* adapter_file, const char* adapter_matrix,
+                               const std::string& variant_file, uintSeqLen max_ref_seq_bin_size,
+                               uintNumThreads num_threads,
+                               bool calculate_bias = true); // Fill the class with the information from a bam file
 
-    bool Load(const char* archive_file);
-    bool Save(const char* archive_file, bool text_format = false) const;
+    [[nodiscard]] bool Load(const char* archive_file);
+    [[nodiscard]] bool Save(const char* archive_file, bool text_format = false) const;
 
     void PrepareProcessing();
     void PreparePlotting();

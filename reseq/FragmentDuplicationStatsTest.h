@@ -2,8 +2,8 @@
 #define FRAGMENTDUPLICATIONSTATSTEST_H
 #include "FragmentDuplicationStats.h"
 
+#include <cstdint>
 #include <memory>
-#include <stdint.h>
 
 #include "gtest/gtest.h"
 

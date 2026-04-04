@@ -2,7 +2,7 @@
 #define ADAPTERSTATS_H
 
 #include <atomic>
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -25,7 +25,7 @@ class AdapterStats {
     const double kMinFractionOfMaximumForSimulation =
         0.1; // Minimum fraction of the highest adapter count that an adapter needs to have to be simulated (Removes
              // garbage from adapter reading stage)
-    static const uintReadLen kKmerLength = 10;
+    static constexpr uintReadLen kKmerLength = 10;
 
     static constexpr const char* kAdapterSearchInfoFile = nullptr; // "adapter.csv";
 
@@ -136,14 +136,15 @@ class AdapterStats {
     const std::array<uintNucCount, kNumBasesN>& OverrunBases() const { return overrun_bases_; }
 
     // Main functions
-    bool LoadAdapters(const char* adapter_file, const char* adapter_matrix);
+    [[nodiscard]] bool LoadAdapters(const char* adapter_file, const char* adapter_matrix);
     void PrepareAdapterPrediction();
     void ExtractAdapterPart(const seqan::BamAlignmentRecord& record);
-    bool PredictAdapters();
+    [[nodiscard]] bool PredictAdapters();
     void PrepareAdapters(uintReadLen size_read_length, uintQual phred_quality_offset);
-    bool Detect(uintReadLen& adapter_position_first, uintReadLen& adapter_position_second,
-                const seqan::BamAlignmentRecord& record_first, const seqan::BamAlignmentRecord& record_second,
-                const Reference& reference, bool properly_mapped = false);
+    [[nodiscard]] bool Detect(uintReadLen& adapter_position_first, uintReadLen& adapter_position_second,
+                              const seqan::BamAlignmentRecord& record_first,
+                              const seqan::BamAlignmentRecord& record_second, const Reference& reference,
+                              bool properly_mapped = false);
     void Finalize();
     void SumCounts();
     void Shrink();

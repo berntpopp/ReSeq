@@ -2,7 +2,7 @@
 #define REFERENCETEST_H
 #include "Reference.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "gtest/gtest.h"
 

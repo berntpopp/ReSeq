@@ -36,78 +36,77 @@ namespace seqan = seqan2;
 
 namespace reseq {
 // Type definitions
-typedef int8_t intQualDiff; // Difference of quality values
+using intQualDiff = int8_t; // Difference of quality values
 
-typedef uint8_t uintInDelType; // InDel Type (0,1)
-typedef uint8_t uintPercent;   // Percent values
-typedef uint8_t uintQual;      // Quality values
-typedef uint8_t uintTempSeq;   // Template segment, strand (0,1)
+using uintInDelType = uint8_t; // InDel Type (0,1)
+using uintPercent = uint8_t;   // Percent values
+using uintQual = uint8_t;      // Quality values
+using uintTempSeq = uint8_t;   // Template segment, strand (0,1)
 
-typedef int16_t uintPercentShift; // Percent values with direction information for shifts
+using uintPercentShift = int16_t; // Percent values with direction information for shifts
 
-typedef uint16_t uintAdapterId;      // Adapter id
-typedef uint16_t uintAlleleId;       // Allele number, id, etc.
-typedef uint16_t uintBaseCall;       // Base call in case it is converted from seqan::Dna5(or other) to int
-typedef uint16_t uintDupCount;       // Count of fragments at a given site
-typedef uint16_t uintErrorCount;     // Count of errors that occurred during execution
-typedef uint16_t uintInDelTypePrint; // InDel Type (0,1) for printing (so they are not printed as characters)
-typedef uint16_t uintMarginId;       // Id or size for probability margin or dimension
-typedef uint16_t uintNumThreads;     // Id for probability margin
-typedef uint16_t uintPercentPrint;   // Percent values for printing (so they are not printed as characters)
-typedef uint16_t uintQualPrint;      // Quality values for printing (so they are not printed as characters)
-typedef uint16_t uintReadLen;        // Position on read, length of sequence
-typedef uint16_t uintSurBlockId;     // Surrounding block number, id, etc.
-typedef uint16_t uintSurPos;         // Position in surrounding
-typedef uint16_t
-    uintTempSeqPrint;        // Template segment, strand (0,1) for printing (so they are not printed as characters)
-typedef uint16_t uintTile;   // Tile encoding (e.g. 2308)
-typedef uint16_t uintTileId; // Tile ids
+using uintAdapterId = uint16_t;      // Adapter id
+using uintAlleleId = uint16_t;       // Allele number, id, etc.
+using uintBaseCall = uint16_t;       // Base call in case it is converted from seqan::Dna5(or other) to int
+using uintDupCount = uint16_t;       // Count of fragments at a given site
+using uintErrorCount = uint16_t;     // Count of errors that occurred during execution
+using uintInDelTypePrint = uint16_t; // InDel Type (0,1) for printing (so they are not printed as characters)
+using uintMarginId = uint16_t;       // Id or size for probability margin or dimension
+using uintNumThreads = uint16_t;     // Id for probability margin
+using uintPercentPrint = uint16_t;   // Percent values for printing (so they are not printed as characters)
+using uintQualPrint = uint16_t;      // Quality values for printing (so they are not printed as characters)
+using uintReadLen = uint16_t;        // Position on read, length of sequence
+using uintSurBlockId = uint16_t;     // Surrounding block number, id, etc.
+using uintSurPos = uint16_t;         // Position in surrounding
+using uintTempSeqPrint =
+    uint16_t;                // Template segment, strand (0,1) for printing (so they are not printed as characters)
+using uintTile = uint16_t;   // Tile encoding (e.g. 2308)
+using uintTileId = uint16_t; // Tile ids
 
-typedef int32_t intSeqShift;  // Sequence length with direction information for shifts
-typedef int32_t intVariantId; // Variant id, number, etc. (id can be invalid < 0)
+using intSeqShift = int32_t;  // Sequence length with direction information for shifts
+using intVariantId = int32_t; // Variant id, number, etc. (id can be invalid < 0)
 
-typedef uint32_t uintCovCount;    // Count for position coverage
-typedef uint32_t uintMatrixIndex; // Index or size for probability matrix
-typedef uint32_t uintNumFits;     // Number of fits, bias sum parameters(ref seq, insert length), iterations, parameters
-typedef uint32_t uintReadLenCalc; // Calculations on read length producing temporary larger values, like calculating the
+using uintCovCount = uint32_t;    // Count for position coverage
+using uintMatrixIndex = uint32_t; // Index or size for probability matrix
+using uintNumFits = uint32_t;     // Number of fits, bias sum parameters(ref seq, insert length), iterations, parameters
+using uintReadLenCalc = uint32_t; // Calculations on read length producing temporary larger values, like calculating the
                                   // mean of something over all positions
-typedef uint32_t uintRefSeqBin;   // Reference sequence bin/block id, number, etc.
-typedef uint32_t uintRefSeqId;    // Reference sequence id, number, etc.
-typedef uint32_t uintSeqLen;      // Position on reference sequence, length of sequence, distance
+using uintRefSeqBin = uint32_t;   // Reference sequence bin/block id, number, etc.
+using uintRefSeqId = uint32_t;    // Reference sequence id, number, etc.
+using uintSeqLen = uint32_t;      // Position on reference sequence, length of sequence, distance
 
-typedef int64_t intExtSurrounding; // Extended surrounding value to combine blocks, etc.
-typedef int64_t intFragCountShift; // General count of fragments/reads with direction information for shifts
-typedef int64_t intSeqPos;         // Position on reference sequence that can be invalid (-1)
+using intExtSurrounding = int64_t; // Extended surrounding value to combine blocks, etc.
+using intFragCountShift = int64_t; // General count of fragments/reads with direction information for shifts
+using intSeqPos = int64_t;         // Position on reference sequence that can be invalid (-1)
 
-typedef uint64_t uintAlleleBitArray; // bit array for storing yes/no for 64 alleles
-typedef uint64_t uintFragCount;      // General count of fragments/reads
-typedef uint64_t uintMatrixCount;    // Count in probability matrix independent of origin (at least as big as
+using uintAlleleBitArray = uint64_t; // bit array for storing yes/no for 64 alleles
+using uintFragCount = uint64_t;      // General count of fragments/reads
+using uintMatrixCount = uint64_t;    // Count in probability matrix independent of origin (at least as big as
                                      // uintFragCount, uintNucCount)
-typedef uint64_t uintNucCount;       // General count of fragments/reads
-typedef uint64_t uintRefLenCalc; // Calculations with reference sequences producing temporary large values, like summing
+using uintNucCount = uint64_t;       // General count of fragments/reads
+using uintRefLenCalc = uint64_t; // Calculations with reference sequences producing temporary large values, like summing
                                  // up length of reference sequences or getting a mean
-typedef uint64_t uintSeed;       // Seed value for random number generator
+using uintSeed = uint64_t;       // Seed value for random number generator
 
 #ifndef SWIG // This part is not needed for the python plotting and swig can't handle the seqan stuff
 namespace utilities {
 // Type definitions
-typedef seqan::String<seqan::CigarElement<>> CigarString;
-typedef seqan::ModView<seqan::FunctorComplement<seqan::Iupac>> ModComplementIupac;
+using CigarString = seqan::String<seqan::CigarElement<>>;
+using ModComplementIupac = seqan::ModView<seqan::FunctorComplement<seqan::Iupac>>;
 
-typedef const seqan::ModifiedString<seqan::ModifiedString<const seqan::Dna5String, seqan::ModComplementDna5>,
-                                    seqan::ModReverse>
-    ConstDna5StringReverseComplement;
-typedef const seqan::ModifiedString<seqan::ModifiedString<const seqan::DnaString, seqan::ModComplementDna>,
-                                    seqan::ModReverse>
-    ConstDnaStringReverseComplement;
-typedef const seqan::ModifiedString<seqan::ModifiedString<const seqan::IupacString, ModComplementIupac>,
-                                    seqan::ModReverse>
-    ConstIupacStringReverseComplement;
+using ConstDna5StringReverseComplement =
+    const seqan::ModifiedString<seqan::ModifiedString<const seqan::Dna5String, seqan::ModComplementDna5>,
+                                seqan::ModReverse>;
+using ConstDnaStringReverseComplement =
+    const seqan::ModifiedString<seqan::ModifiedString<const seqan::DnaString, seqan::ModComplementDna>,
+                                seqan::ModReverse>;
+using ConstIupacStringReverseComplement =
+    const seqan::ModifiedString<seqan::ModifiedString<const seqan::IupacString, ModComplementIupac>, seqan::ModReverse>;
 
-typedef const seqan::ModifiedString<const seqan::Dna5String, seqan::ModComplementDna5> ComplementedConstDna5String;
+using ComplementedConstDna5String = const seqan::ModifiedString<const seqan::Dna5String, seqan::ModComplementDna5>;
 
-typedef const seqan::ModifiedString<const seqan::CharString, seqan::ModReverse> ReversedConstCharString;
-typedef const seqan::ModifiedString<const CigarString, seqan::ModReverse> ReversedConstCigarString;
+using ReversedConstCharString = const seqan::ModifiedString<const seqan::CharString, seqan::ModReverse>;
+using ReversedConstCigarString = const seqan::ModifiedString<const CigarString, seqan::ModReverse>;
 
 // Functions needed in classes
 template <typename T> struct AtDummy {
@@ -241,7 +240,7 @@ class Complement {
 
 class DominantBase {
   public:
-    static const uintReadLen kLastX = 5;
+    static constexpr uintReadLen kLastX = 5;
 
   private:
     seqan::Dna dom_base_;

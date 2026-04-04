@@ -170,7 +170,7 @@ enum class Vt100EscapeCode {
 
 template <typename T> class omanip {
   private:
-    typedef std::ostream& (*funcPointer)(std::ostream&, const T&);
+    using funcPointer = std::ostream& (*)(std::ostream&, const T&);
 
   public:
     omanip(funcPointer func, const T& val) : _func(func), _val(val) {}

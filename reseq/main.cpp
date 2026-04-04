@@ -3,7 +3,7 @@
 using std::exception;
 #include <iostream>
 using std::cerr;
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 using std::string;
 using std::to_string;

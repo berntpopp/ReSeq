@@ -2,7 +2,7 @@
 #define ERRORSTATS_H
 
 #include <array>
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 
 #include <seqan/basic.h>

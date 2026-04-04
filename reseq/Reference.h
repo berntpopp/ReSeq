@@ -3,9 +3,9 @@
 
 #include <array>
 #include <atomic>
+#include <cstdint>
 #include <fstream>
 #include <set>
-#include <stdint.h>
 #include <vector>
 
 #include <seqan/seq_io.h>
@@ -23,7 +23,7 @@ class Reference {
 #ifndef SWIG // This part is not needed for the python plotting and swig can't handle the nested classes
     class Variant {
       public:
-        static const uintAlleleId kMaxAlleles =
+        static constexpr uintAlleleId kMaxAlleles =
             128; // One bit per allele is needed and uint64_t is used for allele_, only full multiples of 64 supported
 
         uintSeqLen position_;
@@ -60,7 +60,7 @@ class Reference {
     };
 #endif // SWIG
 
-    static const uintSeqLen kMinDistToContigEnds =
+    static constexpr uintSeqLen kMinDistToContigEnds =
         50; // Minimum distance from reference sequence ends to be taken into account for statistics so mapping issues
             // at the border are avoided
 
@@ -303,10 +303,10 @@ class Reference {
                           uintSeqLen start, uintSeqLen end) const;
 #endif // SWIG
 
-    bool ReadFasta(const char* fasta_file);
+    [[nodiscard]] bool ReadFasta(const char* fasta_file);
     void ReplaceN(uintSeed seed);
-    bool HasN() const;
-    bool WriteFasta(const char* fasta_file) const;
+    [[nodiscard]] bool HasN() const;
+    [[nodiscard]] bool WriteFasta(const char* fasta_file) const;
 
 #ifndef SWIG // This part is not needed for the python plotting
     // Exclusion regions public functions
@@ -406,8 +406,8 @@ class Reference {
         return variant_positions_.at(ref_seq_id);
     }
 
-    bool PrepareVariantFile(const std::string& var_file);
-    bool ReadVariants(uintSeqLen& max_del_shift, uintRefSeqId end_ref_seq_id, uintSeqLen max_read_len) {
+    [[nodiscard]] bool PrepareVariantFile(const std::string& var_file);
+    [[nodiscard]] bool ReadVariants(uintSeqLen& max_del_shift, uintRefSeqId end_ref_seq_id, uintSeqLen max_read_len) {
         uintRefSeqId del_check = read_variation_for_num_sequences_;
         if (!ReadVariants(end_ref_seq_id, false)) {
             return false;
@@ -418,8 +418,8 @@ class Reference {
         return true;
     }
     inline bool ReadVariantPositions(uintRefSeqId end_ref_seq_id) { return ReadVariants(end_ref_seq_id, true); }
-    bool ReadFirstVariants(uintSeqLen& max_del_shift, uintSeqLen max_read_len);
-    bool ReadFirstVariantPositions();
+    [[nodiscard]] bool ReadFirstVariants(uintSeqLen& max_del_shift, uintSeqLen max_read_len);
+    [[nodiscard]] bool ReadFirstVariantPositions();
     void ClearVariants(uintRefSeqId end_ref_seq_id);
     void ClearVariantPositions(uintRefSeqId end_ref_seq_id);
     void ClearAllVariants();
@@ -444,8 +444,8 @@ class Reference {
         return unmethylated_regions_.at(ref_seq_id);
     }
 
-    bool PrepareMethylationFile(const std::string& methylation_file);
-    bool ReadMethylation(uintRefSeqId end_ref_seq_id);
+    [[nodiscard]] bool PrepareMethylationFile(const std::string& methylation_file);
+    [[nodiscard]] bool ReadMethylation(uintRefSeqId end_ref_seq_id);
     void ClearMethylation(uintRefSeqId end_ref_seq_id);
     void ClearAllMethylation();
 #endif // SWIG

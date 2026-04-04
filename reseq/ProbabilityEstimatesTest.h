@@ -3,7 +3,7 @@
 #include "ProbabilityEstimates.h"
 
 #include <array>
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>

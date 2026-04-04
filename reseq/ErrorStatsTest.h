@@ -2,8 +2,8 @@
 #define ERRORSTATSTEST_H
 #include "ErrorStats.h"
 
+#include <cstdint>
 #include <memory>
-#include <stdint.h>
 
 #include "gtest/gtest.h"
 

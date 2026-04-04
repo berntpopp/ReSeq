@@ -3,8 +3,8 @@
 #include "QualityStats.h"
 
 #include <cmath>
+#include <cstdint>
 #include <memory>
-#include <stdint.h>
 
 #include "gtest/gtest.h"
 

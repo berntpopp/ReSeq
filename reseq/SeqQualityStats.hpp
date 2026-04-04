@@ -2,8 +2,8 @@
 #define SEQQUALITYSTATS_HPP
 
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
-#include <stdint.h>
 
 #include "logging.hpp"
 

@@ -5,9 +5,9 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <mutex>
 #include <random>
-#include <stdint.h>
 #include <vector>
 
 #include <boost/serialization/array.hpp>
@@ -67,18 +67,18 @@ class BiasCalculationVectors {
   public:
     // Definitions
     static constexpr double kStopCriterion = 1e-6; // Minimum relative change in loglikelihood to finish fit
-    static const uintNumFits kMaxLikelihoodCalculations = 100;
-    static const uint16_t kSplinePrecisionFactor = 10; // Spline fit is fast so we can require a higher precision
+    static constexpr uintNumFits kMaxLikelihoodCalculations = 100;
+    static constexpr uint16_t kSplinePrecisionFactor = 10; // Spline fit is fast so we can require a higher precision
 
-    static const uintPercent kGCSplineDf = 6; // Number of knots for gc spline
-    static const uintPercent kMaxKnotShift =
+    static constexpr uintPercent kGCSplineDf = 6; // Number of knots for gc spline
+    static constexpr uintPercent kMaxKnotShift =
         20; // Maximum shift for a single knot from one fit to the next for greedy knot adjustment
-    static const uintPercent kPercentGCSitesForNormalization =
+    static constexpr uintPercent kPercentGCSitesForNormalization =
         80; // Use this percent of gc values with highest number of sites for normalization to avoid effects from
             // overfitted gc with low number of sites
 
     static constexpr double kDistanceWeightReductionFactor = 0.5;
-    static const uintNumFits kNumFitsInsertLength =
+    static constexpr uintNumFits kNumFitsInsertLength =
         30; // Number of insert length values with the highest number of counts fitted
     static constexpr double kNXXRefSeqs = 80.0; // Number of reference sequences to fit (so Nxx is reached)
 
@@ -87,16 +87,16 @@ class BiasCalculationVectors {
     static constexpr double kBaseValue = 1e-25;
 
     // Definitions for paper (extra output)
-    static const bool kSurMult =
+    static constexpr bool kSurMult =
         false; // This is only for the fit for the comparison plots, the rest of the program is using the better sum
                // without a toggle, so do not switch this to true and use the simulator
-    static const bool kGCExp = true;
+    static constexpr bool kGCExp = true;
 
     static constexpr const char* kParameterInfoFile = nullptr;  //"maxlike_fit.csv";
     static constexpr const char* kDispersionInfoFile = nullptr; //"dispersion_fit.csv";
-    static const uintDupCount kMaxDuplications =
+    static constexpr uintDupCount kMaxDuplications =
         100; // Maximum number of duplications used for dispersion fit reported in kDispersionInfoFile
-    static const uintSeqLen kDispersionBinSize =
+    static constexpr uintSeqLen kDispersionBinSize =
         200000; // Bin size used to get sample mean and for dispersion fit reported in kDispersionInfoFile (2*sites, due
                 // to forward+reverse)
 
@@ -247,7 +247,7 @@ class InsertLengthSpline {
     const uintSeqLen kKnotMaxShift = 100; // Knots are shifted in one iteration by a maximum of kKnotMaxShift
 
     static constexpr double kStopCriterion = 1e-6; // Minimum relative change in chi2 to finish fit
-    static const uintNumFits kMaxChi2Calculations = 1000;
+    static constexpr uintNumFits kMaxChi2Calculations = 1000;
     static constexpr double kLowerBound = -1e25;
     static constexpr double kUpperBound = 1e25;
 
@@ -312,7 +312,7 @@ class FragmentDistributionStats {
   private:
     // Definitions
     const uintSeqLen kOutskirtRange = 20; // 20 bases before and after each fragment are reported
-    static const uint16_t kMaxBinsQueuedForBiasCalc =
+    static constexpr uint16_t kMaxBinsQueuedForBiasCalc =
         100; // Defines length of the parameter vector which is used to feed calculation threads
     const uintErrorCount kMaxErrorsShownPerFile = 50;
     const double kPrecisionAimRefSeqFragLengthFit = 1.0001;

@@ -1,7 +1,7 @@
 #include "VectTest.h"
 using reseq::VectTest;
 
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 using std::string;
 #include <vector>

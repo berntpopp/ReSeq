@@ -3,11 +3,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <deque>
 #include <limits>
 #include <list>
 #include <set>
-#include <stdint.h>
 #include <vector>
 
 #include <seqan/bam_io.h>
@@ -19,7 +19,7 @@
 namespace reseq {
 class FragmentDuplicationStats {
   public:
-    static const uintDupCount kMaxDuplication =
+    static constexpr uintDupCount kMaxDuplication =
         50; // Maximum duplication for direct plotting and plotted dispersion fit
 
   private:

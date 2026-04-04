@@ -4,7 +4,7 @@ using reseq::utilities::VectorAtomic;
 
 // include <array>
 using std::array;
-#include <stdint.h>
+#include <cstdint>
 #include <thread>
 #include <vector>
 

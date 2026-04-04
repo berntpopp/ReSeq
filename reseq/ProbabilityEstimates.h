@@ -4,10 +4,10 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cstdint>
 #include <limits>
 #include <mutex>
 #include <sstream>
-#include <stdint.h>
 #include <string>
 #include <utility>
 #include <vector>
@@ -54,7 +54,7 @@ template <uintMarginId N> class DataStorage {
     const uintMatrixIndex kMaxBinsPerDimension = 200;
 
   private:
-    static const uintMarginId kNumMargins = N * (N - 1) / 2;
+    static constexpr uintMarginId kNumMargins = N * (N - 1) / 2;
 
     // Storage
     std::array<std::vector<double>, kNumMargins> data_;
@@ -107,7 +107,7 @@ template <uintMarginId N> class LogArrayCalc {
   private:
     template <uintMarginId M> friend class LogArrayResult;
 
-    static const uintMarginId kNumMargins = N * (N - 1) / 2;
+    static constexpr uintMarginId kNumMargins = N * (N - 1) / 2;
 
     std::array<std::vector<double>, kNumMargins> dim2_;
     std::array<uintMatrixIndex, N> dim_size_;
@@ -372,7 +372,7 @@ template <uintMarginId N> class LogArrayCalc {
 
 template <uintMarginId N> class LogArrayResult {
   private:
-    static const uintMarginId kNumMargins =
+    static constexpr uintMarginId kNumMargins =
         (N - 1); // Here we only take the margins with the first parameter in them, as the rest is irrelevant
 
     std::array<std::vector<double>, kNumMargins> dim2_;
@@ -628,7 +628,7 @@ double SumLogTerms(const DataStorage<5>& data, const LogArrayCalc<5>& mat, uintM
 
 template <uintMarginId N> class LogIPF {
   private:
-    static const uintMarginId kNumMargins = N * (N - 1) / 2;
+    static constexpr uintMarginId kNumMargins = N * (N - 1) / 2;
 
   public:
     uintNumFits steps_;

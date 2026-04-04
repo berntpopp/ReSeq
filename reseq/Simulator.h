@@ -3,12 +3,12 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <deque>
 #include <memory>
 #include <mutex>
 #include <random>
 #include <set>
-#include <stdint.h>
 #include <string>
 #include <vector>
 
@@ -246,7 +246,7 @@ class Simulator {
         utilities::CigarString cigar_;
     };
 
-    typedef std::array<SimRead, kTemplateSegments> SimPair;
+    using SimPair = std::array<SimRead, kTemplateSegments>;
 
     // Definitions
     const uintFragCount kBatchSize =

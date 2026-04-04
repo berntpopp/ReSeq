@@ -3,8 +3,8 @@
 #include "Simulator.h"
 
 #include <array>
+#include <cstdint>
 #include <memory>
-#include <stdint.h>
 #include <vector>
 
 #include "gtest/gtest.h"

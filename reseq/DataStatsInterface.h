@@ -1,8 +1,8 @@
 #ifndef DATASTATSINTERFACE_H
 #define DATASTATSINTERFACE_H
 
+#include <cstdint>
 #include <map>
-#include <stdint.h>
 #include <string>
 #include <utility>
 #include <vector>
@@ -180,7 +180,7 @@ class DataStatsInterface {
     HomopolymerDistribution(uintBaseCall nucleotide) const;
 
     // Main functions
-    bool Load(const char* archive_file);
+    [[nodiscard]] bool Load(const char* archive_file);
 };
 
 } // namespace reseq
