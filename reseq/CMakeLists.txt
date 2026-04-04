@@ -31,7 +31,7 @@ target_include_directories(reseq_lib PUBLIC
   "${PROJECT_SOURCE_DIR}/reseq"
 )
 target_link_libraries(reseq_lib PUBLIC
-  skewer_matrix nlopt vendored_seqan GTest::gtest
+  skewer_matrix nlopt reseq_seqan GTest::gtest
   ${Boost_LIBRARIES} ZLIB::ZLIB BZip2::BZip2 rt
 )
 target_compile_options(reseq_lib PRIVATE ${PRIVATE_COMPILE_OPTIONS})

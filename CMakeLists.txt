@@ -24,55 +24,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Export compile commands for clang-tidy
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# GoogleTest via FetchContent
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG v1.15.2
-)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
-
-# Compression packages
-find_package(ZLIB REQUIRED)
-find_package(BZip2 REQUIRED)
-
-# Add boost
-cmake_policy(SET CMP0057 NEW)
-find_package(Boost 1.48.0 REQUIRED filesystem iostreams math_c99 math_c99f math_c99l math_tr1 math_tr1f math_tr1l program_options serialization system)
-
-# NLopt via FetchContent (or system install)
-find_package(NLopt QUIET)
-if(NOT NLopt_FOUND)
-  FetchContent_Declare(
-    nlopt
-    GIT_REPOSITORY https://github.com/stevengj/nlopt.git
-    GIT_TAG v2.9.1
-  )
-  set(NLOPT_PYTHON OFF CACHE BOOL "" FORCE)
-  set(NLOPT_OCTAVE OFF CACHE BOOL "" FORCE)
-  set(NLOPT_MATLAB OFF CACHE BOOL "" FORCE)
-  set(NLOPT_GUILE OFF CACHE BOOL "" FORCE)
-  set(NLOPT_SWIG OFF CACHE BOOL "" FORCE)
-  set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-  set(NLOPT_TESTS OFF CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(nlopt)
-endif()
-
-# Add SeqAn as INTERFACE target
-LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/seqan/util/cmake/")
-find_package(SeqAn REQUIRED)
-add_library(vendored_seqan INTERFACE)
-target_include_directories(vendored_seqan SYSTEM INTERFACE
-  "${PROJECT_SOURCE_DIR}/seqan/include"
-  ${SEQAN_INCLUDE_DIRS}
-)
-target_compile_definitions(vendored_seqan INTERFACE ${SEQAN_DEFINITIONS})
-separate_arguments(SEQAN_CXX_FLAGS_LIST NATIVE_COMMAND "${SEQAN_CXX_FLAGS}")
-target_compile_options(vendored_seqan INTERFACE ${SEQAN_CXX_FLAGS_LIST})
-target_link_libraries(vendored_seqan INTERFACE ${SEQAN_LIBRARIES})
+# Centralized dependency resolution
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+include(ReSeqDependencies)
 
 # Output directories
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
