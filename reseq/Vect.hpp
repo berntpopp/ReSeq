@@ -2,6 +2,7 @@
 #define VECT_HPP
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <limits>
 #include <ostream>
@@ -14,9 +15,17 @@
 #include "utilities.hpp"
 
 namespace reseq {
-template <typename T>
-class Vect { // std::vector that removes 0s at the beginning and has an offset variable instead and automatically
-             // increases size if called outside range
+/// Offset vector: a std::vector with a non-zero starting index.
+///
+/// Vect<T> stores a pair (offset, data) where element n is at data[n - offset].
+/// Key semantics:
+///   - from() returns the index of the first element (the offset)
+///   - to() returns one past the index of the last element
+///   - operator[] (non-const) auto-extends the vector to accommodate the index
+///   - operator[] (const) returns a zero-valued dummy for out-of-range access
+///   - at() throws std::out_of_range for invalid indices
+///   - Shrink() removes leading/trailing zeros and frees unused capacity
+template <typename T> class Vect {
   private:
     std::pair<typename std::vector<T>::size_type, std::vector<T>> vec_; // Offset + Vector
 
@@ -187,9 +196,14 @@ class Vect { // std::vector that removes 0s at the beginning and has an offset v
 
     T& operator[](typename std::vector<T>::size_type
                       n) { // Ensure that the called element exists (if not create it) and return a reference to it
+        assert(n < std::numeric_limits<typename std::vector<T>::size_type>::max() - 1024 &&
+               "Vect::operator[] called with suspiciously large index");
         Ensure(n);
         return vec_.second[n - vec_.first]; // Subtract offset
     }
+    /// Returns element at index n, or a zero-valued dummy if n is out of range.
+    /// This silent-default behavior is intentional — Vect is used in contexts
+    /// where out-of-range reads should return zero (e.g., sparse histograms).
     const T& operator[](typename std::vector<T>::size_type n) const {
         if (this->from() <= n && n < this->to()) {
             return vec_.second[n - vec_.first]; // Subtract offset
