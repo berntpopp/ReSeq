@@ -341,10 +341,10 @@ TEST_F(RegressionTest, EmptyBam) {
     auto adapter_mat = adapter_dir_ / "TruSeq_single.mat";
     auto output = tmp_dir_ / "empty-result.reseq";
 
-    // Create empty BAM using samtools (header only)
+    // Create empty BAM using samtools (valid header, zero records)
     auto empty_bam = tmp_dir_ / "empty.bam";
     std::string create_cmd =
-        "samtools view -bT " + ref.string() + " /dev/null > " + empty_bam.string() + " 2>/dev/null";
+        "printf '@HD\\tVN:1.6\\tSO:unsorted\\n' | samtools view -bS -o " + empty_bam.string() + " - 2>/dev/null";
     std::system(create_cmd.c_str());
 
     if (!std::filesystem::exists(empty_bam) || std::filesystem::file_size(empty_bam) == 0) {
