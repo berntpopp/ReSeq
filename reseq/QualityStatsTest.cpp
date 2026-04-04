@@ -1308,3 +1308,35 @@ void QualityStatsTest::TestAdapters(const QualityStats& test, const char* contex
     EXPECT_EQ(34, static_cast<uint64_t>(round(test.base_quality_mean_reference_.at(1)[81]))) << "for " << context;
     EXPECT_EQ(29, static_cast<uint64_t>(round(test.base_quality_mean_reference_.at(1)[95]))) << "for " << context;
 }
+
+namespace reseq {
+
+TEST_F(QualityStatsTest, PrepareAndFinalize) {
+    CreateTestObject();
+    test_->Prepare(1, 40, 100, 500);
+    test_->AddRawBase(0, 0, 0, 0, 30, 25, 28, 10);
+    test_->AddRawHomoqualimer(30, 3);
+    test_->Finalize(1);
+    const auto& nq = test_->NucleotideQuality(0, 0);
+    EXPECT_FALSE(nq.empty()) << "NucleotideQuality(0,0) empty after Finalize";
+}
+
+TEST_F(QualityStatsTest, ShrinkPreservesData) {
+    CreateTestObject();
+    test_->Prepare(1, 40, 100, 500);
+    test_->AddRawBase(0, 0, 0, 0, 30, 25, 28, 10);
+    test_->Finalize(1);
+    auto size_before = test_->NucleotideQuality(0, 0).size();
+    ASSERT_GT(size_before, 0u) << "No data to test shrink";
+    test_->Shrink();
+    EXPECT_GT(test_->NucleotideQuality(0, 0).size(), 0u) << "Data lost after Shrink";
+}
+
+TEST_F(QualityStatsTest, EmptyFinalize) {
+    CreateTestObject();
+    test_->Prepare(1, 40, 100, 500);
+    test_->Finalize(0);
+    EXPECT_TRUE(test_->NucleotideQuality(0, 0).empty()) << "NucleotideQuality should be empty when no data added";
+}
+
+} // namespace reseq
