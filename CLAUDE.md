@@ -49,7 +49,8 @@ One CMake static library + two executables:
 - `Reference` — reference genome loading, surrounding context, excluded regions
 - `Surrounding` / `SurroundingBase` — sequence context modeling for error patterns
 - `Vect` — offset vector (indexed from non-zero starting position), used pervasively
-- `utilities.hpp` — shared types, atomic vector wrapper, helper functions
+- `types.hpp` — type aliases, VectorAtomic, SeqAn compat (extracted from utilities.hpp)
+- `utilities.hpp` — helper functions, classes (includes types.hpp)
 - `ProbabilityEstimates` — Iterative Proportional Fitting (IPF) for multi-dimensional probability tables
 - `Simulator` — block-based read simulation engine with threading support
 
@@ -59,7 +60,7 @@ One CMake static library + two executables:
 
 ### External Dependencies
 
-SeqAn 2.5.2 (bioinformatics, header-only) is resolved via `find_package()` or `FetchContent` — see `cmake/ReSeqDependencies.cmake`. GoogleTest and NLopt are also fetched via FetchContent. `skewer/` remains vendored (adapter trimming, carries local modifications).
+SeqAn 2.5.2 (bioinformatics, header-only) is resolved via `find_package()` or `FetchContent` — see `cmake/ReSeqDependencies.cmake`. GoogleTest and NLopt are also fetched via FetchContent. `skewer/` remains vendored (adapter trimming, carries local modifications — see `skewer/MODIFICATIONS.md`).
 
 ### Test Structure
 
@@ -72,7 +73,7 @@ Single source of truth: `VERSION` file (currently `1.1.0`). CMake reads it at co
 ## Code Style
 
 - C++: clang-format (LLVM-based, 120 column limit, 4-space indent, C++20)
-- Python: ruff (py37 target, 120 line length, rules: E/F/W/I/B/SIM)
+- Python: ruff (py39 target, 120 line length, rules: E/F/W/I/B/SIM); package at `python/reseq/`
 - Commits: conventional commits (`feat:`, `fix:`, `build:`, `style:`, `test:`, `ci:`)
 - Pre-commit hooks enforce formatting on `reseq/` and `python/` only
 

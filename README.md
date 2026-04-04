@@ -26,49 +26,45 @@ Even though sequencing biases and errors have been deeply researched to adequate
 
 ## <a name="requirements"></a>Requirements
 
-| Requirement               | Ubuntu/Debian                      | CentOS | Manual installation | Comments | Tested version |
-|---------------------------|------------------------------------|--------|---------------------|----------|----------------|
-| Linux system              |
-| Compiler supporting C++14 | `sudo apt install build-essential` | `sudo yum install gcc gcc-c++ glibc-devel make` | | On CentOs 7 the g++ compiler is too old to support C++14 so you need to additionally to the yum command install a newer version following for example this guide (https://linuxhostsupport.com/blog/how-to-install-gcc-on-centos-7/). If the standard install path `usr/local/` was used, afterwards the `CXX` variable has to be set to `/usr/local/bin/c++`, the `CC` variable to `/usr/local/bin/gcc`, `/usr/local/lib64/` has to be added to your `LD_LIBRARY_PATH` and `/usr/local/bin` to your `PATH` before installing boost. | 7.2.1 20171019|
-| ZLIB                      | `sudo apt-get install zlib1g-dev`  | `sudo yum install zlib-devel`   | | | |
-| BZip2                     | `sudo apt-get install libbz2-dev`  | `sudo yum install bzip2-devel`  | | | |
-| Python 3                  |                                    |                                 | | | 3.6.11 |
-| Python libraries          | `sudo apt-get install python3-dev`  | `sudo yum install python3-devel.x86_64` | | | |
-| Git                       | `sudo apt-get install git`         | `sudo yum install git`          | | | |
-| CMake                     | `sudo apt-get install cmake`       | (too old version)               | https://cmake.org/install/  | The newest versions (starting 3.16) require `sudo apt-get install libssl-dev` or `sudo yum install openssl-devel` | 3.5.1 |
-| Boost C++ libraries       | `sudo apt-get install libboost-all-dev` | (version not working) | https://www.boost.org/doc/libs/1_71_0/more/getting_started/unix-variants.html | Only download and extraction in section 1 and library builds in section 5 are strictly needed, if you set a prefix you need to set `BOOST_ROOT` to this `prefix` before the installation process below or you will get boost library errors at the cmake and make step. If you manually installed g++ run `./b2` without sudo so the environment variables `CXX` and `CC` are found. | 1.67.0 |
-| SWIG                      | `sudo apt-get install swig`        | (too old version)               | http://www.swig.org/Doc4.0/Preface.html | If you set a prefix you need to add prefix/bin to your PATH variable | 3.0.8 |
+**Build requirements:**
+
+| Requirement | Minimum version | Ubuntu/Debian |
+|-------------|----------------|---------------|
+| C++20 compiler (GCC or Clang) | GCC 10+ / Clang 12+ | `sudo apt install build-essential` |
+| CMake | 3.16+ | `sudo apt install cmake` |
+| Boost (serialization, program_options, filesystem, system, math) | 1.48+ | `sudo apt install libboost-all-dev` |
+| ZLIB | — | `sudo apt install zlib1g-dev` |
+| BZip2 | — | `sudo apt install libbz2-dev` |
+| Git | — | `sudo apt install git` |
+
+SeqAn 2.5.2, GoogleTest, and NLopt are fetched automatically via CMake FetchContent (or found via `find_package()` if installed).
+
+**Optional (Python plotting tools):**
+
+| Requirement | Minimum version | Ubuntu/Debian |
+|-------------|----------------|---------------|
+| Python | 3.9+ | (usually pre-installed) |
+| python3-dev | — | `sudo apt install python3-dev` |
+| SWIG | 3+ | `sudo apt install swig` |
+
+Build with `-DRESEQ_BUILD_PYTHON=ON` to enable Python bindings.
 
 ## <a name="installation"></a>Installation
-To install to the standard folder `usr/local` or to keep everything in the build folder:
-```
-cd /where/you/want/to/build/ReSeq
-git clone https://github.com/schmeing/ReSeq.git
+```bash
+git clone https://github.com/berntpopp/ReSeq.git
 cd ReSeq
-mkdir build
-cd build
-cmake ..
-make
+cmake -S . -B build
+cmake --build build -j$(nproc)
+ctest --test-dir build --output-on-failure
 ```
 
-To install to a different folder the same steps apply but the `cmake ..` line has to be exchange with:
-```
-cmake -DCMAKE_INSTALL_PREFIX=/where/you/want/to/install/ReSeq/ ..
-```
-
-The executable file will afterwards be `/where/you/want/to/build/ReSeq/ReSeq/build/bin/reseq` and can be added to the PATH variable or copied to the desired place.
-
-Alternatively ReSeq can be install to the standard folder `usr/local` or the previously defined folder by:
-```
-make install
+The executable will be at `build/bin/reseq`. To install system-wide:
+```bash
+cmake --install build                                       # installs to /usr/local
+cmake --install build --prefix /your/custom/prefix          # or a custom location
 ```
 
-To test the installation run:
-```
-reseq test
-```
-
-Some useful python scripts can be found in `/where/you/want/to/install/ReSeq/ReSeq/python` or after an installation in `usr/local/bin` or `/where/you/want/to/install/ReSeq/bin/`.
+Python plotting tools are in `python/reseq/` and can be installed as a package (`pip install .`).
 
 ## <a name="conda"></a>Bioconda
 ReSeq can also be installed in an automatic fashion via anaconda/miniconda(https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/index.html) with the following command:
@@ -296,10 +292,10 @@ Generally, it is not advised to use trimmed datasets, because they result in wor
 Lowering the `--maxFragLen` parameter most likely helps in this situation, because sequences that are not at least 100 bases longer than this parameter are excluded in any case. However, you need to check that you are not truncating your fragment lengths distribution by setting `--maxFragLen` too low.
 
 ## <a name="libraries"></a>Included libraries
-Googletest (https://github.com/google/googletest.git, BSD 3-Clause license)\
-NLopt (https://github.com/stevengj/nlopt.git, MIT license)\
-SeqAn (https://github.com/seqan/seqan, BSD 3-Clause license)\
-skewer (https://github.com/relipmoc/skewer, MIT license, made slight adaptations to the code to be able to include it)
+GoogleTest (https://github.com/google/googletest.git, BSD 3-Clause license) — fetched via FetchContent\
+NLopt (https://github.com/stevengj/nlopt.git, MIT license) — fetched via FetchContent\
+SeqAn 2.5.2 (https://github.com/seqan/seqan, BSD 3-Clause license) — fetched via FetchContent\
+skewer (https://github.com/relipmoc/skewer, MIT license) — vendored with local modifications (see `skewer/MODIFICATIONS.md`)
 
 ## <a name="publication"></a>Publication
 Schmeing, S., Robinson, M.D. ReSeq simulates realistic Illumina high-throughput sequencing data. Genome Biol 22, 67 (2021). https://doi.org/10.1186/s13059-021-02265-7
