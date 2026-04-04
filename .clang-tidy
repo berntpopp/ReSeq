@@ -25,5 +25,7 @@ Checks: >
   -performance-avoid-endl,
   -performance-enum-size
 WarningsAsErrors: ''
-HeaderFilterRegex: '.*/reseq/[^/]*\.(h|hpp)$'
+HeaderFilterRegex: '.*/reseq/.*\.(h|hpp)$'
+ExcludeHeaderFilterRegex: '.*(build/_deps|/usr/include|skewer)/.*'
+SystemHeaders: false
 FormatStyle: file

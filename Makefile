@@ -51,7 +51,9 @@ format-check:
 	$(MAKE) python-format-check
 
 lint: configure
-	clang-tidy -p $(BUILD_DIR)/ $(filter %.cpp,$(CXX_SOURCES))
+	@# Strip GCC-only flags that clang-tidy does not understand
+	@sed -i 's/-fext-numeric-literals//g' $(BUILD_DIR)/compile_commands.json
+	run-clang-tidy -p $(BUILD_DIR)/ -j$$(nproc) $(filter %.cpp,$(CXX_SOURCES))
 	$(MAKE) python-lint
 
 python-format:

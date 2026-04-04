@@ -31,6 +31,7 @@ if(NOT NLopt_FOUND)
     nlopt
     GIT_REPOSITORY https://github.com/stevengj/nlopt.git
     GIT_TAG v2.9.1
+    SYSTEM
   )
   set(NLOPT_PYTHON OFF CACHE BOOL "" FORCE)
   set(NLOPT_OCTAVE OFF CACHE BOOL "" FORCE)
