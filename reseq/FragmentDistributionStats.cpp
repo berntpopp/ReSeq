@@ -7,7 +7,6 @@ using reseq::InsertLengthSpline;
 using std::max;
 using std::max_element;
 using std::min;
-using std::min_element;
 using std::sort;
 // include <array>
 using std::array;
@@ -26,7 +25,6 @@ using std::distance;
 #include <limits>
 using std::numeric_limits;
 #include <cmath>
-using std::abs;
 using std::exp;
 using std::isnan;
 using std::log;
@@ -39,8 +37,6 @@ using std::mutex;
 // include <random>
 using std::mt19937_64;
 using std::uniform_int_distribution;
-#include <set>
-using std::set;
 #include <string>
 using std::stod;
 using std::string;
@@ -69,24 +65,22 @@ using reseq::utilities::InvLogit2;
 using reseq::utilities::IsN;
 using reseq::utilities::Percent;
 using reseq::utilities::SetToMax;
-using reseq::utilities::SetToMin;
-using reseq::utilities::Sign;
-using reseq::utilities::VectorAtomic;
 
 constexpr double BiasCalculationVectors::kLowerBound;
 constexpr double BiasCalculationVectors::kUpperBound;
 constexpr double BiasCalculationVectors::kBaseValue;
 mutex BiasCalculationVectors::file_mutex_;
 
-void BiasCalculationVectors::AddCountsFromSite(const FragmentSite& site, array<uintFragCount, kGCBins>& gc_count,
-                                               array<uintFragCount, kNumBases * Surrounding::Length()>& sur_count) {
+void BiasCalculationVectors::AddCountsFromSite(
+    const FragmentSite& site, array<uintFragCount, kGCBins>& gc_count,
+    array<uintFragCount, static_cast<size_t>(kNumBases) * Surrounding::Length()>& sur_count) {
     if (0 < site.count_forward_ + site.count_reverse_) {
         gc_count.at(site.gc_) += site.count_forward_ + site.count_reverse_;
 
         for (uintSurPos sur_pos = Surrounding::Length(); sur_pos--;) {
-            sur_count.at(kNumBases * sur_pos + site.start_surrounding_.BaseAt(sur_pos)) +=
+            sur_count.at(static_cast<size_t>(kNumBases) * sur_pos + site.start_surrounding_.BaseAt(sur_pos)) +=
                 site.count_forward_ + site.count_reverse_;
-            sur_count.at(kNumBases * sur_pos + site.end_surrounding_.BaseAt(sur_pos)) +=
+            sur_count.at(static_cast<size_t>(kNumBases) * sur_pos + site.end_surrounding_.BaseAt(sur_pos)) +=
                 site.count_forward_ + site.count_reverse_;
         }
     }
@@ -141,7 +135,7 @@ void BiasCalculationVectors::RemoveUnnecessarySites() {
     }
     sites_.resize(needed_sites);
 
-    total_sites_ = 2 * needed_sites; // Forward + Reverse
+    total_sites_ = static_cast<uintFragCount>(2) * needed_sites; // Forward + Reverse
 }
 
 void BiasCalculationVectors::CalculateGCWeights() {
@@ -168,11 +162,11 @@ void BiasCalculationVectors::CalculateGCWeights() {
 
     // Normalize total weight to 1
     double weight_sum(0.0);
-    for (uintPercent gc = 0; gc < gc_weights_.size(); ++gc) {
-        weight_sum += gc_weights_.at(gc);
+    for (double gc_weight : gc_weights_) {
+        weight_sum += gc_weight;
     }
-    for (uintPercent gc = 0; gc < gc_weights_.size(); ++gc) {
-        gc_weights_.at(gc) /= weight_sum;
+    for (double& gc_weight : gc_weights_) {
+        gc_weight /= weight_sum;
     }
 }
 
@@ -1118,8 +1112,8 @@ void BiasCalculationVectors::WriteOutParameterInfo(const char* context) {
         output << ", " << unnormalized_gc.at(gc) << ", " << gc_bias_.at(gc) << ", " << gc_count_.at(gc) << ", "
                << gc_sites_.at(gc);
     }
-    for (auto k = 0; k < gc_knots_.size(); ++k) {
-        output << ", " << static_cast<uintPercentPrint>(gc_knots_.at(k));
+    for (unsigned char gc_knot : gc_knots_) {
+        output << ", " << static_cast<uintPercentPrint>(gc_knot);
     }
     for (auto sur = 0; sur < sur_bias_.size(); ++sur) {
         output << ", " << sur_bias_.at(sur) << ", " << sur_count_.at(sur) << ", " << sur_sites_.at(sur);
@@ -1855,7 +1849,7 @@ void FragmentDistributionStats::PrepareBiasCalculation(const Reference& ref, uin
     fragment_lengths_used_for_correction_.resize(ref.NumberSequences());
 
     // Prepare bias fitting
-    bias_calc_params_.resize(maximum_insert_length * kMaxBinsQueuedForBiasCalc);
+    bias_calc_params_.resize(static_cast<size_t>(maximum_insert_length) * kMaxBinsQueuedForBiasCalc);
 
     ref.RefSeqsInNxx(ref_seq_in_nxx_, BiasCalculationVectors::kNXXRefSeqs);
 
@@ -1929,6 +1923,9 @@ void FragmentDistributionStats::PrepareBiasCalculation(const Reference& ref, uin
                 break;
             case 3:
                 base = 'T';
+                break;
+            default:
+                base = '?';
                 break;
             }
             myfile << ", " << "SurBias" << sur / 4 << base << ", " << "SurCount" << sur / 4 << base << ", "
@@ -2129,8 +2126,9 @@ void FragmentDistributionStats::SortFragmentSites(uintRefSeqBin ref_seq_bin,
     }
 
     uintSeqLen max_used_length = tmp_insert_lengths_.size();
-    while (--max_used_length && 0 == num_sites_per_insert_length.at(max_used_length))
+    while (--max_used_length && 0 == num_sites_per_insert_length.at(max_used_length)) {
         ; // Ignore empty bins at the end
+    }
     if (max_used_length) {
         // Reserve needed space
         fragment_sites_by_ref_seq_bin_by_insert_length_.at(ref_seq_bin).resize(max_used_length + 1);
@@ -2167,7 +2165,8 @@ void FragmentDistributionStats::UpdateBiasCalculationParams(
                  ++insert_length) {
                 if (fragment_sites_by_ref_seq_bin_by_insert_length_.at(ref_seq_bin).at(insert_length).size()) {
                     tmp_params.push_back(
-                        {fragment_sites_by_ref_seq_bin_by_insert_length_.at(ref_seq_bin).at(insert_length).size(),
+                        {static_cast<uintSeqLen>(
+                             fragment_sites_by_ref_seq_bin_by_insert_length_.at(ref_seq_bin).at(insert_length).size()),
                          {ref_seq_bin, insert_length}});
                 } else {
                     bias_calc_params_.at(queue_spot * qbin_size + insert_length - 1)
@@ -2670,7 +2669,7 @@ bool FragmentDistributionStats::StoreBias() {
 
     // Surrounding bias
     // Calculate Median
-    std::array<double, 4 * Surrounding::Length()> sur_median;
+    std::array<double, static_cast<size_t>(4) * Surrounding::Length()> sur_median;
     for (uintNumFits sur = 0; sur < tmp_sur_bias_.size(); ++sur) {
         tmp_sur_bias_.at(sur).resize(current_bias_result_);
 
@@ -2754,7 +2753,7 @@ bool FragmentDistributionStats::CalculateInsertLengthAndRefSeqBias(const Referen
         threads.reserve(num_threads);
         for (auto i = num_threads; i--;) {
             threads.emplace_back([this, &reference, &params, &current_param, &finished_params, &bias_sum,
-                                  &print_mutex](std::stop_token) {
+                                  &print_mutex](const std::stop_token&) {
                 BiasSumThread(*this, reference, params, current_param, finished_params, bias_sum, print_mutex);
             });
         }
@@ -3191,7 +3190,7 @@ void FragmentDistributionStats::Prepare(const Reference& ref, uintSeqLen maximum
 
     for (auto strand = kStrands; strand--;) {
         for (auto nuc = kNumBases; nuc--;) {
-            tmp_outskirt_content_.at(strand).at(nuc).resize(2 * kOutskirtRange);
+            tmp_outskirt_content_.at(strand).at(nuc).resize(static_cast<size_t>(2) * kOutskirtRange);
         }
     }
 
@@ -3708,7 +3707,7 @@ double FragmentDistributionStats::CalculateBiasNormalization(vector<uintRefSeqId
         threads.reserve(num_threads);
         for (auto i = num_threads; i--;) {
             threads.emplace_back([this, &reference, &params, &current_param, &normalization_by_frag_len, &result_mutex,
-                                  &coverage_groups, &non_zero_thresholds](std::stop_token) {
+                                  &coverage_groups, &non_zero_thresholds](const std::stop_token&) {
                 BiasNormalizationThread(*this, reference, params, current_param, normalization_by_frag_len,
                                         result_mutex, coverage_groups, non_zero_thresholds);
             });
@@ -3724,8 +3723,7 @@ double FragmentDistributionStats::CalculateBiasNormalization(vector<uintRefSeqId
     for (auto& group : non_zero_thresholds) {
         // Get maximum ratio
         double max_ratio = 0.0; // max_bias/frag_bias
-        for (uintSeqLen s = 0; s < insert_length_spline.sample_positions_.size(); ++s) {
-            auto frag_len = insert_length_spline.sample_positions_.at(s);
+        for (unsigned int frag_len : insert_length_spline.sample_positions_) {
             double ratio = group.at(frag_len).at(0) / insert_lengths_bias_.at(frag_len);
             SetToMax(max_ratio, ratio);
         }
@@ -3825,7 +3823,7 @@ reseq::uintDupCount FragmentDistributionStats::GetFragmentCounts(double bias_nor
 }
 
 void FragmentDistributionStats::PreparePlotting() {
-    array<double, 4 * Surrounding::Length()> separated_bias;
+    array<double, static_cast<size_t>(4) * Surrounding::Length()> separated_bias;
     fragment_surroundings_bias_.SeparatePositions(separated_bias);
 
     for (auto& sur_vect : fragment_surrounding_bias_by_base_) {

@@ -2,7 +2,6 @@
 using reseq::CoverageStats;
 
 // include <algorithm>
-using std::max;
 using std::min;
 using std::sort;
 // include <array>
@@ -35,7 +34,6 @@ using reseq::utilities::at;
 using reseq::utilities::Complement;
 using reseq::utilities::ConstDna5StringReverseComplement;
 using reseq::utilities::ConstIupacStringReverseComplement;
-using reseq::utilities::Divide;
 using reseq::utilities::DominantBase;
 using reseq::utilities::IsN;
 using reseq::utilities::Percent;
@@ -187,6 +185,8 @@ void CoverageStats::EvalRead(FullRecord* record, CoverageStats::CoverageBlock* c
 
                     read_pos += cigar_element.count;
                 }
+                break;
+            default:
                 break;
             }
         }
@@ -346,8 +346,9 @@ double CoverageStats::GetPositionProbabilities(CoverageBlock* block, const Refer
     size_t last_systematic(thread.non_sytematic_probability_sorted_.size());
     while (--last_systematic &&
            thread.non_sytematic_probability_sorted_.at(last_systematic) >
-               kSystematicErrorFDR * (last_systematic + 1) / thread.non_sytematic_probability_sorted_.size())
+               kSystematicErrorFDR * (last_systematic + 1) / thread.non_sytematic_probability_sorted_.size()) {
         ;
+    }
 
     if (0 == last_systematic && thread.non_sytematic_probability_sorted_.at(0) >
                                     kSystematicErrorFDR / thread.non_sytematic_probability_sorted_.size()) {
@@ -789,8 +790,9 @@ CoverageStats::CoverageBlock* CoverageStats::RemoveBlock(CoverageBlock* block) {
     free_indices_.push_back(block->block_idx_);
     // Block remains owned by blocks_ deque; slot will be reused via free_indices_
 
-    if (next_idx == SIZE_MAX)
+    if (next_idx == SIZE_MAX) {
         return nullptr;
+    }
     return blocks_[next_idx].get();
 }
 
@@ -946,7 +948,7 @@ bool CoverageStats::EnsureSpace(uintRefSeqId ref_seq_id, uintSeqLen start_pos, u
         auto* new_block = blocks_[new_idx].get();
         new_block->coverage_.resize(kBlockSize);
         new_block->previous_coverage_.reserve(maximum_read_length_on_reference_);
-        new_block->reads_.reserve(2 * kBlockSize);
+        new_block->reads_.reserve(static_cast<size_t>(2) * kBlockSize);
         new_block->block_idx_ = new_idx;
         new_block->prev_block_idx_ = SIZE_MAX; // first block has no predecessor
         new_block->next_block_idx_ = SIZE_MAX;

@@ -74,6 +74,7 @@ template <uintSurBlockId N, uintSurPos R, int16_t S, typename I> class Surroundi
 
     bool BlockHasN(intType& invalid_sur, const seqan::Dna5String& sequence, uintSeqLen start_pos) {
         for (auto cur_pos = start_pos + kRange; cur_pos-- > start_pos;) {
+            // NOLINTNEXTLINE(clang-analyzer-core.DivideZero) sequence is guaranteed non-empty by caller
             if (utilities::IsN(sequence, cur_pos % length(sequence))) {
                 invalid_sur = static_cast<intType>(start_pos) - cur_pos -
                               1; // Negative counts of base increments needed to not have an N anymore

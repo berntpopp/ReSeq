@@ -503,3 +503,44 @@ void ErrorStatsTest::TestAdapters(const ErrorStats& test, const char* context, b
         EXPECT_EQ(0, test.indel_by_indel_pos_.at(1).at(call).size()) << " Call " << call << " for " << context;
     }
 }
+
+namespace reseq {
+
+TEST_F(ErrorStatsTest, PrepareAndAddBase) {
+    CreateTestObject();
+    test_->Prepare(1, 40, 100, 10);
+    test_->AddBase(0, 0, 0, 0, 0, 30, 10, 0, 5);
+    test_->AddBase(0, 0, 0, 0, 1, 30, 10, 0, 5);
+    test_->AddRead(0, 0);
+    test_->Finalize();
+    const auto& hist = test_->CalledBasesByBaseQuality(0, 0, seqan::Dna5(0), seqan::Dna5(0));
+    EXPECT_FALSE(hist.empty()) << "CalledBasesByBaseQuality histogram empty after Finalize";
+}
+
+TEST_F(ErrorStatsTest, ShrinkPreservesData) {
+    CreateTestObject();
+    test_->Prepare(1, 40, 100, 10);
+    test_->AddBase(0, 0, 0, 0, 0, 30, 10, 0, 5);
+    test_->AddRead(0, 0);
+    test_->Finalize();
+    const auto& before = test_->CalledBasesByBaseQuality(0, 0, seqan::Dna5(0), seqan::Dna5(0));
+    auto size_before = before.size();
+    ASSERT_GT(size_before, 0) << "No data to test shrink";
+    test_->Shrink();
+    const auto& after = test_->CalledBasesByBaseQuality(0, 0, seqan::Dna5(0), seqan::Dna5(0));
+    EXPECT_GT(after.size(), 0) << "Data lost after Shrink";
+}
+
+TEST_F(ErrorStatsTest, ErrorsPerRead) {
+    CreateTestObject();
+    test_->Prepare(1, 40, 100, 10);
+    test_->AddRead(0, 3);
+    test_->AddRead(0, 0);
+    test_->AddRead(1, 1);
+    test_->Finalize();
+    EXPECT_EQ(1, test_->ErrorsPerRead(0)[0]) << "ErrorsPerRead[0][0] should be 1";
+    EXPECT_EQ(1, test_->ErrorsPerRead(0)[3]) << "ErrorsPerRead[0][3] should be 1";
+    EXPECT_EQ(1, test_->ErrorsPerRead(1)[1]) << "ErrorsPerRead[1][1] should be 1";
+}
+
+} // namespace reseq

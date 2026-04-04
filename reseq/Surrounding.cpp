@@ -199,7 +199,7 @@ void Surrounding::InsertSurroundingBasesShiftingOnLeftSide(uintSurPos pos, DnaSt
     }
 }
 
-void SurroundingBias::CombinePositions(const array<double, 4 * Surrounding::Length()>& separated) {
+void SurroundingBias::CombinePositions(const array<double, static_cast<size_t>(4) * Surrounding::Length()>& separated) {
     for (auto& block : bias_) {
         block.clear();
         block.resize(Surrounding::Size(), 0.0);
@@ -227,7 +227,8 @@ void SurroundingBias::CombinePositions(const array<double, 4 * Surrounding::Leng
     }
 }
 
-void SurroundingBias::SeparatePositions(array<double, 4 * Surrounding::Length()>& separated) const {
+void SurroundingBias::SeparatePositions(
+    array<double, static_cast<size_t>(4) * Surrounding::Length()>& separated) const {
     separated.fill(0.0);
 
     std::vector<uintBaseCall> bases;
@@ -261,7 +262,7 @@ void SurroundingBias::SeparatePositions(array<double, 4 * Surrounding::Length()>
         for (auto sur = 4 * sur_pos; sur < 4 * sur_pos + 4; ++sur) {
             separated.at(sur) -= sur_sum;
             separated.at(sur) /=
-                Surrounding::Size() /
+                static_cast<double>(Surrounding::Size()) /
                 4; // The base of the current position is defined so divide by 4 to get number of averaged values
         }
     }

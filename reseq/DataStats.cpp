@@ -28,8 +28,6 @@ using seqan::BamAlignmentRecord;
 using reseq::utilities::at;
 using reseq::utilities::CreateDir;
 using reseq::utilities::FileExists;
-using reseq::utilities::SetToMax;
-using reseq::utilities::SetToMin;
 
 DataStats::DataStats(Reference* ref, uintSeqLen maximum_insert_length, uintQual minimum_mapping_quality)
     : reference_(ref), maximum_insert_length_(maximum_insert_length),

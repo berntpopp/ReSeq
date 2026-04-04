@@ -10,7 +10,6 @@ using std::ofstream;
 // include "utilities.hpp"
 using reseq::utilities::Divide;
 using reseq::utilities::getConst;
-using reseq::utilities::Percent;
 using reseq::utilities::SetToMax;
 using reseq::utilities::SetToMin;
 

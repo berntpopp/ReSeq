@@ -18,6 +18,7 @@ bool kNoDebugOutput = false;
 #include "FragmentDuplicationStatsTest.h"
 #include "ProbabilityEstimatesTest.h"
 #include "QualityStatsTest.h"
+#include "ReadSequenceStatsTest.h"
 #include "ReferenceTest.h"
 #include "RegressionTest.h"
 #include "SeqQualityStatsTest.h"
@@ -47,6 +48,7 @@ int main(int argc, char** argv) {
     reseq::FragmentDistributionStatsTest::Register(1);
     reseq::FragmentDuplicationStatsTest::Register();
     reseq::ProbabilityEstimatesTest::Register();
+    reseq::ReadSequenceStatsTest::Register();
     reseq::ReferenceTest::Register();
     reseq::SeqQualityStatsTest::Register();
     reseq::SimulatorTest::Register();

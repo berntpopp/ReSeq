@@ -125,9 +125,9 @@ class CoverageStats {
       public:
         ThreadData() {
             block_coverage_.reserve(CoverageStats::kBlockSize);
-            error_rates_sorted_.reserve(2 * CoverageStats::kBlockSize);
+            error_rates_sorted_.reserve(static_cast<size_t>(2) * CoverageStats::kBlockSize);
             non_sytematic_probability_.reserve(CoverageStats::kBlockSize);
-            non_sytematic_probability_sorted_.reserve(2 * CoverageStats::kBlockSize);
+            non_sytematic_probability_sorted_.reserve(static_cast<size_t>(2) * CoverageStats::kBlockSize);
         }
     };
 
@@ -297,8 +297,9 @@ class CoverageStats {
     void UpdateCoverageAtSinglePosition(CoveragePosition& nuc_coverage, std::array<uintCovCount, 2>& coverage,
                                         seqan::Dna5 ref_base);
     inline bool NextBlockWithInSysErrorResetDistance(CoverageBlock* block) {
-        if (block->next_block_idx_ == SIZE_MAX)
+        if (block->next_block_idx_ == SIZE_MAX) {
             return false;
+        }
         auto& next = *blocks_[block->next_block_idx_];
         return next.sequence_id_ == block->sequence_id_ &&
                reset_distance_ - 1 > next.start_pos_ - (block->start_pos_ + block->coverage_.size());

@@ -824,6 +824,8 @@ template <uintMarginId N> class LogIPF {
         case 9:
             IPFStepCaller<9, UPDATE>(data);
             break;
+        default:
+            break;
         }
     }
 

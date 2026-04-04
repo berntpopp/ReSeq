@@ -13,10 +13,6 @@ using std::ceil;
 #include <fstream>
 using std::ifstream;
 using std::ofstream;
-#include <iterator>
-using std::distance;
-#include <list>
-using std::list;
 // include <string>
 using std::string;
 // include <vector>
@@ -44,7 +40,6 @@ using seqan::SeqFileIn;
 
 // include "utilities.hpp"
 using reseq::utilities::at;
-using reseq::utilities::SetToMax;
 
 inline reseq::uintSeqLen AdapterStats::GetStartPosOnReference(const BamAlignmentRecord& record) {
     uintSeqLen start_pos = record.beginPos;
@@ -162,6 +157,8 @@ bool AdapterStats::VerifyInsert(const CharString& read1, const CharString& read2
                     ++matches;
                 }
                 break;
+            default:
+                break;
             }
             ++i2;
         }
@@ -262,7 +259,7 @@ bool AdapterStats::LoadAdapters(const char* adapter_file, const char* adapter_ma
         for (auto nchar = length(seqs); nchar--;) {
             if ('1' == matrix.at(nline).at(nchar)) {
                 // If one adapter pair has this adaptor as first, add it to first and continue with the next adapter
-                adapter_list.at(0).push_back({at(seqs, nline), nline});
+                adapter_list.at(0).emplace_back(at(seqs, nline), nline);
                 break;
             }
         }
@@ -271,7 +268,7 @@ bool AdapterStats::LoadAdapters(const char* adapter_file, const char* adapter_ma
     for (auto nchar = length(seqs); nchar--;) {
         for (nline = length(seqs); nline--;) {
             if ('1' == matrix.at(nline).at(nchar)) {
-                adapter_list.at(1).push_back({at(seqs, nchar), nchar});
+                adapter_list.at(1).emplace_back(at(seqs, nchar), nchar);
                 break;
             }
         }
@@ -295,9 +292,9 @@ bool AdapterStats::LoadAdapters(const char* adapter_file, const char* adapter_ma
         for (auto& adapter : adapter_list.at(seg)) {
             seqs_.at(seg).push_back(adapter.first);
             if (adapter.second < length(ids)) {
-                names_.at(seg).push_back((string(toCString(at(ids, adapter.second))) + "_f").c_str());
+                names_.at(seg).emplace_back((string(toCString(at(ids, adapter.second))) + "_f").c_str());
             } else {
-                names_.at(seg).push_back((string(toCString(at(ids, adapter.second - length(ids)))) + "_r").c_str());
+                names_.at(seg).emplace_back((string(toCString(at(ids, adapter.second - length(ids)))) + "_r").c_str());
             }
         }
     }

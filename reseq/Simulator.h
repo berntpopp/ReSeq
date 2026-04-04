@@ -234,8 +234,8 @@ class Simulator {
         uintReadLen num_errors_;
 
         ReadFillParameter()
-            : read_pos_(0), previous_indel_type_(0), indel_pos_(0), base_call_(5), gc_seq_(0), qual_(1), error_rate_(0),
-              num_errors_(0) {}
+            : read_length_(0), read_pos_(0), previous_indel_type_(0), indel_pos_(0), base_call_(5), gc_seq_(0),
+              seq_qual_(0), qual_(1), error_rate_(0), num_errors_(0) {}
     };
 
     struct SimRead {

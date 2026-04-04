@@ -22,26 +22,26 @@ namespace reseq::format_utils {
 //////////////////////////////////////////////////////////////////////////////
 // output stream manipulator that prints a value with its maximum precision
 
-template <typename T> class maxPrecisionValue__;
+template <typename T> class maxPrecisionValue_;
 
-template <typename T> inline maxPrecisionValue__<T> maxPrecision(const T& value) {
-    return maxPrecisionValue__<T>(value);
+template <typename T> inline maxPrecisionValue_<T> maxPrecision(const T& value) {
+    return maxPrecisionValue_<T>(value);
 }
 
 // Reserves space so that values will align.
-template <typename T> inline maxPrecisionValue__<T> maxPrecisionAlign(const T& value) {
-    return maxPrecisionValue__<T>(value, maxPrecisionValue__<T>::ALIGN);
+template <typename T> inline maxPrecisionValue_<T> maxPrecisionAlign(const T& value) {
+    return maxPrecisionValue_<T>(value, maxPrecisionValue_<T>::ALIGN);
 }
 
 // Forces maximum precision for double.
-template <typename T> inline maxPrecisionValue__<T> maxPrecisionDouble(const T& value) {
-    return maxPrecisionValue__<T>(value, maxPrecisionValue__<T>::DOUBLE);
+template <typename T> inline maxPrecisionValue_<T> maxPrecisionDouble(const T& value) {
+    return maxPrecisionValue_<T>(value, maxPrecisionValue_<T>::DOUBLE);
 }
 
-template <typename T> class maxPrecisionValue__ {
+template <typename T> class maxPrecisionValue_ {
   public:
     enum modeEnum { PLAIN, ALIGN, DOUBLE };
-    maxPrecisionValue__(const T& value, const modeEnum mode = PLAIN) : _value(value), _mode(mode) {}
+    maxPrecisionValue_(const T& value, const modeEnum mode = PLAIN) : _value(value), _mode(mode) {}
     std::ostream& print(std::ostream& out) const {
         const int nmbDigits =
             (_mode != DOUBLE) ? std::numeric_limits<T>::digits10 + 1 : std::numeric_limits<double>::digits10 + 1;
@@ -64,7 +64,7 @@ template <typename T> class maxPrecisionValue__ {
     modeEnum _mode;
 };
 
-template <typename T> inline std::ostream& operator<<(std::ostream& out, const maxPrecisionValue__<T>& value) {
+template <typename T> inline std::ostream& operator<<(std::ostream& out, const maxPrecisionValue_<T>& value) {
     return value.print(out);
 }
 
@@ -72,8 +72,9 @@ template <typename T> inline std::ostream& operator<<(std::ostream& out, const m
 // indenting
 
 inline void indent(std::ostream& out, const unsigned int offset) {
-    for (unsigned int i = 0; i < offset; ++i)
+    for (unsigned int i = 0; i < offset; ++i) {
         out << " ";
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -88,8 +89,9 @@ template <typename T> inline std::ostream& operator<<(std::ostream& out, const s
         return out << "{}";
     }
     out << "{";
-    for (unsigned int i = 0; i < (vec.size() - 1); ++i)
+    for (unsigned int i = 0; i < (vec.size() - 1); ++i) {
         out << "[" << i << "] = " << vec[i] << ", ";
+    }
     return out << "[" << vec.size() - 1 << "] = " << vec[vec.size() - 1] << "}";
 }
 
@@ -98,10 +100,12 @@ template <typename T> inline std::ostream& operator<<(std::ostream& out, const s
 
 template <typename T> inline unsigned int nmbOfDigits(const T& val) {
     double logVal = 0;
-    if (val > 0)
+    if (val > 0) {
         logVal = log(val);
-    if (val < 0)
+    }
+    if (val < 0) {
         logVal = log(-val);
+    }
     return (unsigned int)(logVal / log(10)) + 1;
 }
 

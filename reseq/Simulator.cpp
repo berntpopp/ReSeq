@@ -6,8 +6,6 @@ using std::max;
 using std::min;
 #include <array>
 using std::array;
-// include <atomic>
-using std::atomic;
 #include <cmath>
 using std::round;
 #include <exception>
@@ -17,8 +15,6 @@ using std::setprecision;
 #include <iostream>
 #include <limits>
 using std::numeric_limits;
-#include <map>
-using std::map;
 // include <mutex>
 using std::lock_guard;
 using std::mutex;
@@ -26,12 +22,8 @@ using std::unique_lock;
 // include <random>
 using std::discrete_distribution;
 using std::mt19937_64;
-// include <set>
-using std::set;
 #include <sstream>
 using std::stringstream;
-#include <stdexcept>
-using std::runtime_error;
 // include <string>
 using std::stoi;
 using std::string;
@@ -55,18 +47,14 @@ using seqan::Exact;
 using seqan::Exception;
 using seqan::length;
 using seqan::prefix;
-using seqan::resizeSpace;
 using seqan::SeqFileIn;
 using seqan::SeqFileOut;
 using seqan::StringSet;
 // include <seqan/bam_io.h>
 using seqan::atEnd;
-using seqan::BamAlignmentRecord;
 using seqan::BamFileIn;
 using seqan::BamHeader; // <seqan/bam_io/bam_header_record.h>
 using seqan::CigarElement;
-using seqan::FormattedFileContext;
-using seqan::readHeader; // <>
 using seqan::readRecord; // <>
 
 // include "utilities.hpp"
@@ -82,9 +70,7 @@ using reseq::utilities::IsGC;
 using reseq::utilities::Percent;
 using reseq::utilities::ReverseComplementorDna;
 using reseq::utilities::SafePercent;
-using reseq::utilities::SetToMax;
 using reseq::utilities::TransformDistanceToStartOfErrorRegion;
-using reseq::utilities::TrueRandom;
 
 double Simulator::CoveragePropLostFromAdapters(const DataStats& stats) {
     uintRefLenCalc adapter_bases(0), total_bases(0);
@@ -657,6 +643,7 @@ bool Simulator::CreateReads(const Reference& ref, const DataStats& stats, const 
     array<uintSeqLen, 2> block_start_pos;
     array<pair<intVariantId, uintSeqLen>, 2> variant = {{{0, 0}, {0, 0}}};
     if (fragment_length) {
+        // NOLINTNEXTLINE(clang-analyzer-core.NullDereference) start_block is non-null when fragment_length > 0
         block_id = start_block->id_;
 
         if (strand) {
@@ -913,9 +900,8 @@ void Simulator::SetSystematicErrorVariantsReverse(uintSeqLen& start_dist_error_r
         // Update start_dist_error_region for rest of block as we don't do this while drawing the systematic errors
         if (sys_from_file_) {
             if (block.first_variant_id_ == var_id) {
-                for (auto pos = 0; pos < block.sys_errors_.size(); ++pos) {
-                    stats.Coverage().UpdateDistances(start_dist_error_region, start_rate,
-                                                     block.sys_errors_.at(pos).second);
+                for (auto& sys_error : block.sys_errors_) {
+                    stats.Coverage().UpdateDistances(start_dist_error_region, start_rate, sys_error.second);
                 }
             } else {
                 for (auto pos = block.start_pos_ + block.sys_errors_.size() -
@@ -1188,9 +1174,8 @@ void Simulator::SetSystematicErrorVariantsForward(uintSeqLen& start_dist_error_r
         // Update start_dist_error_region for rest of block as we don't do this while drawing the systematic errors
         if (sys_from_file_) {
             if (block.first_variant_id_ == var_id) {
-                for (auto pos = 0; pos < block.sys_errors_.size(); ++pos) {
-                    stats.Coverage().UpdateDistances(start_dist_error_region, start_rate,
-                                                     block.sys_errors_.at(pos).second);
+                for (auto& sys_error : block.sys_errors_) {
+                    stats.Coverage().UpdateDistances(start_dist_error_region, start_rate, sys_error.second);
                 }
             } else {
                 for (auto pos = ref.Variants(ref_seq_id).at(var_id - 1).position_ - block.start_pos_;
@@ -1325,7 +1310,6 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
         // Release old blocks and units that are not needed anymore
         auto* first_unit = units_[first_unit_idx_].get();
         size_t del_block_idx = first_unit->first_block_idx_;
-        size_t del_unit_idx = first_unit_idx_;
         while (blocks_[del_block_idx]->finished_) {
             if (blocks_[del_block_idx]->next_block_idx_ != SIZE_MAX) {
                 first_unit->first_block_idx_ = blocks_[del_block_idx]->next_block_idx_;
@@ -1337,7 +1321,6 @@ bool Simulator::CreateBlock(Reference& ref, const DataStats& stats, const Probab
                 ref.ClearVariants(units_[old_unit_idx]->ref_seq_id_ + 1);
                 ref.ClearMethylation(units_[old_unit_idx]->ref_seq_id_ + 1);
                 FreeUnit(old_unit_idx);
-                del_unit_idx = first_unit_idx_;
             } else {
                 printErr << "Ran out of simulation blocks, but simulation is not complete.";
                 simulation_error_ = true;
@@ -2152,7 +2135,7 @@ void Simulator::CTConversion(DnaString& read, const Reference& ref, uintRefSeqId
     auto cur_var = first_variant.first;
     uintSeqLen var_bases_left = 0;
 
-    bool deletion;
+    bool deletion = false;
 
     if (reversed) {
         // Set var_bases_left if we start in a variant
@@ -2410,9 +2393,10 @@ bool Simulator::SimulateFromGivenBlock(const SimBlock& block, // forward block
     } else {
         possible_alleles.resize(1, 0);
     }
-    chosen_allele_ids.reserve(2 * ref.NumAlleles()); // Twice the number of alleles to also choose strand
+    chosen_allele_ids.reserve(static_cast<size_t>(2) *
+                              ref.NumAlleles()); // Twice the number of alleles to also choose strand
     vector<bool> reverse_selection;
-    reverse_selection.reserve(2 * ref.NumAlleles());
+    reverse_selection.reserve(static_cast<size_t>(2) * ref.NumAlleles());
     // Take the surrounding shifted by 1 as the first thing the loop does is shifting it back
     ref.ForwardSurrounding(surrounding_start, unit.ref_seq_id_,
                            (0 < block.start_pos_ ? block.start_pos_ - 1 : ref.SequenceLength(unit.ref_seq_id_) - 1));
@@ -2893,7 +2877,7 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
             // Keep the percentage of adapter only pairs
             num_adapter_only_pairs_ =
                 round(static_cast<double>(total_pairs_) * stats.FragmentDistribution().InsertLengths()[0] /
-                      (stats.TotalNumberReads() / 2));
+                      (static_cast<double>(stats.TotalNumberReads()) / 2));
 
             printInfo << "Aiming for " << total_pairs_
                       << " read pairs, which corresponds to an approximated read depth of " << setprecision(4)
@@ -2999,7 +2983,7 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
                         std::vector<std::jthread> threads;
                         threads.reserve(num_threads);
                         for (auto i = num_threads; i--;) {
-                            threads.emplace_back([this, &ref, &stats, &estimates](std::stop_token) {
+                            threads.emplace_back([this, &ref, &stats, &estimates](const std::stop_token&) {
                                 SimulationThread(*this, ref, stats, estimates);
                             });
                         }
@@ -3140,7 +3124,7 @@ bool Simulator::SimulateErrorModelOnly(const string& destination_file, const str
             std::vector<std::jthread> threads;
             threads.reserve(num_threads);
             for (auto i = num_threads; i--;) {
-                threads.emplace_back([this, &org_seq_reader, &stats, &estimates](std::stop_token) {
+                threads.emplace_back([this, &org_seq_reader, &stats, &estimates](const std::stop_token&) {
                     ErrorModelOnlyThread(*this, org_seq_reader, stats, estimates);
                 });
             }

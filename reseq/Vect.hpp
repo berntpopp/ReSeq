@@ -69,8 +69,9 @@ class Vect { // std::vector that removes 0s at the beginning and has an offset v
 
             // Find last element and resize vector
             auto last = x.size();
-            while (0 == x[--last])
+            while (0 == x[--last]) {
                 ;
+            }
 
             vec_.second.resize(last + 1 - first);
             for (auto i = first; i <= last; ++i) {
@@ -94,8 +95,9 @@ class Vect { // std::vector that removes 0s at the beginning and has an offset v
 
             // Find last element and resize vector
             auto last = x.size();
-            while (0 == x[--last].size())
+            while (0 == x[--last].size()) {
                 ;
+            }
 
             vec_.second.resize(last + 1 - first);
             for (auto i = first; i <= last; ++i) {
@@ -156,8 +158,9 @@ class Vect { // std::vector that removes 0s at the beginning and has an offset v
     SoftShrink() { // Shrink vector to minimum size: Remove leading and trailing zeros without freeing reserved space
         // Remove trailing zeros
         typename std::vector<T>::size_type last_non_zero = vec_.second.size();
-        while (last_non_zero-- && 0 == vec_.second[last_non_zero])
+        while (last_non_zero-- && 0 == vec_.second[last_non_zero]) {
             ; // Beware that 0 <= last_non_zero does not work as size_type is most likely unsigned
+        }
         vec_.second.resize(last_non_zero + 1);
 
         // Remove leading zeros
@@ -303,8 +306,9 @@ class Vect { // std::vector that removes 0s at the beginning and has an offset v
 
             // Find last element and resize vector
             auto last = x.size();
-            while (0 == x[--last])
+            while (0 == x[--last]) {
                 ;
+            }
 
             if (vec_.second.size() < last + 1 - first) {
                 vec_.second.resize(last + 1 - first, 0);
@@ -333,8 +337,9 @@ class Vect { // std::vector that removes 0s at the beginning and has an offset v
 
             // Find last element and resize vector
             auto last = x.size();
-            while (0 == x[--last].size())
+            while (0 == x[--last].size()) {
                 ;
+            }
 
             if (vec_.second.size() < last + 1 - first) {
                 vec_.second.resize(last + 1 - first);

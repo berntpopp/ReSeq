@@ -90,7 +90,7 @@ class AdapterStats {
                 seqs_archive.at(template_segment).reserve(seqs_.at(template_segment).size());
                 for (auto& adapter : seqs_.at(template_segment)) {
                     seqs_archive.at(template_segment)
-                        .push_back(std::string(seqan::toCString(static_cast<seqan::CharString>(adapter))));
+                        .emplace_back(seqan::toCString(static_cast<seqan::CharString>(adapter)));
                 }
             }
         }
@@ -103,7 +103,7 @@ class AdapterStats {
                 seqs_.at(template_segment).clear();
                 seqs_.at(template_segment).reserve(seqs_archive.at(template_segment).size());
                 for (auto& adapter : seqs_archive.at(template_segment)) {
-                    seqs_.at(template_segment).push_back(seqan::DnaString(adapter.c_str()));
+                    seqs_.at(template_segment).emplace_back(adapter.c_str());
                 }
             }
         }

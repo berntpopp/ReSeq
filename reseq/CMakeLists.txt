@@ -54,7 +54,7 @@ if(RESEQ_BUILD_TESTS)
     AdapterStatsTest.cpp CoverageStatsTest.cpp DataStatsTest.cpp
     ErrorStatsTest.cpp FragmentDistributionStatsTest.cpp
     FragmentDuplicationStatsTest.cpp ProbabilityEstimatesTest.cpp
-    QualityStatsTest.cpp ReferenceTest.cpp SeqQualityStatsTest.cpp
+    QualityStatsTest.cpp ReadSequenceStatsTest.cpp ReferenceTest.cpp SeqQualityStatsTest.cpp
     SimulatorTest.cpp SurroundingTest.cpp TileStatsTest.cpp
     utilitiesTest.cpp VectTest.cpp
     RegressionTest.cpp
@@ -66,14 +66,14 @@ if(RESEQ_BUILD_TESTS)
   add_test(NAME reseq_tests COMMAND reseq_test)
 
   if(CODE_COVERAGE)
-    target_compile_options(reseq_test PRIVATE --coverage)
+    target_compile_options(reseq_test PRIVATE --coverage -fprofile-update=atomic)
     target_link_options(reseq_test PRIVATE --coverage)
   endif()
 endif()
 
 if(CODE_COVERAGE)
-  target_compile_options(reseq_lib PRIVATE --coverage)
+  target_compile_options(reseq_lib PRIVATE --coverage -fprofile-update=atomic)
   target_link_options(reseq_lib PRIVATE --coverage)
-  target_compile_options(reseq PRIVATE --coverage)
+  target_compile_options(reseq PRIVATE --coverage -fprofile-update=atomic)
   target_link_options(reseq PRIVATE --coverage)
 endif()

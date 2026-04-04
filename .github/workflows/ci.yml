@@ -134,7 +134,7 @@ jobs:
       - name: Generate coverage report
         run: |
           lcov --capture --directory build --output-file build/coverage.info \
-            --ignore-errors mismatch
+            --ignore-errors mismatch --gcov-tool gcov-13
           lcov --remove build/coverage.info \
             '*/seqan/*' '*/skewer/*' '*/2016-05-15_ROOTPWA/*' \
             '/usr/*' '*/build/*' \
@@ -146,6 +146,40 @@ jobs:
         with:
           name: coverage-report
           path: build/coverage.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: build/coverage.info
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  test-isolation:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13 \
+            libboost-all-dev libbz2-dev zlib1g-dev
+
+      - name: Download test data
+        run: ./test/download_test_data.sh
+
+      - name: Configure
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Run tests in shuffled order
+        run: build/bin/reseq_test --gtest_shuffle --gtest_random_seed=0
 
   format-check:
     runs-on: ubuntu-24.04
@@ -169,8 +203,6 @@ jobs:
           ruff format --check python/*.py
 
   lint:
-    # Informational: pre-existing warnings cause non-zero exit from clang-tidy
-    continue-on-error: true
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -182,17 +214,18 @@ jobs:
           sudo apt-get install -y clang-tidy-17 clang-17 clang++-17 \
             libboost-all-dev libbz2-dev zlib1g-dev
 
-      - name: Generate compile_commands.json
+      - name: Configure and fetch FetchContent headers
         env:
           CC: clang-17
           CXX: clang++-17
-        run: cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        run: |
+          cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake --build build --target nlopt
 
       - name: Run clang-tidy on production sources
         run: |
-          git ls-files 'reseq/*.cpp' \
-            | grep -v Test | grep -v test_main \
-            | xargs clang-tidy-17 -p build
+          run-clang-tidy-17 -p build -j$(nproc) \
+            $(git ls-files 'reseq/*.cpp' | grep -v Test | grep -v test_main)
 
   version-check:
     if: startsWith(github.ref, 'refs/tags/v')

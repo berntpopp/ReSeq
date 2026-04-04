@@ -12,8 +12,6 @@ using std::runtime_error;
 // include <string>
 using std::char_traits;
 using std::string;
-// include <vector>
-using std::vector;
 
 #include "logging.hpp"
 
@@ -65,8 +63,9 @@ reseq::uintTile TileStats::GetKnownTile(const CharString& read_id, uint16_t tile
 
     for (uint16_t num_colons = 0;
          num_colons != tile_colon_number && pos < length(read_id);) { // Stop at colon tile_colon_number
-        if (':' == at(read_id, pos++))
+        if (':' == at(read_id, pos++)) {
             ++num_colons; // Count number of colons
+        }
     }
 
     uint16_t start_pos(pos);
@@ -80,8 +79,9 @@ reseq::uintTile TileStats::GetKnownTile(const CharString& read_id, uint16_t tile
         return 0;
     }
 
-    while (':' != at(read_id, pos) && ++pos < length(read_id))
+    while (':' != at(read_id, pos) && ++pos < length(read_id)) {
         ; // Stop at next colon
+    }
 
     if (pos >= length(read_id)) {
         if (print_warnings) {

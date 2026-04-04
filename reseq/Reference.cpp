@@ -7,10 +7,6 @@ using std::min;
 using std::sort;
 // include <array>
 using std::array;
-#include <cmath>
-using std::log;
-using std::pow;
-using std::round;
 #include <exception>
 using std::exception;
 #include <fstream>
@@ -23,8 +19,6 @@ using std::numeric_limits;
 #include <random>
 using std::mt19937_64;
 using std::uniform_int_distribution;
-// include <set>
-using std::set;
 #include <string>
 using std::stod;
 using std::stoll;
@@ -576,8 +570,9 @@ Reference::Reference()
 
 const Prefix<const CharString>::Type Reference::ReferenceIdFirstPart(uintRefSeqId n) const {
     uintSeqLen pos = 0; // declare before the for loop to be able to access it afterwards
-    for (; pos < length(ReferenceId(n)) && ' ' != at(ReferenceId(n), pos); ++pos)
+    for (; pos < length(ReferenceId(n)) && ' ' != at(ReferenceId(n), pos); ++pos) {
         ; // loop until pos is at the first ' ' or at the end of the string
+    }
     return prefix(ReferenceId(n), pos);
 }
 
@@ -911,8 +906,9 @@ void Reference::ReplaceN(uintSeed seed) {
             if (IsN(at(seq, start))) {
                 // Get start and end of stretch of N
                 uintSeqLen end = start;
-                while (++end < length(seq) && IsN(at(seq, end)))
+                while (++end < length(seq) && IsN(at(seq, end))) {
                     ;
+                }
 
                 // Replace N's
                 if (end - start < kMinNToReplaceNWithRepeat) {
@@ -1022,8 +1018,9 @@ void Reference::ObtainExclusionRegions(uintRefSeqId end_ref_seq_id, uintSeqLen m
         } else {
             // Add first region of ref seq
             uintSeqLen pos = 0;
-            for (; pos < SequenceLength(ref_seq) && IsN(at(ReferenceSequence(ref_seq), pos)); ++pos)
+            for (; pos < SequenceLength(ref_seq) && IsN(at(ReferenceSequence(ref_seq), pos)); ++pos) {
                 ; // Count starting N's
+            }
             excluded_regions_.at(ref_seq).emplace_back(0, pos + kMinDistToContigEnds);
 
             // Add regions in the middle of ref seq
@@ -1240,8 +1237,9 @@ bool Reference::PrepareMethylationFile(const std::string& methylation_file) {
 
     // Ignore track lines
     while ((cur_methylation_line_.empty() || !cur_methylation_line_.compare(0, 5, "track")) &&
-           getline(methylation_file_, cur_methylation_line_))
+           getline(methylation_file_, cur_methylation_line_)) {
         ;
+    }
 
     if (methylation_file_.fail()) {
         if (methylation_file_.eof()) {
@@ -1396,8 +1394,9 @@ bool Reference::ReadMethylation(uintRefSeqId end_ref_seq_id) {
                 }
 
                 // Load next line
-                while (getline(methylation_file_, cur_methylation_line_) && cur_methylation_line_.empty())
+                while (getline(methylation_file_, cur_methylation_line_) && cur_methylation_line_.empty()) {
                     ; // Ignore all empty lines
+                }
                 if (!methylation_file_.fail()) {
                     first_space = cur_methylation_line_.find_first_of(" \t");
                     if (cur_methylation_line_.compare(0, first_space, cur_methylation_sequence_)) {

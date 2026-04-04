@@ -26,7 +26,7 @@ extern bool kNoDebugOutput;
 
 class NullBuffer : public std::streambuf {
   public:
-    int overflow(int c) { return c; }
+    int overflow(int c) override { return c; }
 };
 
 class NullStream : public std::ostream {
@@ -51,8 +51,9 @@ namespace reseq::logging {
 inline bool terminalSupportsColor() {
     // Terminals running inside emacs do not support escape sequences.
     const char* envEmacs = getenv("EMACS");
-    if (envEmacs and (*envEmacs == 't'))
+    if (envEmacs and (*envEmacs == 't')) {
         return false;
+    }
 
     // Check terminal name.
     const std::string colorTermNames[] = {
@@ -108,9 +109,11 @@ inline bool terminalSupportsColor() {
     const char* envTerm = getenv("TERM");
     if (envTerm) {
         const std::string t = envTerm;
-        for (unsigned i = 0; i < std::size(colorTermNames); ++i)
-            if (colorTermNames[i] == t)
+        for (const auto& colorTermName : colorTermNames) {
+            if (colorTermName == t) {
                 return true;
+            }
+        }
     }
     return false;
 }
@@ -121,9 +124,11 @@ const bool isColorTerminal = terminalSupportsColor();
 
 inline bool streamIsNotInteractive(const int fileDescriptor) {
     struct stat streamStatus;
-    if (fstat(fileDescriptor, &streamStatus) == 0)
-        if (streamStatus.st_mode & S_IFREG)
+    if (fstat(fileDescriptor, &streamStatus) == 0) {
+        if (streamStatus.st_mode & S_IFREG) {
             return true;
+        }
+    }
     return false;
 }
 
@@ -180,12 +185,14 @@ template <typename T> class omanip {
 // ostream manipulator function that inserts VT100 escape sequence into stream
 inline std::ostream& vt100SequenceFor(std::ostream& out, const Vt100EscapeCode& vt100Code) {
     bool isVt100 = false;
-    if (out.rdbuf() == std::cout.rdbuf())
+    if (out.rdbuf() == std::cout.rdbuf()) {
         isVt100 = stdoutIsColorTerminal();
-    else if (out.rdbuf() == std::cerr.rdbuf())
+    } else if (out.rdbuf() == std::cerr.rdbuf()) {
         isVt100 = stderrIsColorTerminal();
-    if (isVt100)
+    }
+    if (isVt100) {
         out << "\33[" << static_cast<int>(vt100Code) << "m";
+    }
     return out;
 }
 
@@ -195,14 +202,16 @@ inline omanip<Vt100EscapeCode> setStreamTo(const Vt100EscapeCode vt100Code) {
 }
 
 // Cuts out block "className::methodName" from __PRETTY_FUNCTION__ output.
-inline std::string getClassMethod__(std::string prettyFunction) {
-    size_t pos = prettyFunction.find("(");
-    if (pos == std::string::npos)
+inline std::string getClassMethod_(std::string prettyFunction) {
+    size_t pos = prettyFunction.find('(');
+    if (pos == std::string::npos) {
         return prettyFunction;
+    }
     prettyFunction.erase(pos);
-    pos = prettyFunction.rfind(" ");
-    if (pos == std::string::npos)
+    pos = prettyFunction.rfind(' ');
+    if (pos == std::string::npos) {
         return prettyFunction;
+    }
     prettyFunction.erase(0, pos + 1);
     return prettyFunction;
 }

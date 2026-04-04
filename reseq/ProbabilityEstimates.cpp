@@ -2,28 +2,20 @@
 using reseq::ProbabilityEstimates;
 using reseq::SeqQualityStats;
 using reseq::Vect;
-using reseq::ProbabilityEstimatesSubClasses::DataStorage;
-using reseq::ProbabilityEstimatesSubClasses::LogArrayCalc;
-using reseq::ProbabilityEstimatesSubClasses::MaxPrecision;
+using reseq::ProbabilityEstimatesSubClasses::DataStorage; // NOLINT(misc-unused-using-decls) used in template member
+                                                          // definitions
 
-// include <algorithm>
-using std::max_element;
 // include<array>
 using std::array;
-#include <cmath>
-using std::log;
 #include <exception>
 using std::exception;
 #include <fstream>
 using std::ifstream;
 using std::ofstream;
-#include <iterator>
-using std::distance;
 // include <limits>
 using std::numeric_limits;
 #include <random>
 using std::mt19937_64;
-using std::uniform_int_distribution;
 #include <sstream>
 using std::ostringstream;
 using std::stringstream;
@@ -31,7 +23,6 @@ using std::stringstream;
 // include <string>
 using std::string;
 #include <thread>
-using std::thread;
 // include <utility>
 using std::pair;
 // include <vector>
@@ -44,12 +35,6 @@ using std::vector;
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
-
-#include <iomanip>
-using std::setw;
-// include <algorithm>
-using std::max;
-using std::min;
 
 // include "utilities.hpp"
 using reseq::uintMarginId;
@@ -1215,7 +1200,7 @@ bool ProbabilityEstimates::Estimate(const DataStats& stats, uintNumFits max_iter
         std::vector<std::jthread> threads;
         threads.reserve(num_threads);
         for (decltype(num_threads) i = 0; i < num_threads; ++i) {
-            threads.emplace_back([this, &stats, &params, max_iterations, precision_aim](std::stop_token) {
+            threads.emplace_back([this, &stats, &params, max_iterations, precision_aim](const std::stop_token&) {
                 // stop_token accepted but NOT checked — workers run to natural completion
                 decltype(params.size()) cur_par(current_param_++);
                 for (; cur_par < params.size() && !error_during_fitting_; cur_par = current_param_++) {

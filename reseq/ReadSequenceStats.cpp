@@ -117,6 +117,8 @@ void ReadSequenceStats::IncrementMappingQuality(uintTempSeq quality_type, uintQu
     case 2:
         ++tmp_single_read_mapping_quality_.at(value);
         break;
+    default:
+        break;
     }
 }
 

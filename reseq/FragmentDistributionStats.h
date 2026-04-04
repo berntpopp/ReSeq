@@ -108,10 +108,10 @@ class BiasCalculationVectors {
     uintFragCount total_sites_;
 
     std::array<uintFragCount, kGCBins> gc_count_;
-    std::array<uintFragCount, kNumBases * Surrounding::Length()> sur_count_;
+    std::array<uintFragCount, static_cast<size_t>(kNumBases) * Surrounding::Length()> sur_count_;
 
     std::array<uintFragCount, kGCBins> gc_sites_;
-    std::array<uintFragCount, kNumBases * Surrounding::Length()> sur_sites_;
+    std::array<uintFragCount, static_cast<size_t>(kNumBases) * Surrounding::Length()> sur_sites_;
 
     std::array<double, kGCBins> gc_weights_;
 
@@ -119,7 +119,7 @@ class BiasCalculationVectors {
     std::array<uintPercent, kGCSplineDf> gc_knots_;
     std::array<double, kGCBins> gc_bias_;
 
-    std::array<double, kNumBases * Surrounding::Length()> sur_bias_;
+    std::array<double, static_cast<size_t>(kNumBases) * Surrounding::Length()> sur_bias_;
 
     std::vector<double> dispersion_;
 
@@ -132,8 +132,9 @@ class BiasCalculationVectors {
     std::array<double, kGCBins> gc_bias_no_logit_;
     std::array<double, kGCBins> gc_bias_grad_;
     std::array<std::pair<double, double>, kGCBins> gc_bias_sum_;
-    std::array<std::array<std::pair<double, double>, kNumBases * Surrounding::Length()>, kGCBins> grad_gc_bias_sum_;
-    std::array<double, kNumBases * Surrounding::Length()> sur_grad_;
+    std::array<std::array<std::pair<double, double>, static_cast<size_t>(kNumBases) * Surrounding::Length()>, kGCBins>
+        grad_gc_bias_sum_;
+    std::array<double, static_cast<size_t>(kNumBases) * Surrounding::Length()> sur_grad_;
 
     std::array<std::array<std::array<double, kGCSplineDf>, kGCSplineDf - 1>, 3> lin_comb_gc_splines_;
 
@@ -188,8 +189,9 @@ class BiasCalculationVectors {
         optimizer_spline_.set_lower_bounds(bounds_);
     }
 
-    void AddCountsFromSite(const FragmentSite& site, std::array<uintFragCount, kGCBins>& gc_count,
-                           std::array<uintFragCount, kNumBases * Surrounding::Length()>& sur_count);
+    void
+    AddCountsFromSite(const FragmentSite& site, std::array<uintFragCount, kGCBins>& gc_count,
+                      std::array<uintFragCount, static_cast<size_t>(kNumBases) * Surrounding::Length()>& sur_count);
     void GetCounts();
     void RemoveUnnecessarySites();
     void CalculateGCWeights();
@@ -385,7 +387,8 @@ class FragmentDistributionStats {
         ref_seq_bin_def_; // ref_seq_bin_def_[RefSeqBin] = {RefSeqId,StartPos}
     std::array<std::vector<std::pair<double, double>>, kGCBins>
         tmp_gc_bias_; // tmp_gc_bias_[GC][#Fit] = {FittedBiasValue, WeightOfFit}
-    std::array<std::vector<double>, kNumBases * Surrounding::Length()> tmp_sur_bias_; // tmp_sur_bias_[SurBase][#Fit]
+    std::array<std::vector<double>, static_cast<size_t>(kNumBases) * Surrounding::Length()>
+        tmp_sur_bias_;                                             // tmp_sur_bias_[SurBase][#Fit]
     std::array<std::vector<double>, 2> tmp_dispersion_parameters_; // tmp_dispersion_parameters_[dispPar][#Fit]
 
     BoundedWorkQueue<kMaxBinsQueuedForBiasCalc> bias_queue_;

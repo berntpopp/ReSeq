@@ -45,7 +45,7 @@ using std::string;
 
 namespace {
 
-bool DefaultExtensionFile(string& file_name, const string extension) {
+bool DefaultExtensionFile(string& file_name, const string& extension) {
     if (FileExists(file_name)) {
         // File exists without modification
         return true;
