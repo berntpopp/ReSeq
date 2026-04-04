@@ -54,7 +54,7 @@ if(RESEQ_BUILD_TESTS)
     AdapterStatsTest.cpp CoverageStatsTest.cpp DataStatsTest.cpp
     ErrorStatsTest.cpp FragmentDistributionStatsTest.cpp
     FragmentDuplicationStatsTest.cpp ProbabilityEstimatesTest.cpp
-    QualityStatsTest.cpp ReferenceTest.cpp SeqQualityStatsTest.cpp
+    QualityStatsTest.cpp ReadSequenceStatsTest.cpp ReferenceTest.cpp SeqQualityStatsTest.cpp
     SimulatorTest.cpp SurroundingTest.cpp TileStatsTest.cpp
     utilitiesTest.cpp VectTest.cpp
     RegressionTest.cpp
