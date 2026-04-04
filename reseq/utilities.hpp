@@ -18,6 +18,12 @@
 #include <seqan/bam_io.h>
 #include <seqan/modifier.h>
 #include <seqan/sequence.h>
+#include <seqan/version.h>
+
+// SeqAn 2.5+ renamed namespace from seqan to seqan2
+#if defined(SEQAN_VERSION_MINOR) && SEQAN_VERSION_MINOR >= 5
+namespace seqan = seqan2;
+#endif
 
 #include "CMakeConfig.h"
 

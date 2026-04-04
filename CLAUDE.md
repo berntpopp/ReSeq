@@ -24,7 +24,7 @@ pre-commit run --all-files  # Run all pre-commit hooks
 
 Tests run via a separate `reseq_test` binary using CTest. GoogleTest filter syntax works: `build/bin/reseq_test --gtest_filter="SimulatorTest.*"`. Tests must run sequentially (not parallel) due to inter-test dependencies.
 
-The build requires: C++20 compiler (GCC 10+, Clang 12+), CMake 3.16+, Boost 1.48+ (serialization, program_options, filesystem, system, math), ZLIB, BZip2. GoogleTest and NLopt are fetched automatically via FetchContent. Python bindings are OFF by default (`-DRESEQ_BUILD_PYTHON=ON` requires SWIG 3+ and python3-dev).
+The build requires: C++20 compiler (GCC 10+, Clang 12+), CMake 3.16+, Boost 1.48+ (serialization, program_options, filesystem, system, math), ZLIB, BZip2. SeqAn 2.5.2, GoogleTest, and NLopt are fetched automatically via FetchContent (or found via `find_package()` if installed). Python bindings are OFF by default (`-DRESEQ_BUILD_PYTHON=ON` requires SWIG 3+ and python3-dev).
 
 ## Architecture
 
@@ -57,9 +57,9 @@ One CMake static library + two executables:
 
 **`reseq_test`** — test executable linking `reseq_lib` + GoogleTest
 
-### Vendored Dependencies (excluded from formatting/linting)
+### External Dependencies
 
-`seqan/` (bioinformatics), `skewer/` (adapter trimming, with local modifications), `2016-05-15_ROOTPWA/` (utilities). GoogleTest and NLopt are fetched via CMake FetchContent.
+SeqAn 2.5.2 (bioinformatics, header-only) is resolved via `find_package()` or `FetchContent` — see `cmake/ReSeqDependencies.cmake`. GoogleTest and NLopt are also fetched via FetchContent. `skewer/` remains vendored (adapter trimming, carries local modifications).
 
 ### Test Structure
 
