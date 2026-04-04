@@ -9,8 +9,8 @@
 ## Current State
 
 - **141 tests** (116 unit + 25 regression) across 16 test files
-- **3 core classes with 0 unit tests:** ErrorStats, QualityStats, FragmentDuplicationStats
-- **2 Phase 5 classes with 0 unit tests:** BamIngestionEngine, ReadSequenceStats
+- **3 core classes with no direct fixture-based tests:** ErrorStats, QualityStats, FragmentDuplicationStats — each has substantial assertion helpers (e.g., `TestSrr490124Equality`, `TestDuplicates`) exercised indirectly from DataStatsTest, but no standalone `TEST_F` targeting the class directly
+- **2 Phase 5 classes with no tests:** BamIngestionEngine, ReadSequenceStats — no test files exist
 - **CI coverage job broken:** `geninfo: ERROR: Unexpected negative count` from non-atomic gcov counters in threaded code
 - **No Codecov integration:** coverage report uploaded as artifact only, no PR annotations or badges
 - **Tests run serially** (`ctest -j1`) — no verification that tests are order-independent
@@ -51,11 +51,11 @@ Add `codecov/codecov-action@v5` step after lcov report generation in `.github/wo
   uses: codecov/codecov-action@v5
   with:
     files: build/coverage.info
-    fail_ci_if_error: true
+    fail_ci_if_error: false
     token: ${{ secrets.CODECOV_TOKEN }}
 ```
 
-Requires adding `CODECOV_TOKEN` as a repository secret (avoids tokenless upload issues on protected branches).
+**Token policy:** Add `CODECOV_TOKEN` as a repository secret. Set `fail_ci_if_error: false` so that upload failures (e.g., fork PRs where secrets are unavailable, Codecov outages) do not block CI. Coverage is informational — build and test results are the hard gates. Fork PRs will not get coverage annotations but will still pass CI.
 
 #### 7e.4: Configure Codecov auto-ratchet
 
@@ -87,21 +87,31 @@ Add Codecov badge after the existing project description in `README.md`.
 
 **Priority:** Quick CI change, run in parallel with 7e.
 
-Add `--gtest_shuffle --gtest_random_seed=0` to the test execution command in CI's `build-and-test` job. Seed `0` means "use current time" — each CI run uses a different test order.
+**Context:** The repo explicitly documents inter-test dependencies in `reseq/CMakeLists.txt:64` — the `Register()` pattern in test classes creates shared state that requires tests to run together in a single binary invocation.
 
-Not using `ctest --schedule-random` because all GoogleTest cases run as a single CTest test case. The shuffle flag randomizes order within the GoogleTest binary.
+**Approach:** Add a **separate, non-blocking CI job** called `test-isolation` that runs:
 
-**If shuffle reveals failures:** Document the dependency and fix it. The existing `Register()` pattern in test classes may cause issues — if so, refactor to use GoogleTest's `SetUpTestSuite()`.
+```bash
+build/bin/reseq_test --gtest_shuffle --gtest_random_seed=0
+```
+
+Seed `0` means "use current time" — each CI run uses a different test order. This job uses `continue-on-error: true` so it does not block PRs initially. Not using `ctest --schedule-random` because all GoogleTest cases run as a single CTest test.
+
+**Acceptance criteria:**
+- If the isolation job passes: mark as complete, consider making it blocking in a future phase.
+- If the isolation job fails: file the failures as known issues. Do NOT attempt to fix `Register()` dependencies in this phase — that is a separate refactoring concern. The job stays non-blocking until dependencies are resolved.
+
+**New tests written in this phase** (7a, 7b, 7c) MUST be order-independent by design: use GoogleTest fixtures with proper `SetUp()`/`TearDown()`, no reliance on `Register()` or global state.
 
 ---
 
-### 7a: Fill Unit Test Gaps (0-test classes)
+### 7a: Add Direct Fixture-Based Tests
 
-**Priority:** High-impact — these are the largest coverage gaps.
+**Priority:** High-impact — these classes have indirect coverage via DataStatsTest helpers but no standalone `TEST_F` exercising their public API directly. Goal: add direct tests without duplicating existing golden checks.
 
 #### 7a.1: ErrorStats tests
 
-Create tests in `reseq/ErrorStatsTest.cpp` (file exists but has 0 TEST/TEST_F):
+Add `TEST_F` tests to `reseq/ErrorStatsTest.cpp` (file exists with assertion helpers but no direct test fixtures):
 
 | Test | What it verifies |
 |------|------------------|
@@ -115,7 +125,7 @@ Use synthetic setup: create ErrorStats, call `Prepare()` with small dimensions, 
 
 #### 7a.2: QualityStats tests
 
-Create tests in `reseq/QualityStatsTest.cpp` (file exists but has 0 TEST/TEST_F):
+Add `TEST_F` tests to `reseq/QualityStatsTest.cpp` (file exists with assertion helpers but no direct test fixtures):
 
 | Test | What it verifies |
 |------|------------------|
@@ -126,7 +136,7 @@ Create tests in `reseq/QualityStatsTest.cpp` (file exists but has 0 TEST/TEST_F)
 
 #### 7a.3: FragmentDuplicationStats tests
 
-Create tests in `reseq/FragmentDuplicationStatsTest.cpp` (file exists but has 0 TEST/TEST_F):
+Add `TEST_F` tests to `reseq/FragmentDuplicationStatsTest.cpp` (file exists with assertion helpers but no direct test fixtures):
 
 | Test | What it verifies |
 |------|------------------|
@@ -139,6 +149,11 @@ These are simpler tests — FragmentDuplicationStats has a small public API.
 ---
 
 ### 7b: Tests for Phase 5 Decomposed Classes
+
+New test files require test harness wiring:
+1. Add `.cpp` files to the `add_executable(reseq_test ...)` source list in `reseq/CMakeLists.txt:52`
+2. Add `#include` for each new `*Test.h` in `reseq/test_main.cpp:13`
+3. Add `Register()` call in `reseq/test_main.cpp:44` for each new test class
 
 #### 7b.1: BamIngestionEngine tests
 
@@ -166,16 +181,16 @@ Create `reseq/ReadSequenceStatsTest.cpp` + `reseq/ReadSequenceStatsTest.h` (new 
 
 ### 7c: E2E Edge-Case Tests
 
-Add to `reseq/RegressionTest.cpp`:
+Add to `reseq/RegressionTest.cpp` using subprocess execution (same pattern as existing regression tests — invoke `reseq` binary, check exit code and stderr):
 
-| Test | Input | Expected |
-|------|-------|----------|
-| `InvalidBamPath` | Non-existent BAM file path | Non-zero exit, error message on stderr |
-| `MissingReference` | Valid BAM, invalid reference path | Non-zero exit, error message |
-| `EmptyBam` | Valid BAM header, zero records | Graceful handling (zero exit or documented error) |
-| `CorruptReseqFile` | Truncated/garbage `.reseq` file | Load returns false, no crash |
+| Test | Input | Expected behavior |
+|------|-------|-------------------|
+| `InvalidBamPath` | `illuminaPE` with non-existent BAM path | Non-zero exit code, stderr contains error message |
+| `MissingReference` | `illuminaPE` with valid BAM, non-existent reference path | Non-zero exit code, stderr contains error message |
+| `EmptyBam` | `illuminaPE` with valid BAM header but zero records | Non-zero exit code — empty input is an error, not silent success |
+| `CorruptReseqFile` | `queryProfile` with truncated/garbage `.reseq` file as input | Non-zero exit code, stderr contains error message, no crash/segfault |
 
-These use subprocess execution (same pattern as existing regression tests) to verify the CLI handles error paths cleanly.
+**Note:** The `EmptyBam` contract is pinned here: the tool MUST report an error for empty input, not silently produce empty output. If the current code silently succeeds on empty BAM, the test should document that as a known issue (not fail).
 
 ---
 
@@ -210,13 +225,14 @@ After all sub-tasks complete:
 
 | File | Action |
 |------|--------|
-| `reseq/CMakeLists.txt` | Add `-fprofile-update=atomic` to coverage options |
-| `.github/workflows/ci.yml` | Fix lcov, add Codecov upload, add gtest_shuffle |
+| `reseq/CMakeLists.txt` | Add `-fprofile-update=atomic` to coverage options; add new test sources to `reseq_test` target |
+| `reseq/test_main.cpp` | Add `#include` and `Register()` calls for new test classes |
+| `.github/workflows/ci.yml` | Fix lcov, add Codecov upload, add test-isolation job |
 | `codecov.yml` | New — auto-ratchet configuration |
 | `README.md` | Add Codecov badge |
-| `reseq/ErrorStatsTest.cpp` | Add unit tests |
-| `reseq/QualityStatsTest.cpp` | Add unit tests |
-| `reseq/FragmentDuplicationStatsTest.cpp` | Add unit tests |
+| `reseq/ErrorStatsTest.cpp` | Add direct fixture-based tests |
+| `reseq/QualityStatsTest.cpp` | Add direct fixture-based tests |
+| `reseq/FragmentDuplicationStatsTest.cpp` | Add direct fixture-based tests |
 | `reseq/BamIngestionEngineTest.cpp` | New test file |
 | `reseq/BamIngestionEngineTest.h` | New test header |
 | `reseq/ReadSequenceStatsTest.cpp` | New test file |
