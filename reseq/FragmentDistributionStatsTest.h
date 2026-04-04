@@ -62,6 +62,7 @@ class FragmentDistributionStatsTest : public BasicTestClassWithReference {
     void TestRefBinProcessing();
     void TestNonBlockingProgressGuarantee();
     void TestThreadIndexPoolExclusiveAccess();
+    void TestUpdateRefSeqBias();
 };
 } // namespace reseq
 

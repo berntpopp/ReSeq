@@ -134,7 +134,6 @@ class DataStats {
     friend class DataStatsTest;
     friend class ProbabilityEstimatesTest;
     friend class SimulatorTest;
-    FRIEND_TEST(DataStatsTest, Construction);
 
   public:
     DataStats(Reference* ref, uintSeqLen maximum_insert_length = 2000, uintQual minimum_mapping_quality = 10);

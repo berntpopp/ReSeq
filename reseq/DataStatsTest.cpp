@@ -487,23 +487,27 @@ void DataStatsTest::TearDown() {
 }
 
 namespace reseq {
-TEST_F(DataStatsTest, Construction) {
+void DataStatsTest::TestConstruction() {
     CreateTestObject(nullptr);
 
     // Constructor
     string error_msg = "Initializing of class member read_lengths_ failed\n";
-    EXPECT_TRUE(test_->read_lengths_.at(0).empty()) << error_msg;
-    EXPECT_TRUE(test_->read_lengths_.at(1).empty()) << error_msg;
+    EXPECT_TRUE(test_->ReadLengths(0).empty()) << error_msg;
+    EXPECT_TRUE(test_->ReadLengths(1).empty()) << error_msg;
 
     for (int i = 2; i--;) {
         for (int j = 5; j--;) {
-            EXPECT_TRUE(test_->read_sequence_stats_.sequence_content_.at(i).at(j).empty())
+            EXPECT_TRUE(test_->SequenceContent(i, j).empty())
                 << "Initializing of class member sequence_content_ failed\n";
         }
     }
 
     // Shrink
     EXPECT_NO_THROW(test_->Shrink()) << "Crashed during shrinking of empty object\n";
+}
+
+TEST_F(DataStatsTest, Construction) {
+    TestConstruction();
 }
 
 TEST_F(DataStatsTest, Ecoli) {

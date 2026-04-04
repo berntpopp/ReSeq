@@ -56,7 +56,6 @@ class ReadSequenceStats {
 
     // Google test
     friend class DataStatsTest;
-    FRIEND_TEST(DataStatsTest, Construction);
 
   public:
     // Accumulator lifecycle

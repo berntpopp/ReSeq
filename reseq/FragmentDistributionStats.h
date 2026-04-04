@@ -515,7 +515,6 @@ class FragmentDistributionStats {
 
     // Google test
     friend class FragmentDistributionStatsTest;
-    FRIEND_TEST(FragmentDistributionStatsTest, UpdateRefSeqBias);
     friend class SimulatorTest;
 
   public:

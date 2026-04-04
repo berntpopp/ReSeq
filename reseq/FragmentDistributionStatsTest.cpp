@@ -1284,7 +1284,7 @@ TEST_F(FragmentDistributionStatsTest, BiasCalculation) {
     TestUniformBias();
 }
 
-TEST_F(FragmentDistributionStatsTest, UpdateRefSeqBias) {
+void FragmentDistributionStatsTest::TestUpdateRefSeqBias() {
     string test_dir;
     ASSERT_TRUE(GetTestDir(test_dir));
     LoadReference(test_dir + "reference-test.fa");
@@ -1321,6 +1321,10 @@ TEST_F(FragmentDistributionStatsTest, UpdateRefSeqBias) {
     EXPECT_EQ(2, test_->ref_seq_bias_.size()) << "Reference bias from file does not work.";
     EXPECT_EQ(2.0, test_->ref_seq_bias_.at(0)) << "Reference bias from file does not work.";
     EXPECT_EQ(1.0, test_->ref_seq_bias_.at(1)) << "Reference bias from file does not work.";
+}
+
+TEST_F(FragmentDistributionStatsTest, UpdateRefSeqBias) {
+    TestUpdateRefSeqBias();
 }
 
 TEST_F(FragmentDistributionStatsTest, Functionality) {

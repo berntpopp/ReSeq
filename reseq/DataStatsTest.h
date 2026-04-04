@@ -39,6 +39,7 @@ class DataStatsTest : public BasicTestClassWithReference {
 
     void TestAdapters(const char* context, bool bwa = false);
     void TestNexteraAdapters();
+    void TestConstruction();
 
     virtual void TearDown();
 

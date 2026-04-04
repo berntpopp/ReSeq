@@ -7,8 +7,6 @@
 #include <stdint.h>
 #include <vector>
 
-#include "gtest/gtest.h"
-
 #include <boost/serialization/vector.hpp>
 
 #include "logging.hpp"
@@ -40,10 +38,6 @@ class Vect { // std::vector that removes 0s at the beginning and has an offset v
     // Boost serialization
     friend class boost::serialization::access;
     template <class Archive> void serialize(Archive& ar, const unsigned int UNUSED(version)) { ar & vec_; }
-
-    // Google test
-    FRIEND_TEST(VectTest, BasicFunctionality);
-    FRIEND_TEST(VectTest, CopyAndClear);
 
   public:
     // Constructors
