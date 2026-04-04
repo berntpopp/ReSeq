@@ -214,11 +214,13 @@ jobs:
           sudo apt-get install -y clang-tidy-17 clang-17 clang++-17 \
             libboost-all-dev libbz2-dev zlib1g-dev
 
-      - name: Generate compile_commands.json
+      - name: Configure and build (needed for FetchContent headers)
         env:
           CC: clang-17
           CXX: clang++-17
-        run: cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        run: |
+          cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake --build build -j$(nproc)
 
       - name: Run clang-tidy on production sources
         run: |
