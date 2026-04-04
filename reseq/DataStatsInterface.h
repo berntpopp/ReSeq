@@ -21,8 +21,6 @@ class DataStatsInterface {
     // Getter functions with std return values (used for python plotting)
     const char* AdapterName(uintTempSeq template_segment, uintAdapterId id) const;
     const std::vector<uintFragCount>& AdapterCount(uintTempSeq template_segment) const;
-    const std::pair<std::vector<uintFragCount>::size_type, std::vector<uintFragCount>>& AdapterPolyATailLength() const;
-    uintNucCount AdapterOverrunBases(uintBaseCall nucleotide) const;
 
     uintSeqLen ErrorRatesByDistanceStart() const;
     uintSeqLen ErrorRatesByDistanceEnd() const;
@@ -106,8 +104,6 @@ class DataStatsInterface {
     HomoqualityDistribution(uintQual quality) const;
     const std::pair<std::vector<uintNucCount>::size_type, std::vector<uintNucCount>>&
     NucleotideQuality(uintTempSeq template_segment, uintBaseCall nucleotide) const;
-    const std::pair<std::vector<uintNucCount>::size_type, std::vector<uintNucCount>>&
-    BaseQualityStatsReference(uintTempSeq template_segment, uintReadLen read_position) const;
     const std::pair<std::vector<double>::size_type, std::vector<double>>&
     BaseQualityMeanReference(uintTempSeq template_segment) const;
     const std::pair<std::vector<uintQual>::size_type, std::vector<uintQual>>&
@@ -122,8 +118,6 @@ class DataStatsInterface {
     BaseQualityMaximumReference(uintTempSeq template_segment) const;
     const std::pair<std::vector<uintQual>::size_type, std::vector<uintQual>>&
     AverageSequenceQualityForGC(uintTempSeq template_segment) const;
-    const std::pair<std::vector<uintNucCount>::size_type, std::vector<uintNucCount>>&
-    BaseQualityStats(uintTempSeq template_segment, uintReadLen read_position) const;
     const std::pair<std::vector<double>::size_type, std::vector<double>>&
     BaseQualityMean(uintTempSeq template_segment) const;
     const std::pair<std::vector<uintQual>::size_type, std::vector<uintQual>>&
@@ -162,8 +156,6 @@ class DataStatsInterface {
     const std::vector<uintTile>& TileNames() const;
     const std::vector<uintFragCount>& TileAbundance() const;
 
-    uintQual PhredQualityOffset() const;
-    uintFragCount TotalNumberReads() const;
     const std::pair<std::vector<uintFragCount>::size_type, std::vector<uintFragCount>>&
     ReadLengths(uintTempSeq template_segment) const;
     const std::pair<std::vector<uintFragCount>::size_type, std::vector<uintFragCount>>&
@@ -188,12 +180,7 @@ class DataStatsInterface {
     HomopolymerDistribution(uintBaseCall nucleotide) const;
 
     // Main functions
-    bool ReadBam(const char* bam_file, const char* adapter_file, const char* adapter_matrix, const char* variant_file,
-                 uintNumThreads num_threads,
-                 bool calculate_bias = true); // Fill the class with the information from a bam file
-
     bool Load(const char* archive_file);
-    bool Save(const char* archive_file, bool text_format = false) const;
 };
 
 } // namespace reseq
