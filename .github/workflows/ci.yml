@@ -134,7 +134,7 @@ jobs:
       - name: Generate coverage report
         run: |
           lcov --capture --directory build --output-file build/coverage.info \
-            --ignore-errors mismatch
+            --ignore-errors mismatch --gcov-tool gcov-13
           lcov --remove build/coverage.info \
             '*/seqan/*' '*/skewer/*' '*/2016-05-15_ROOTPWA/*' \
             '/usr/*' '*/build/*' \
@@ -146,6 +146,13 @@ jobs:
         with:
           name: coverage-report
           path: build/coverage.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: build/coverage.info
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   format-check:
     runs-on: ubuntu-24.04

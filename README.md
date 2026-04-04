@@ -1,4 +1,7 @@
 # ReSeq
+
+[![codecov](https://codecov.io/gh/berntpopp/ReSeq/graph/badge.svg)](https://codecov.io/gh/berntpopp/ReSeq)
+
 More realistic simulator for genomic DNA sequences from Illumina machines that achieves a similar k-mer spectrum as the original sequences.
 
 ## Table of Contents
