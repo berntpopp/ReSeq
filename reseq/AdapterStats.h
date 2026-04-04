@@ -10,7 +10,7 @@
 
 #include <seqan/bam_io.h>
 
-#include "constants.hpp"
+#include "container_types.hpp"
 #include "Reference.h"
 #include "utilities.hpp"
 #include "Vect.hpp"
@@ -30,41 +30,35 @@ class AdapterStats {
     static constexpr const char* kAdapterSearchInfoFile = nullptr; // "adapter.csv";
 
     // Temporary variables
-    std::array<KmerCount<kKmerLength>, kTemplateSegments> adapter_kmers_; // adapter_kmers_[first/second] = KmerCounts
-    std::array<std::vector<uintNucCount>, kTemplateSegments>
-        adapter_start_kmers_; // adapter_start_kmers_[first/second] = StartKmerCount
+    PerSegment<KmerCount<kKmerLength>> adapter_kmers_;          // adapter_kmers_[first/second] = KmerCounts
+    PerSegment<std::vector<uintNucCount>> adapter_start_kmers_; // adapter_start_kmers_[first/second] = StartKmerCount
 
-    std::vector<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>>
+    std::vector<std::vector<std::vector<AtomicVec<uintFragCount>>>>
         tmp_counts_; // counts_[AdapterID][secondAdapterID][firstAdapterLength][secondAdapterLength] = #adapters
-    std::array<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>, kTemplateSegments>
+    PerSegment<std::vector<AtomicVec<uintFragCount>>>
         tmp_start_cut_; // start_cut_[templateSegment][AdapterID][basesCutFromTheBeginningOfTheAdapterAtPos0]
                         // = #adapters
-    std::vector<utilities::VectorAtomic<uintFragCount>>
-        tmp_polya_tail_length_; // polya_tail_length_[lengthOfPolyATailAfterAdapter] = #adapters
-    std::array<std::atomic<uintNucCount>, kNumBasesN>
+    AtomicVec<uintFragCount> tmp_polya_tail_length_; // polya_tail_length_[lengthOfPolyATailAfterAdapter] = #adapters
+    PerBaseN<std::atomic<uintNucCount>>
         tmp_overrun_bases_; // overrun_bases_[nucleotide] = #basesAfterPolyATailWithThisNucleotide
 
     // Adapter infos loaded/detected
-    std::array<std::vector<std::string>, kTemplateSegments>
-        names_; // names_[templateSegment][AdapterID] = adapterNameFromFasta
-    std::array<std::vector<seqan::DnaString>, kTemplateSegments>
-        seqs_; // seqs_[templateSegment][AdapterID] = adapterSequenceFromFasta
+    PerSegment<std::vector<std::string>> names_;     // names_[templateSegment][AdapterID] = adapterNameFromFasta
+    PerSegment<std::vector<seqan::DnaString>> seqs_; // seqs_[templateSegment][AdapterID] = adapterSequenceFromFasta
     std::vector<std::vector<bool>>
         combinations_; // combinations_[AdapterID][secondAdapterID] = notValid(false)/Valid(true)
 
     // Collected statistics
     std::vector<std::vector<Vect<Vect<uintFragCount>>>>
         counts_; // counts_[AdapterID][secondAdapterID][firstAdapterLength][secondAdapterLength] = #adapters
-    std::array<std::vector<Vect<uintFragCount>>, kTemplateSegments>
+    PerSegment<std::vector<Vect<uintFragCount>>>
         start_cut_; // start_cut_[templateSegment][AdapterID][basesCutFromTheBeginningOfTheAdapterAtPos0] = #adapters
     Vect<uintFragCount> polya_tail_length_; // polya_tail_length_[lengthOfPolyATailAfterAdapter] = #adapters
-    std::array<uintNucCount, kNumBasesN>
-        overrun_bases_; // overrun_bases_[nucleotide] = #basesAfterPolyATailWithThisNucleotide
+    PerBaseN<uintNucCount> overrun_bases_;  // overrun_bases_[nucleotide] = #basesAfterPolyATailWithThisNucleotide
 
     // Calculated variables
-    std::array<std::vector<uintFragCount>, kTemplateSegments>
-        count_sum_; // count_sum_[templateSegment][AdapterID] = #adapters
-    std::array<std::vector<uintFragCount>, kTemplateSegments>
+    PerSegment<std::vector<uintFragCount>> count_sum_; // count_sum_[templateSegment][AdapterID] = #adapters
+    PerSegment<std::vector<uintFragCount>>
         significant_count_; // significant_count_[templateSegment][AdapterID] = #adapters (All adapters not appearing
                             // often are set to zero)
 

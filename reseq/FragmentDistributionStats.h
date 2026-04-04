@@ -16,7 +16,7 @@
 #include "nlopt.hpp"
 
 #include "BoundedWorkQueue.h"
-#include "constants.hpp"
+#include "container_types.hpp"
 #include "FragmentDuplicationStats.h"
 #include "Reference.h"
 #include "utilities.hpp"
@@ -332,19 +332,18 @@ class FragmentDistributionStats {
     bool calculate_bias_; // Only deactivated to speed up tests
 
     // Temporary variables
-    std::vector<utilities::VectorAtomic<uintFragCount>> tmp_abundance_;
-    std::vector<utilities::VectorAtomic<uintFragCount>> tmp_insert_lengths_;
-    std::vector<utilities::VectorAtomic<uintFragCount>> tmp_gc_fragment_content_;
+    AtomicVec<uintFragCount> tmp_abundance_;
+    AtomicVec<uintFragCount> tmp_insert_lengths_;
+    AtomicVec<uintFragCount> tmp_gc_fragment_content_;
     SurroundingCountAtomic tmp_fragment_surroundings_;
 
-    std::array<std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, kNumBases>, kStrands>
-        tmp_outskirt_content_;
+    PerStrand<PerBase<AtomicVec<uintFragCount>>> tmp_outskirt_content_;
 
     std::vector<std::vector<std::pair<uintSeqLen, uintSeqLen>>>
         fragment_sites_by_ref_seq_bin_; // fragment_sites_by_ref_seq_bin_[ReferenceSequenceBinId][UniqueId] =
                                         // {startPositionCorrectedForExcludedRegionsRelativeToBinStart*2 +
                                         // 0/1(forward/reverse),fragment_length}
-    std::vector<utilities::VectorAtomic<uintFragCount>>
+    AtomicVec<uintFragCount>
         fragment_sites_by_ref_seq_bin_cur_id_; // fragment_sites_by_ref_seq_bin_cur_id_[ReferenceSequenceBinId]
                                                // = CurrentUniqueId
 
@@ -360,13 +359,13 @@ class FragmentDistributionStats {
     std::vector<std::vector<uintSeqLen>>
         lowq_site_start_by_ref_seq_bin_; // lowq_site_start_by_ref_seq_bin_[ReferenceSequenceBinId][UniqueId] =
                                          // startPositionCorrectedForExcludedRegionsRelativeToBinStart
-    std::vector<utilities::VectorAtomic<uintFragCount>>
+    AtomicVec<uintFragCount>
         lowq_site_start_by_ref_seq_bin_cur_id_; // lowq_site_start_by_ref_seq_bin_cur_id_[ReferenceSequenceBinId]
                                                 // = CurrentUniqueId
     std::vector<std::vector<uintSeqLen>>
         lowq_site_end_by_ref_seq_bin_; // lowq_site_end_by_ref_seq_bin_[ReferenceSequenceBinId][UniqueId] =
                                        // endPositionCorrectedForExcludedRegionsRelativeToBinStart
-    std::vector<utilities::VectorAtomic<uintFragCount>>
+    AtomicVec<uintFragCount>
         lowq_site_end_by_ref_seq_bin_cur_id_; // lowq_site_end_by_ref_seq_bin_cur_id_[ReferenceSequenceBinId]
                                               // = CurrentUniqueId
     std::vector<std::vector<std::pair<uintSeqLen, uintSeqLen>>> lowq_site_start_exclusion_;
@@ -374,13 +373,11 @@ class FragmentDistributionStats {
 
     std::atomic<uintRefLenCalc> excluded_lowq_positions_;
     std::atomic<uintRefLenCalc> excluded_lowq_regions_;
-    std::vector<utilities::VectorAtomic<uintFragCount>>
+    AtomicVec<uintFragCount>
         corrected_abundance_; // corrected_abundance_[RefSeqId] = AbundanceCorrectedForSitesWithLowQualityReads
-    std::vector<utilities::VectorAtomic<uintFragCount>>
-        filtered_sites_; // filtered_sites_[RefSeqId] = SitesWithoutLowQualityReads
-    std::vector<utilities::VectorAtomic<uintSeqLen>>
-        fragment_lengths_used_for_correction_; // fragment_lengths_used_for_correction_[RefSeqId] =
-                                               // FragmentLengthsThatWereUsedForLowQualityCorrection
+    AtomicVec<uintFragCount> filtered_sites_; // filtered_sites_[RefSeqId] = SitesWithoutLowQualityReads
+    AtomicVec<uintSeqLen> fragment_lengths_used_for_correction_; // fragment_lengths_used_for_correction_[RefSeqId] =
+                                                                 // FragmentLengthsThatWereUsedForLowQualityCorrection
 
     std::vector<bool> ref_seq_in_nxx_;
     std::vector<uintRefSeqBin> ref_seq_start_bin_; // ref_seq_start_bin_[RefSeqId] = First RefSeqBin
@@ -411,7 +408,7 @@ class FragmentDistributionStats {
     Vect<Vect<uintFragCount>> site_count_; // site_count_[GCcontent(%)][FragmentLength] = #SitesInReference
 
     // Collected variables for plotting
-    std::array<std::array<Vect<uintFragCount>, kNumBases>, kStrands>
+    PerStrand<PerBase<Vect<uintFragCount>>>
         outskirt_content_; // outskirt_content_[forward/reverse][refBase][position] = #(reads with given reference
                            // content at given position before or after read)
 
@@ -424,7 +421,7 @@ class FragmentDistributionStats {
     std::array<double, 2> dispersion_parameters_;
 
     // Calculated variables for plotting
-    std::array<std::vector<double>, kNumBases> fragment_surrounding_bias_by_base_;
+    PerBase<std::vector<double>> fragment_surrounding_bias_by_base_;
 
     // Helper functions
     uintSeqLen RefSeqSplitLength(uintRefSeqId ref_seq_id, const Reference& reference) {

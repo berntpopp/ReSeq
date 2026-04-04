@@ -15,7 +15,7 @@
 #include <seqan/bam_io.h>
 
 #include "AdapterStats.h"
-#include "constants.hpp"
+#include "container_types.hpp"
 #include "CoverageStats.h"
 #include "ErrorStats.h"
 #include "FragmentDistributionStats.h"
@@ -51,26 +51,22 @@ class DataStats {
     ReadSequenceStats read_sequence_stats_;
 
     // Temporary variables
-    std::array<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>, kTemplateSegments>
-        tmp_read_lengths_by_fragment_length_;
-    std::array<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>, kTemplateSegments>
-        tmp_non_mapped_read_lengths_by_fragment_length_;
+    PerSegment<std::vector<AtomicVec<uintFragCount>>> tmp_read_lengths_by_fragment_length_;
+    PerSegment<std::vector<AtomicVec<uintFragCount>>> tmp_non_mapped_read_lengths_by_fragment_length_;
 
-    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, kTemplateSegments> tmp_gc_read_content_reference_;
-    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, kTemplateSegments> tmp_gc_read_content_mapped_;
+    PerSegment<AtomicVec<uintFragCount>> tmp_gc_read_content_reference_;
+    PerSegment<AtomicVec<uintFragCount>> tmp_gc_read_content_mapped_;
 
-    std::array<std::array<std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, kNumBases>, kStrands>,
-               kTemplateSegments>
-        tmp_sequence_content_reference_;
+    PerSegmentPerStrand<PerBase<AtomicVec<uintNucCount>>> tmp_sequence_content_reference_;
 
     // Collected variables for simulation
     uint64_t creation_time_; // Store time when bam file was completelly read, can be used to check whether the stats
                              // file was updated
-    std::array<Vect<uintFragCount>, kTemplateSegments> read_lengths_; // read_lengths_[first/second][length] = #reads
-    std::array<Vect<Vect<uintFragCount>>, kTemplateSegments>
+    PerSegment<Vect<uintFragCount>> read_lengths_; // read_lengths_[first/second][length] = #reads
+    PerSegment<Vect<Vect<uintFragCount>>>
         read_lengths_by_fragment_length_; // read_lengths_by_fragment_length_[first/second][fragment_length][read_length]
                                           // = #reads
-    std::array<Vect<Vect<uintFragCount>>, kTemplateSegments>
+    PerSegment<Vect<Vect<uintFragCount>>>
         non_mapped_read_lengths_by_fragment_length_; // non_mapped_read_lengths_by_fragment_length_[first/second][fragment_length][read_length]
                                                      // = #reads
     uintQual phred_quality_offset_;
@@ -81,12 +77,12 @@ class DataStats {
     double corrected_coverage_;
 
     // Collected variables for plotting
-    std::array<Vect<uintFragCount>, kTemplateSegments>
+    PerSegment<Vect<uintFragCount>>
         gc_read_content_reference_; // gc_read_content_reference_[first/second][gcContentReference(%)] = #reads
-    std::array<Vect<uintFragCount>, kTemplateSegments>
+    PerSegment<Vect<uintFragCount>>
         gc_read_content_mapped_; // gc_read_content_mapped_[first/second][gcContent(%)] = #reads
 
-    std::array<std::array<std::array<Vect<uintNucCount>, kNumBases>, kStrands>, kTemplateSegments>
+    PerSegmentPerStrand<PerBase<Vect<uintNucCount>>>
         sequence_content_reference_; // sequence_content_reference_[first/second][forward/reverse][A/C/G/T][readPosition]
                                      // = #(reads with given reference content at given reference position)
 
