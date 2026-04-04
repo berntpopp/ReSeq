@@ -31,8 +31,9 @@ template <size_t MaxSlots> class BoundedWorkQueue {
 
     size_t try_acquire() {
         std::lock_guard lock(mutex_);
-        if (free_indices_.empty())
+        if (free_indices_.empty()) {
             return SIZE_MAX;
+        }
         size_t idx = free_indices_.back();
         free_indices_.pop_back();
         return idx;

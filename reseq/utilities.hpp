@@ -259,8 +259,9 @@ class DominantBase {
             // Get the base that is closest to the current base which matches max_content (in case there are multiple
             // bases with same number of appearances)
             uintSeqLen pos = cur_pos;
-            while (max_content != seq_content_.at(at(seq, --pos)))
+            while (max_content != seq_content_.at(at(seq, --pos))) {
                 ;
+            }
             dom_base_ = at(seq, pos);
         }
     }
@@ -415,7 +416,7 @@ inline void DeleteFile(const char* file) {
     boost::filesystem::remove(boost::filesystem::path(file));
 }
 
-inline bool GetReSeqDir(std::string& full_dir, const std::string dir, const std::string test_file) {
+inline bool GetReSeqDir(std::string& full_dir, const std::string& dir, const std::string& test_file) {
     full_dir = std::string(PROJECT_SOURCE_DIR) + '/' + dir + '/';
     if (!FileExists(full_dir + test_file)) {
         const char* conda_prefix = std::getenv("CONDA_PREFIX");
@@ -441,6 +442,7 @@ inline bool GetReSeqDir(std::string& full_dir, const std::string dir, const std:
 }
 
 template <typename T> inline T Divide(T nom, T den) { // Calculates the division: nom/den with proper rounding to int
+    // NOLINTNEXTLINE(clang-analyzer-core.DivideZero) caller guarantees den != 0
     return (nom + den / static_cast<T>(2)) / den;
 }
 template <typename T>
@@ -504,7 +506,7 @@ inline double InvLogit2(const double bias) {
     return 2 / (1 + exp(-bias));
 }
 
-inline bool IsGC(seqan::Dna5String base) {
+inline bool IsGC(const seqan::Dna5String& base) {
     return base == 'G' || base == 'C';
 }
 

@@ -110,8 +110,8 @@ class SurroundingBias {
         }
     }
 
-    void CombinePositions(const std::array<double, 4 * Surrounding::Length()>& separated);
-    void SeparatePositions(std::array<double, 4 * Surrounding::Length()>& separated) const;
+    void CombinePositions(const std::array<double, static_cast<size_t>(4) * Surrounding::Length()>& separated);
+    void SeparatePositions(std::array<double, static_cast<size_t>(4) * Surrounding::Length()>& separated) const;
 
     double Bias(const Surrounding& sur) const {
         double bias = 0.0;

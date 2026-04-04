@@ -1,9 +1,6 @@
 #include "DataStatsInterface.h"
-using reseq::DataStats;
 using reseq::DataStatsInterface;
 
-// include <map>
-using std::map;
 // include <string>
 using std::string;
 // include <utility>

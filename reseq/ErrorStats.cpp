@@ -3,7 +3,6 @@ using reseq::ErrorStats;
 
 #include <algorithm>
 using std::max;
-using std::min;
 
 #include "logging.hpp"
 

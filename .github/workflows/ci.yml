@@ -203,10 +203,6 @@ jobs:
           ruff format --check python/*.py
 
   lint:
-    # Informational: pre-existing warnings in user code (push_back→emplace_back,
-    # loop variable width, etc.) cause non-zero exit. Vendored headers (seqan,
-    # skewer, ROOTPWA) are excluded via --extra-arg=-isystem.
-    continue-on-error: true
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

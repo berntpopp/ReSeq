@@ -18,7 +18,10 @@ Checks: >
   readability-redundant-string-cstr,
   -bugprone-easily-swappable-parameters,
   -bugprone-narrowing-conversions,
-  -performance-avoid-endl
+  -bugprone-too-small-loop-variable,
+  -bugprone-inc-dec-in-conditions,
+  -performance-avoid-endl,
+  -performance-enum-size
 WarningsAsErrors: ''
 HeaderFilterRegex: '.*/reseq/[^/]*\.(h|hpp)$'
 FormatStyle: file

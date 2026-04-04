@@ -22,7 +22,6 @@ using std::string;
 // include <utility>
 using std::pair;
 #include <thread>
-using std::thread;
 // include <vector>
 using std::vector;
 
@@ -299,6 +298,8 @@ bool BamIngestionEngine::EvalReferenceStatistics(CoverageStats::FullRecord* reco
                 }
                 seq_content_mapped.at(4) += cigar_element.count; // Ignore inserted bases for gc_percent
             }
+            break;
+        default:
             break;
         }
     }
@@ -1030,6 +1031,8 @@ reseq::uintReadLen BamIngestionEngine::GetReadLengthOnReference(const BamAlignme
         case 'I':
             real_read_length -= cigar_element.count;
             break;
+        default:
+            break;
         }
     }
     return real_read_length;
@@ -1050,6 +1053,8 @@ reseq::uintReadLen BamIngestionEngine::GetReadLengthOnReference(const BamAlignme
         case 'I':
             SetToMax(max_indel, cigar_element.count);
             real_read_length -= cigar_element.count;
+            break;
+        default:
             break;
         }
     }
@@ -1147,7 +1152,7 @@ bool BamIngestionEngine::Run(const char* bam_file, const char* adapter_file, con
                                         std::vector<std::jthread> threads;
                                         threads.reserve(num_threads);
                                         for (decltype(num_threads) i = 0; i < num_threads; ++i) {
-                                            threads.emplace_back([this, &bam, i, &target](std::stop_token) {
+                                            threads.emplace_back([this, &bam, i, &target](const std::stop_token&) {
                                                 ReadThread(*this, bam, i, target);
                                             });
                                         }

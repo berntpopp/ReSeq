@@ -128,9 +128,10 @@ template <typename T> class SeqQualityStats {
 
                 uint64_t num_values2(num_values);
                 auto qual = qualities_.to();
-                while (0 == qualities_.at(--qual))
+                while (0 == qualities_.at(--qual)) {
                     ; // Ignore all zeros at the end, we don't need to check here for [qual] existing because we are
-                      // guaranteed to have two non-zero elements in the vector
+                }
+                // guaranteed to have two non-zero elements in the vector
                 maximum_ = static_cast<unsigned char>(qual); // It is not qualities_.to()-1, because we do not shrink
                                                              // before and therefore might have empty bins at the top
                 while (0 < num_values2) {
