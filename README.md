@@ -100,9 +100,9 @@ or
 reseq illuminaPE -j 32 -R my_reference.fa -s my_mappings.bam.reseq -V my_variation.vcf --ipfIterations 0 -1 my_simulated_data_1.fq -2 my_simulated_data_2.fq
 ```
 
-To run a simulation with tiles the tile information needs to stay in the read names after the mapping. This means there must not be a space before it, like it is often the case for read archive data. To replace the space on the fly with an underscore the reseq-prepare-names.py script is provided. In this case run the mapping like this:
+To run a simulation with tiles the tile information needs to stay in the read names after the mapping. This means there must not be a space before it, like it is often the case for read archive data. To replace the space on the fly with an underscore the `reseq-prepare-names` tool is provided (install with `pip install .`). In this case run the mapping like this:
 ```
-bowtie2 -p 32 -X 2000 -x my_reference -1 <(reseq-prepare-names.py my_data_1.fq my_data_2.fq) -2 <(reseq-prepare-names.py my_data_2.fq my_data_1.fq) | samtools sort -m 10G -@ 4 -T _tmp -o my_mappings.bam -
+bowtie2 -p 32 -X 2000 -x my_reference -1 <(reseq-prepare-names my_data_1.fq my_data_2.fq) -2 <(reseq-prepare-names my_data_2.fq my_data_1.fq) | samtools sort -m 10G -@ 4 -T _tmp -o my_mappings.bam -
 ```
 For best results it is always advised to create your own profiles from a dataset very closely matching the desired sequencer, chemistry, fragmentation, adapters, PCR cycles, etc. Furthermore, training on the same or a closely related species, is best to be sure that the necessary profile space (e.g. range of GC content) is well populated. However, in many situations there is no specific case that should be simulated, but a wide variety of datasets is important. Under this condition finding good datasets is tedious work and recreating the same profile from a given dataset does not help to ensure the quality of the simulated data. Therefore, [this repository](https://github.com/schmeing/ReSeq-profiles) is designed to provide high-quality profiles with detailed information on the original datasets. Whenever possible, method benchmarks should be performed on the simulated and the original dataset to verify that the simulation created realistic conditions for the particular use case.
 

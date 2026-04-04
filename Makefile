@@ -50,7 +50,7 @@ format-check:
 	clang-format --dry-run --Werror $(CXX_SOURCES)
 	$(MAKE) python-format-check
 
-lint:
+lint: configure
 	clang-tidy -p $(BUILD_DIR)/ $(filter %.cpp,$(CXX_SOURCES))
 	$(MAKE) python-lint
 
