@@ -88,7 +88,7 @@ using reseq::utilities::TrueRandom;
 
 double Simulator::CoveragePropLostFromAdapters(const DataStats& stats) {
     uintRefLenCalc adapter_bases(0), total_bases(0);
-    for (uintTempSeq seg = 2; seg--;) {
+    for (uintTempSeq seg = kTemplateSegments; seg--;) {
         for (uintSeqLen frag_len = stats.ReadLengthsByFragmentLength(seg).from();
              frag_len < stats.ReadLengthsByFragmentLength(seg).to(); ++frag_len) {
             for (uintReadLen read_len = stats.ReadLengthsByFragmentLength(seg).at(frag_len).from();
@@ -159,7 +159,7 @@ bool Simulator::Flush() {
     array<std::unique_ptr<StringSet<Dna5String>>, 2> old_output_seqs;
     array<std::unique_ptr<StringSet<CharString>>, 2> old_output_quals;
 
-    for (uintTempSeq template_segment = 2; template_segment--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
         FlushCopyValues(template_segment, old_output_ids.at(template_segment), old_output_seqs.at(template_segment),
                         old_output_quals.at(template_segment));
     }
@@ -224,7 +224,7 @@ bool Simulator::WriteSingleReads(uintFragCount cur_block, StringSet<CharString>&
 
 bool Simulator::Output(const SimPair& sim_reads) {
     output_mutex_.lock();
-    for (uintTempSeq template_segment = 2; template_segment--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
         appendValue(*output_ids_.at(template_segment), sim_reads.at(template_segment).id_);
         appendValue(*output_seqs_.at(template_segment), sim_reads.at(template_segment).seq_);
         appendValue(*output_quals_.at(template_segment), sim_reads.at(template_segment).qual_);
@@ -696,7 +696,7 @@ bool Simulator::CreateReads(const Reference& ref, const DataStats& stats, const 
 
         auto tile_id = rdist.TileId(rgen);
 
-        for (uintTempSeq template_segment = 2; template_segment--;) {
+        for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
             uintReadLen num_errors(0);
             if (!FillRead(sim_reads.at(template_segment), num_errors, template_segment, tile_id, fragment_length,
                           block.at(template_segment), block_start_pos.at(template_segment),
@@ -718,7 +718,7 @@ bool Simulator::CreateReads(const Reference& ref, const DataStats& stats, const 
 }
 
 void Simulator::ResetSystematicErrorCounters() {
-    sys_last_base_ = 4;
+    sys_last_base_ = kNumBases;
     sys_dom_base_.Clear();
 
     sys_gc_ = 0;
@@ -790,7 +790,7 @@ void Simulator::SetSystematicErrorVariantsReverse(uintSeqLen& start_dist_error_r
                 if (var.position_ + 1 < ref.SequenceLength(ref_seq_id)) {
                     last_base = Complement::Dna(at(ref.ReferenceSequence(ref_seq_id), var.position_ + 1));
                 } else {
-                    last_base = 4;
+                    last_base = kNumBases;
                 }
             }
 
@@ -1072,7 +1072,7 @@ void Simulator::SetSystematicErrorVariantsForward(uintSeqLen& start_dist_error_r
                 if (var.position_) {
                     last_base = at(ref.ReferenceSequence(ref_seq_id), var.position_ - 1);
                 } else {
-                    last_base = 4;
+                    last_base = kNumBases;
                 }
             }
 
@@ -2525,7 +2525,7 @@ bool Simulator::SimulateAdapterOnlyPairs(const Reference& ref, const DataStats& 
         rdist.Reset();
 
         SimPair sim_reads;
-        for (uintTempSeq template_segment = 2; template_segment--;) {
+        for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
             sim_reads.at(template_segment).org_seq_ = "";
         }
 
@@ -2745,7 +2745,7 @@ bool Simulator::WriteOutSystematicErrorProfile(const string& id, vector<pair<Dna
             // before, so e.g. 87->86)
             q_perc -= (q_perc - 85) / 2;
         }
-        q_perc += 33; // Shift to readable ascii codes
+        q_perc += kPhredSangerOffset; // Shift to readable ascii codes
         at(err_perc, pos) = q_perc;
     }
 
@@ -2848,7 +2848,7 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
         // Update the reference sequence bias so it fits to the potentially different reference
         if (stats.FragmentDistribution().UpdateRefSeqBias(ref_bias_model, ref_bias_file, ref, block_seed_gen_)) {
             // Provide StringSets to store reads in before writing them out
-            for (int i = 2; i--;) {
+            for (int i = kTemplateSegments; i--;) {
                 output_ids_.at(i) = std::make_unique<StringSet<CharString>>();
                 reserve(*output_ids_.at(i), kBatchSize, Exact());
                 output_seqs_.at(i) = std::make_unique<StringSet<Dna5String>>();
@@ -2867,7 +2867,7 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
             // Get average read length
             uintFragCount reads(0);
             uintRefLenCalc sum_read_length(0);
-            for (auto template_segment = 2; template_segment--;) {
+            for (auto template_segment = kTemplateSegments; template_segment--;) {
                 for (auto len = stats.ReadLengths(template_segment).from();
                      len < stats.ReadLengths(template_segment).to(); ++len) {
                     reads += stats.ReadLengths(template_segment).at(len);
@@ -2941,7 +2941,7 @@ bool Simulator::Simulate(const char* destination_file_first, const char* destina
                     sys_gc_range_ = Divide(sum_read_length, reads) /
                                     2; // Set gc range for systematic errors to half the average read length
 
-                    for (auto template_segment = 2; template_segment--;) {
+                    for (auto template_segment = kTemplateSegments; template_segment--;) {
                         adapter_sys_error_.at(template_segment)
                             .reserve(stats.Adapters().Counts(template_segment).size());
                         adapter_sys_error_.at(template_segment)
@@ -3097,7 +3097,7 @@ bool Simulator::SimulateErrorModelOnly(const string& destination_file, const str
     // Get average read length
     uintFragCount reads(0);
     uintRefLenCalc sum_read_length(0);
-    for (auto template_segment = 2; template_segment--;) {
+    for (auto template_segment = kTemplateSegments; template_segment--;) {
         for (auto len = stats.ReadLengths(template_segment).from(); len < stats.ReadLengths(template_segment).to();
              ++len) {
             reads += stats.ReadLengths(template_segment).at(len);
@@ -3109,7 +3109,7 @@ bool Simulator::SimulateErrorModelOnly(const string& destination_file, const str
     sys_gc_range_ =
         Divide(sum_read_length, reads) / 2; // Set gc range for systematic errors to half the average read length
 
-    for (auto template_segment = 2; template_segment--;) {
+    for (auto template_segment = kTemplateSegments; template_segment--;) {
         adapter_sys_error_.at(template_segment).reserve(stats.Adapters().Counts(template_segment).size());
         adapter_sys_error_.at(template_segment).resize(stats.Adapters().Counts(template_segment).size());
 

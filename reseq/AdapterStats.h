@@ -10,6 +10,7 @@
 
 #include <seqan/bam_io.h>
 
+#include "constants.hpp"
 #include "Reference.h"
 #include "utilities.hpp"
 #include "Vect.hpp"
@@ -29,37 +30,41 @@ class AdapterStats {
     static constexpr const char* kAdapterSearchInfoFile = nullptr; // "adapter.csv";
 
     // Temporary variables
-    std::array<KmerCount<kKmerLength>, 2> adapter_kmers_; // adapter_kmers_[first/second] = KmerCounts
-    std::array<std::vector<uintNucCount>, 2>
+    std::array<KmerCount<kKmerLength>, kTemplateSegments> adapter_kmers_; // adapter_kmers_[first/second] = KmerCounts
+    std::array<std::vector<uintNucCount>, kTemplateSegments>
         adapter_start_kmers_; // adapter_start_kmers_[first/second] = StartKmerCount
 
     std::vector<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>>
         tmp_counts_; // counts_[AdapterID][secondAdapterID][firstAdapterLength][secondAdapterLength] = #adapters
-    std::array<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>, 2>
+    std::array<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>, kTemplateSegments>
         tmp_start_cut_; // start_cut_[templateSegment][AdapterID][basesCutFromTheBeginningOfTheAdapterAtPos0]
                         // = #adapters
     std::vector<utilities::VectorAtomic<uintFragCount>>
         tmp_polya_tail_length_; // polya_tail_length_[lengthOfPolyATailAfterAdapter] = #adapters
-    std::array<std::atomic<uintNucCount>, 5>
+    std::array<std::atomic<uintNucCount>, kNumBasesN>
         tmp_overrun_bases_; // overrun_bases_[nucleotide] = #basesAfterPolyATailWithThisNucleotide
 
     // Adapter infos loaded/detected
-    std::array<std::vector<std::string>, 2> names_;     // names_[templateSegment][AdapterID] = adapterNameFromFasta
-    std::array<std::vector<seqan::DnaString>, 2> seqs_; // seqs_[templateSegment][AdapterID] = adapterSequenceFromFasta
+    std::array<std::vector<std::string>, kTemplateSegments>
+        names_; // names_[templateSegment][AdapterID] = adapterNameFromFasta
+    std::array<std::vector<seqan::DnaString>, kTemplateSegments>
+        seqs_; // seqs_[templateSegment][AdapterID] = adapterSequenceFromFasta
     std::vector<std::vector<bool>>
         combinations_; // combinations_[AdapterID][secondAdapterID] = notValid(false)/Valid(true)
 
     // Collected statistics
     std::vector<std::vector<Vect<Vect<uintFragCount>>>>
         counts_; // counts_[AdapterID][secondAdapterID][firstAdapterLength][secondAdapterLength] = #adapters
-    std::array<std::vector<Vect<uintFragCount>>, 2>
+    std::array<std::vector<Vect<uintFragCount>>, kTemplateSegments>
         start_cut_; // start_cut_[templateSegment][AdapterID][basesCutFromTheBeginningOfTheAdapterAtPos0] = #adapters
-    Vect<uintFragCount> polya_tail_length_;     // polya_tail_length_[lengthOfPolyATailAfterAdapter] = #adapters
-    std::array<uintNucCount, 5> overrun_bases_; // overrun_bases_[nucleotide] = #basesAfterPolyATailWithThisNucleotide
+    Vect<uintFragCount> polya_tail_length_; // polya_tail_length_[lengthOfPolyATailAfterAdapter] = #adapters
+    std::array<uintNucCount, kNumBasesN>
+        overrun_bases_; // overrun_bases_[nucleotide] = #basesAfterPolyATailWithThisNucleotide
 
     // Calculated variables
-    std::array<std::vector<uintFragCount>, 2> count_sum_; // count_sum_[templateSegment][AdapterID] = #adapters
-    std::array<std::vector<uintFragCount>, 2>
+    std::array<std::vector<uintFragCount>, kTemplateSegments>
+        count_sum_; // count_sum_[templateSegment][AdapterID] = #adapters
+    std::array<std::vector<uintFragCount>, kTemplateSegments>
         significant_count_; // significant_count_[templateSegment][AdapterID] = #adapters (All adapters not appearing
                             // often are set to zero)
 
@@ -84,10 +89,10 @@ class AdapterStats {
         ar & overrun_bases_;
 
         // Work around so that seqan>>DnaString can be stored as no serialization function exists for that class
-        std::array<std::vector<std::string>, 2> seqs_archive;
+        std::array<std::vector<std::string>, kTemplateSegments> seqs_archive;
         if (seqs_.at(0).size()) {
             // Serialization writing
-            for (uintTempSeq template_segment = 2; template_segment--;) {
+            for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
                 seqs_archive.at(template_segment).reserve(seqs_.at(template_segment).size());
                 for (auto& adapter : seqs_.at(template_segment)) {
                     seqs_archive.at(template_segment)
@@ -100,7 +105,7 @@ class AdapterStats {
 
         if (!seqs_.at(0).size()) {
             // Serialization loading
-            for (uintTempSeq template_segment = 2; template_segment--;) {
+            for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
                 seqs_.at(template_segment).clear();
                 seqs_.at(template_segment).reserve(seqs_archive.at(template_segment).size());
                 for (auto& adapter : seqs_archive.at(template_segment)) {
@@ -134,7 +139,7 @@ class AdapterStats {
         return start_cut_.at(template_segment).at(id);
     }
     const Vect<uintFragCount>& PolyATailLength() const { return polya_tail_length_; }
-    const std::array<uintNucCount, 5>& OverrunBases() const { return overrun_bases_; }
+    const std::array<uintNucCount, kNumBasesN>& OverrunBases() const { return overrun_bases_; }
 
     // Main functions
     bool LoadAdapters(const char* adapter_file, const char* adapter_matrix);

@@ -16,7 +16,7 @@ using reseq::utilities::SetToMin;
 
 void QualityStats::SplitPairedSequenceQuality() {
     // Split sequence_quality_mean_paired_per_tile_ by template_segment
-    for (uintTempSeq template_segment = 2; template_segment--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
         sequence_quality_mean_per_tile_.at(template_segment).Clear();
     }
 
@@ -38,7 +38,7 @@ void QualityStats::SplitPairedSequenceQuality() {
     }
     ShrinkVect(sequence_quality_mean_paired_);
 
-    for (uintTempSeq template_segment = 2; template_segment--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
         ShrinkVect(sequence_quality_mean_per_tile_.at(template_segment));
     }
 }
@@ -46,7 +46,7 @@ void QualityStats::SplitPairedSequenceQuality() {
 void QualityStats::SumTiles() {
     Vect<SeqQualityStats<uintFragCount>> sequence_quality_tile_sum;
 
-    for (uintTempSeq template_segment = 2; template_segment--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
         // From Reference
         base_quality_stats_reference_.at(template_segment).Clear();
         for (auto ref_base = base_quality_stats_per_tile_per_error_reference_.at(template_segment).size();
@@ -99,7 +99,7 @@ void QualityStats::SumTiles() {
         base_quality_stats_.at(template_segment).Clear();
         base_quality_for_sequence_.at(template_segment).Clear();
         base_quality_for_preceding_quality_.at(template_segment).Clear();
-        for (auto called_base = 5; called_base--;) {
+        for (auto called_base = kNumBasesN; called_base--;) {
             sequence_quality_tile_sum.Clear();
 
             for (auto tile_id = base_quality_stats_per_tile_.at(template_segment).at(called_base).size(); tile_id--;) {
@@ -138,7 +138,7 @@ void QualityStats::CalculateQualityStats() {
     SeqQualityStats<uintNucCount>* stats;
     char mean_difference;
     SeqQualityStats<uintNucCount> base_quality_stats_tile_sum;
-    for (uintTempSeq template_segment = 2; template_segment--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
         for (auto pos = base_quality_stats_reference_.at(template_segment).size(); pos--;) {
             // base_quality_stats_reference_
             stats = &base_quality_stats_reference_.at(template_segment).at(pos);
@@ -255,9 +255,9 @@ void QualityStats::Prepare(uintTileId num_tiles, uintQual size_qual, uintReadLen
     }
 
     // Resize vectors to necessary size
-    for (auto template_segment = 2; template_segment--;) {
-        for (auto ref_base = 4; ref_base--;) {
-            for (auto dom_error = 5; dom_error--;) {
+    for (auto template_segment = kTemplateSegments; template_segment--;) {
+        for (auto ref_base = kNumBases; ref_base--;) {
+            for (auto dom_error = kNumBasesN; dom_error--;) {
                 SetDimensions(tmp_base_quality_stats_per_tile_per_error_reference_.at(template_segment)
                                   .at(ref_base)
                                   .at(dom_error),
@@ -288,19 +288,19 @@ void QualityStats::Prepare(uintTileId num_tiles, uintQual size_qual, uintReadLen
                           num_tiles, size_pos, size_qual);
         }
 
-        SetDimensions(tmp_sequence_quality_mean_for_gc_per_tile_reference_.at(template_segment), num_tiles, 101,
+        SetDimensions(tmp_sequence_quality_mean_for_gc_per_tile_reference_.at(template_segment), num_tiles, kGCBins,
                       size_qual);
         SetDimensions(tmp_sequence_quality_mean_for_mean_error_rate_per_tile_reference_.at(template_segment), num_tiles,
                       101, size_qual);
         SetDimensions(tmp_sequence_quality_mean_for_fragment_length_per_tile_reference_.at(template_segment), num_tiles,
                       maximum_fragment_length / kSqFragmentLengthBinSize + 1, size_qual);
-        SetDimensions(tmp_mean_error_rate_for_gc_per_tile_reference_.at(template_segment), num_tiles, 101, 101);
+        SetDimensions(tmp_mean_error_rate_for_gc_per_tile_reference_.at(template_segment), num_tiles, kGCBins, 101);
         SetDimensions(tmp_mean_error_rate_for_fragment_length_per_tile_reference_.at(template_segment), num_tiles,
                       maximum_fragment_length / kSqFragmentLengthBinSize + 1, 101);
         SetDimensions(tmp_gc_for_fragment_length_per_tile_reference_.at(template_segment), num_tiles,
-                      maximum_fragment_length / kSqFragmentLengthBinSize + 1, 101);
+                      maximum_fragment_length / kSqFragmentLengthBinSize + 1, kGCBins);
 
-        for (auto base = 5; base--;) {
+        for (auto base = kNumBasesN; base--;) {
             SetDimensions(tmp_base_quality_for_sequence_per_tile_.at(template_segment).at(base), num_tiles, size_qual,
                           size_qual);
             SetDimensions(tmp_base_quality_for_preceding_quality_per_tile_.at(template_segment).at(base), num_tiles,
@@ -322,7 +322,7 @@ void QualityStats::Prepare(uintTileId num_tiles, uintQual size_qual, uintReadLen
 
         SetDimensions(tmp_base_quality_stats_per_strand_.at(template_segment), size_pos, size_qual);
 
-        SetDimensions(tmp_sequence_quality_mean_for_gc_per_tile_.at(template_segment), num_tiles, 101, size_qual);
+        SetDimensions(tmp_sequence_quality_mean_for_gc_per_tile_.at(template_segment), num_tiles, kGCBins, size_qual);
         tmp_sequence_quality_probability_mean_.at(template_segment).resize(size_qual);
         tmp_sequence_quality_minimum_.at(template_segment).resize(size_qual);
         tmp_sequence_quality_first_quartile_.at(template_segment).resize(size_qual);
@@ -346,9 +346,9 @@ void QualityStats::Prepare(uintTileId num_tiles, uintQual size_qual, uintReadLen
 
 void QualityStats::Finalize(uintFragCount total_number_reads) {
     // Copy vectors to final ones
-    for (auto template_segment = 2; template_segment--;) {
-        for (auto ref_base = 4; ref_base--;) {
-            for (auto dom_error = 5; dom_error--;) {
+    for (auto template_segment = kTemplateSegments; template_segment--;) {
+        for (auto ref_base = kNumBases; ref_base--;) {
+            for (auto dom_error = kNumBasesN; dom_error--;) {
                 base_quality_stats_per_tile_per_error_reference_.at(template_segment)
                     .at(ref_base)
                     .at(dom_error)
@@ -405,7 +405,7 @@ void QualityStats::Finalize(uintFragCount total_number_reads) {
         gc_for_fragment_length_per_tile_reference_.at(template_segment)
             .Acquire(tmp_gc_for_fragment_length_per_tile_reference_.at(template_segment));
 
-        for (auto base = 5; base--;) {
+        for (auto base = kNumBasesN; base--;) {
             base_quality_for_sequence_per_tile_.at(template_segment)
                 .at(base)
                 .Acquire(tmp_base_quality_for_sequence_per_tile_.at(template_segment).at(base));
@@ -455,7 +455,7 @@ void QualityStats::Finalize(uintFragCount total_number_reads) {
     homoquality_distribution_.Acquire(tmp_homoquality_distribution_);
 
     // Update sequence qualities that did not appear in some reads, so the zero appearance values are correct
-    for (uintTempSeq template_segment = 2; template_segment--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
         for (auto qual = sequence_quality_content_.at(template_segment).from();
              qual < sequence_quality_content_.at(template_segment).to(); ++qual) {
             if (sequence_quality_content_.at(template_segment).at(qual).size()) {
@@ -540,9 +540,9 @@ void QualityStats::Finalize(uintFragCount total_number_reads) {
 }
 
 void QualityStats::Shrink() {
-    for (uintTempSeq template_segment = 2; template_segment--;) {
-        for (auto ref_base = 4; ref_base--;) {
-            for (auto dom_error = 5; dom_error--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
+        for (auto ref_base = kNumBases; ref_base--;) {
+            for (auto dom_error = kNumBasesN; dom_error--;) {
                 ShrinkVect(
                     base_quality_stats_per_tile_per_error_reference_.at(template_segment).at(ref_base).at(dom_error));
                 ShrinkVect(error_rate_for_position_per_tile_per_error_reference_.at(template_segment)
@@ -568,7 +568,7 @@ void QualityStats::Shrink() {
         ShrinkVect(mean_error_rate_for_fragment_length_per_tile_reference_.at(template_segment));
         ShrinkVect(gc_for_fragment_length_per_tile_reference_.at(template_segment));
 
-        for (auto called_base = 5; called_base--;) {
+        for (auto called_base = kNumBasesN; called_base--;) {
             ShrinkVect(base_quality_for_sequence_per_tile_.at(template_segment).at(called_base));
             ShrinkVect(base_quality_for_preceding_quality_per_tile_.at(template_segment).at(called_base));
             ShrinkVect(preceding_quality_for_sequence_per_tile_.at(template_segment).at(called_base));
@@ -593,7 +593,7 @@ void QualityStats::Shrink() {
 }
 
 void QualityStats::PrepareEstimation() {
-    for (uintTempSeq template_segment = 2; template_segment--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
         for (auto ref_base = base_quality_stats_per_tile_per_error_reference_.at(template_segment).size();
              ref_base--;) {
             base_quality_stats_per_tile_reference_.at(template_segment).at(ref_base).Clear();
@@ -634,8 +634,8 @@ void QualityStats::PrepareTesting() {
         PrepareEstimation();
         PreparePlotting();
 
-        for (uintTempSeq template_segment = 2; template_segment--;) {
-            for (uintBaseCall nucleotide = 5; nucleotide--;) {
+        for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
+            for (uintBaseCall nucleotide = kNumBasesN; nucleotide--;) {
                 nucleotide_quality_.at(template_segment).at(nucleotide).Calculate();
             }
         }

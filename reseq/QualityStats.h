@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <vector>
 
+#include "constants.hpp"
 #include "SeqQualityStats.hpp"
 #include "utilities.hpp"
 #include "Vect.hpp"
@@ -24,253 +25,281 @@ class QualityStats {
 
     // Temporary variables
     std::array<
-        std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 4>, 2>
+        std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBasesN>,
+                   kNumBases>,
+        kTemplateSegments>
         tmp_base_quality_stats_per_tile_per_error_reference_;
     std::array<
-        std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 4>, 2>
+        std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBasesN>,
+                   kNumBases>,
+        kTemplateSegments>
         tmp_error_rate_for_position_per_tile_per_error_reference_;
     std::array<
-        std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 4>, 2>
+        std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBasesN>,
+                   kNumBases>,
+        kTemplateSegments>
         tmp_base_quality_for_error_rate_per_tile_per_error_reference_;
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 4>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBases>,
+               kTemplateSegments>
         tmp_base_quality_for_preceding_quality_per_tile_reference_;
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 4>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBases>,
+               kTemplateSegments>
         tmp_preceding_quality_for_error_rate_per_tile_reference_;
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 4>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBases>,
+               kTemplateSegments>
         tmp_preceding_quality_for_position_per_tile_reference_;
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 4>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBases>,
+               kTemplateSegments>
         tmp_base_quality_for_sequence_quality_per_tile_reference_;
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 4>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBases>,
+               kTemplateSegments>
         tmp_preceding_quality_for_sequence_quality_per_tile_reference_;
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 4>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBases>,
+               kTemplateSegments>
         tmp_sequence_quality_for_error_rate_per_tile_reference_;
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 4>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBases>,
+               kTemplateSegments>
         tmp_sequence_quality_for_position_per_tile_reference_;
 
-    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, 2>
+    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, kTemplateSegments>
         tmp_sequence_quality_mean_for_gc_per_tile_reference_;
-    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, 2>
+    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, kTemplateSegments>
         tmp_sequence_quality_mean_for_mean_error_rate_per_tile_reference_;
-    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, 2>
+    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, kTemplateSegments>
         tmp_sequence_quality_mean_for_fragment_length_per_tile_reference_;
-    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, 2>
+    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, kTemplateSegments>
         tmp_mean_error_rate_for_gc_per_tile_reference_;
-    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, 2>
+    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, kTemplateSegments>
         tmp_mean_error_rate_for_fragment_length_per_tile_reference_;
-    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, 2>
+    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, kTemplateSegments>
         tmp_gc_for_fragment_length_per_tile_reference_;
 
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBasesN>,
+               kTemplateSegments>
         tmp_base_quality_for_sequence_per_tile_;
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBasesN>,
+               kTemplateSegments>
         tmp_base_quality_for_preceding_quality_per_tile_;
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBasesN>,
+               kTemplateSegments>
         tmp_base_quality_stats_per_tile_;
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBasesN>,
+               kTemplateSegments>
         tmp_preceding_quality_for_sequence_per_tile_;
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBasesN>,
+               kTemplateSegments>
         tmp_preceding_quality_for_position_per_tile_;
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, kNumBasesN>,
+               kTemplateSegments>
         tmp_sequence_quality_for_position_per_tile_;
 
-    std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 2> tmp_base_quality_stats_per_strand_;
+    std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, kStrands>
+        tmp_base_quality_stats_per_strand_;
 
-    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, 5>, 2>
+    std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, kNumBasesN>,
+               kTemplateSegments>
         tmp_sequence_quality_for_base_per_tile_;
     std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>
         tmp_sequence_quality_mean_paired_per_tile_;
-    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, 2>
+    std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>>, kTemplateSegments>
         tmp_sequence_quality_mean_for_gc_per_tile_;
-    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, 2> tmp_sequence_quality_probability_mean_;
-    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, 2> tmp_sequence_quality_minimum_;
-    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, 2> tmp_sequence_quality_first_quartile_;
-    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, 2> tmp_sequence_quality_median_;
-    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, 2> tmp_sequence_quality_third_quartile_;
-    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, 2> tmp_sequence_quality_maximum_;
-    std::array<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>, 2> tmp_sequence_quality_content_;
+    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, kTemplateSegments>
+        tmp_sequence_quality_probability_mean_;
+    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, kTemplateSegments> tmp_sequence_quality_minimum_;
+    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, kTemplateSegments>
+        tmp_sequence_quality_first_quartile_;
+    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, kTemplateSegments> tmp_sequence_quality_median_;
+    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, kTemplateSegments>
+        tmp_sequence_quality_third_quartile_;
+    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, kTemplateSegments> tmp_sequence_quality_maximum_;
+    std::array<std::vector<std::vector<utilities::VectorAtomic<uintFragCount>>>, kTemplateSegments>
+        tmp_sequence_quality_content_;
 
     std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>> tmp_homoquality_distribution_;
-    std::array<std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, 5>, 2> tmp_nucleotide_quality_;
+    std::array<std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, kNumBasesN>, kTemplateSegments>
+        tmp_nucleotide_quality_;
 
     // Collected variables for estimation (based on reference)
-    std::array<std::array<std::array<Vect<Vect<SeqQualityStats<uintNucCount>>>, 5>, 4>, 2>
+    std::array<std::array<std::array<Vect<Vect<SeqQualityStats<uintNucCount>>>, kNumBasesN>, kNumBases>,
+               kTemplateSegments>
         base_quality_stats_per_tile_per_error_reference_; // base_quality_stats_per_tile_per_error_reference_[first/second][refBase][domError][tileId][readPosition][quality]
                                                           // = #reads
-    std::array<std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 4>, 2>
+    std::array<std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBasesN>, kNumBases>, kTemplateSegments>
         error_rate_for_position_per_tile_per_error_reference_; // error_rate_for_position_per_tile_per_error_reference_[first/second][refBase][domError][tileId][position][errorRate];
-    std::array<std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 4>, 2>
+    std::array<std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBasesN>, kNumBases>, kTemplateSegments>
         base_quality_for_error_rate_per_tile_per_error_reference_; // base_quality_for_error_rate_per_tile_per_error_reference_[first/second][refBase][domError][tileId][errorRate][baseQuality]
                                                                    // = #bases
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 4>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBases>, kTemplateSegments>
         base_quality_for_preceding_quality_per_tile_reference_; // base_quality_for_preceding_quality_per_tile_reference_[first/second][refBase][tileId][qualityOfPrecedingBase][baseQuality]
                                                                 // = #bases
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 4>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBases>, kTemplateSegments>
         preceding_quality_for_error_rate_per_tile_reference_; // preceding_quality_for_error_rate_per_tile_reference_[first/second][currentRefBase][tileId][errorRate][precedingQuality]
                                                               // = #bases
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 4>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBases>, kTemplateSegments>
         preceding_quality_for_position_per_tile_reference_; // preceding_quality_for_position_per_tile_reference_[first/second][currentRefBase][tileId][currentPosition][precedingQuality]
                                                             // = #bases
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 4>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBases>, kTemplateSegments>
         base_quality_for_sequence_quality_per_tile_reference_; // base_quality_for_sequence_quality_per_tile_reference_[first/second][refBase][tileId][sequenceQuality][baseQuality]
                                                                // = #bases
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 4>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBases>, kTemplateSegments>
         preceding_quality_for_sequence_quality_per_tile_reference_; // preceding_quality_for_sequence_quality_per_tile_reference_[first/second][refBase][tileId][sequenceQuality][qualityOfPrecedingBase]
                                                                     // = #bases
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 4>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBases>, kTemplateSegments>
         sequence_quality_for_error_rate_per_tile_reference_; // sequence_quality_for_error_rate_per_tile_reference_[first/second][currentRefBase][tileId][errorRate][sequenceQuality]
                                                              // = #bases
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 4>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBases>, kTemplateSegments>
         sequence_quality_for_position_per_tile_reference_; // sequence_quality_for_position_per_tile_reference_[first/second][currentRefBase][tileId][currentPosition][sequenceQuality]
                                                            // = #bases
 
     std::array<size_t, 100> threshold_sum_; // Precalculated values required for MeanErrorRateCorrectionIndex
-    std::array<Vect<Vect<SeqQualityStats<uintFragCount>>>, 2>
+    std::array<Vect<Vect<SeqQualityStats<uintFragCount>>>, kTemplateSegments>
         sequence_quality_mean_for_gc_per_tile_reference_; // sequence_quality_mean_for_gc_per_tile_reference_[first/second][tileId][percentageGC][qualityMean]
                                                           // = #reads
-    std::array<Vect<Vect<Vect<uintFragCount>>>, 2>
+    std::array<Vect<Vect<Vect<uintFragCount>>>, kTemplateSegments>
         sequence_quality_mean_for_mean_error_rate_per_tile_reference_; // sequence_quality_mean_for_mean_error_rate_per_tile_reference_[first/second][tileId][meanErrorRate][qualityMean]
                                                                        // = #reads
-    std::array<Vect<Vect<Vect<uintFragCount>>>, 2>
+    std::array<Vect<Vect<Vect<uintFragCount>>>, kTemplateSegments>
         sequence_quality_mean_for_fragment_length_per_tile_reference_; // sequence_quality_mean_for_fragment_length_per_tile_reference_[first/second][tileId][fragmentLength][qualityMean]
                                                                        // = #reads
-    std::array<Vect<Vect<Vect<uintFragCount>>>, 2>
+    std::array<Vect<Vect<Vect<uintFragCount>>>, kTemplateSegments>
         mean_error_rate_for_gc_per_tile_reference_; // mean_error_rate_for_gc_per_tile_reference_[first/second][tileId][percentageGC][meanErrorRate]
                                                     // = #reads
-    std::array<Vect<Vect<Vect<uintFragCount>>>, 2>
+    std::array<Vect<Vect<Vect<uintFragCount>>>, kTemplateSegments>
         mean_error_rate_for_fragment_length_per_tile_reference_; // mean_error_rate_for_fragment_length_per_tile_reference_[first/second][tileId][fragmentLength][meanErrorRate]
                                                                  // = #reads
-    std::array<Vect<Vect<Vect<uintFragCount>>>, 2>
+    std::array<Vect<Vect<Vect<uintFragCount>>>, kTemplateSegments>
         gc_for_fragment_length_per_tile_reference_; // gc_for_fragment_length_per_tile_reference_[first/second][tileId][fragmentLength][percentageGC]
                                                     // = #reads
 
     // Collected variables for plotting (based on raw reads)
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBasesN>, kTemplateSegments>
         base_quality_for_sequence_per_tile_; // base_quality_for_sequence_per_tile_[first/second][base][tileId][qualityProbabilityMeanOfSequence][baseQuality]
                                              // = #bases
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBasesN>, kTemplateSegments>
         base_quality_for_preceding_quality_per_tile_; // base_quality_for_preceding_quality_per_tile_[first/second][base][tileId][qualityOfPrecedingBase][baseQuality]
                                                       // = #bases
-    std::array<std::array<Vect<Vect<SeqQualityStats<uintNucCount>>>, 5>, 2>
+    std::array<std::array<Vect<Vect<SeqQualityStats<uintNucCount>>>, kNumBasesN>, kTemplateSegments>
         base_quality_stats_per_tile_; // base_quality_stats_per_tile_[first/second][base][tileId][readPosition][quality]
                                       // = #reads
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBasesN>, kTemplateSegments>
         preceding_quality_for_sequence_per_tile_; // preceding_quality_for_sequence_per_tile_[first/second][currentBase][tileId][qualityProbabilityMeanOfSequence][precedingQuality]
                                                   // = #bases
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBasesN>, kTemplateSegments>
         preceding_quality_for_position_per_tile_; // preceding_quality_for_position_per_tile_[first/second][currentBase][tileId][currentPosition][precedingQuality]
                                                   // = #bases
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBasesN>, kTemplateSegments>
         sequence_quality_for_position_per_tile_; // sequence_quality_for_position_per_tile_[first/second][base][tileId][position][sequenceQualityProbabilityMean];
 
-    std::array<Vect<SeqQualityStats<uintNucCount>>, 2>
+    std::array<Vect<SeqQualityStats<uintNucCount>>, kStrands>
         base_quality_stats_per_strand_; // base_quality_stats_per_strand_[+/-][readPosition][quality] = #bases
 
-    std::array<std::array<Vect<Vect<SeqQualityStats<uintFragCount>>>, 5>, 2>
+    std::array<std::array<Vect<Vect<SeqQualityStats<uintFragCount>>>, kNumBasesN>, kTemplateSegments>
         sequence_quality_for_base_per_tile_; // sequence_quality_for_base_per_tile_[first/second][nucleotide][tileId][percentageNucleotide][qualityProbabilityMean]
                                              // = #reads
     Vect<Vect<Vect<uintFragCount>>>
         sequence_quality_mean_paired_per_tile_; // sequence_quality_mean_paired_per_tile_[tileId][qualityMeanFirst][qualityMeanSecond]
                                                 // = #reads
-    std::array<Vect<Vect<SeqQualityStats<uintFragCount>>>, 2>
+    std::array<Vect<Vect<SeqQualityStats<uintFragCount>>>, kTemplateSegments>
         sequence_quality_mean_for_gc_per_tile_; // sequence_quality_mean_for_gc_per_tile_[first/second][tileId][percentageGC][qualityMean]
                                                 // = #reads
-    std::array<Vect<uintFragCount>, 2>
+    std::array<Vect<uintFragCount>, kTemplateSegments>
         sequence_quality_probability_mean_; // sequence_quality_probability_mean_[first/second][errorProbabilityMeanAsQuality]
                                             // = #reads
-    std::array<Vect<uintFragCount>, 2>
+    std::array<Vect<uintFragCount>, kTemplateSegments>
         sequence_quality_minimum_; // sequence_quality_minimum_[first/second][qualityMinimum] = #reads
-    std::array<Vect<uintFragCount>, 2>
+    std::array<Vect<uintFragCount>, kTemplateSegments>
         sequence_quality_first_quartile_; // sequence_quality_first_quartile_[first/second][qualitySecondQuartile]
                                           // = #reads
-    std::array<Vect<uintFragCount>, 2>
+    std::array<Vect<uintFragCount>, kTemplateSegments>
         sequence_quality_median_; // sequence_quality_median_[first/second][qualityMedian] = #reads
-    std::array<Vect<uintFragCount>, 2>
+    std::array<Vect<uintFragCount>, kTemplateSegments>
         sequence_quality_third_quartile_; // sequence_quality_third_quartile_[first/second][qualityThirdQuartile]
                                           // = #reads
-    std::array<Vect<uintFragCount>, 2>
+    std::array<Vect<uintFragCount>, kTemplateSegments>
         sequence_quality_maximum_; // sequence_quality_maximum_[first/second][qualityMaximum] = #reads
-    std::array<Vect<Vect<uintFragCount>>, 2>
+    std::array<Vect<Vect<uintFragCount>>, kTemplateSegments>
         sequence_quality_content_; // sequence_quality_content_[first/second][quality][#qualityOccurences] = #reads
 
     Vect<Vect<uintNucCount>> homoquality_distribution_; // homoquality_distribution_[quality][length] = #homoqualities
-    std::array<std::array<SeqQualityStats<uintNucCount>, 5>, 2>
+    std::array<std::array<SeqQualityStats<uintNucCount>, kNumBasesN>, kTemplateSegments>
         nucleotide_quality_; // nucleotide_quality_[first/second][A/C/G/T/N][quality] = #bases
 
     // Calculated variables for estimation (based on reference)
-    std::array<std::array<Vect<Vect<SeqQualityStats<uintNucCount>>>, 4>, 2>
+    std::array<std::array<Vect<Vect<SeqQualityStats<uintNucCount>>>, kNumBases>, kTemplateSegments>
         base_quality_stats_per_tile_reference_; // base_quality_stats_per_tile_reference_[first/second][refBase][tileId][readPosition][quality]
                                                 // = #bases
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 4>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBases>, kTemplateSegments>
         error_rate_for_position_per_tile_reference_; // error_rate_for_position_per_tile_reference_[first/second][refBase][tileId][position][errorRate]
                                                      // = #bases
-    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 4>, 2>
+    std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, kNumBases>, kTemplateSegments>
         base_quality_for_error_rate_per_tile_reference_; // base_quality_for_error_rate_per_tile_reference_[first/second][refBase][tileId][errorRate][baseQuality]
                                                          // = #bases
 
     // Calculated variables for plotting from variables for estimation (based on reference)
-    std::array<Vect<SeqQualityStats<uintNucCount>>, 2>
+    std::array<Vect<SeqQualityStats<uintNucCount>>, kTemplateSegments>
         base_quality_stats_reference_; // base_quality_stats_reference_[first/second][readPosition][quality] = #bases
-    std::array<Vect<double>, 2>
+    std::array<Vect<double>, kTemplateSegments>
         base_quality_mean_reference_; // base_quality_mean_reference_[first/second][readPosition] = baseQualityMean
-    std::array<Vect<uintQual>, 2>
+    std::array<Vect<uintQual>, kTemplateSegments>
         base_quality_minimum_reference_; // base_quality_minimum_reference_[first/second][readPosition]
                                          // = baseQualityMinimum
-    std::array<Vect<uintQual>, 2>
+    std::array<Vect<uintQual>, kTemplateSegments>
         base_quality_first_quartile_reference_; // base_quality_first_quartile_reference_[first/second][readPosition]
                                                 // = baseQualityFirstQuartile
-    std::array<Vect<uintQual>, 2>
+    std::array<Vect<uintQual>, kTemplateSegments>
         base_quality_median_reference_; // base_quality_median_reference_[first/second][readPosition]
                                         // = baseQualityMedian
-    std::array<Vect<uintQual>, 2>
+    std::array<Vect<uintQual>, kTemplateSegments>
         base_quality_third_quartile_reference_; // base_quality_third_quartile_reference_[first/second][readPosition]
                                                 // = baseQualityThirdQuartile
-    std::array<Vect<uintQual>, 2>
+    std::array<Vect<uintQual>, kTemplateSegments>
         base_quality_maximum_reference_; // base_quality_maximum_reference_[first/second][readPosition]
                                          // = baseQualityMaximum
 
-    std::array<Vect<uintQual>, 2>
+    std::array<Vect<uintQual>, kTemplateSegments>
         average_sequence_quality_for_gc_; // average_sequence_quality_for_gc_[first/second][percentageGC]
                                           // = averageSequenceQualityProbabilityMean
 
     // Calculated variables for plotting (based on raw reads)
-    std::array<Vect<SeqQualityStats<uintNucCount>>, 2>
-        base_quality_stats_;                        // base_quality_stats_[first/second][readPosition][quality] = #bases
-    std::array<Vect<double>, 2> base_quality_mean_; // base_quality_mean_[first/second][readPosition] = baseQualityMean
-    std::array<Vect<uintQual>, 2>
+    std::array<Vect<SeqQualityStats<uintNucCount>>, kTemplateSegments>
+        base_quality_stats_; // base_quality_stats_[first/second][readPosition][quality] = #bases
+    std::array<Vect<double>, kTemplateSegments>
+        base_quality_mean_; // base_quality_mean_[first/second][readPosition] = baseQualityMean
+    std::array<Vect<uintQual>, kTemplateSegments>
         base_quality_minimum_; // base_quality_minimum_[first/second][readPosition] = baseQualityMinimum
-    std::array<Vect<uintQual>, 2>
+    std::array<Vect<uintQual>, kTemplateSegments>
         base_quality_first_quartile_; // base_quality_first_quartile_[first/second][readPosition]
                                       // = baseQualityFirstQuartile
-    std::array<Vect<uintQual>, 2>
+    std::array<Vect<uintQual>, kTemplateSegments>
         base_quality_median_; // base_quality_median_[first/second][readPosition] = baseQualityMedian
-    std::array<Vect<uintQual>, 2>
+    std::array<Vect<uintQual>, kTemplateSegments>
         base_quality_third_quartile_; // base_quality_third_quartile_[first/second][readPosition]
                                       // = baseQualityThirdQuartile
-    std::array<Vect<uintQual>, 2>
+    std::array<Vect<uintQual>, kTemplateSegments>
         base_quality_maximum_; // base_quality_maximum_[first/second][readPosition] = baseQualityMaximum
-    std::array<Vect<Vect<intQualDiff>>, 2>
+    std::array<Vect<Vect<intQualDiff>>, kTemplateSegments>
         tile_quality_mean_difference_; // tile_quality_mean_difference_[first/second][tile][readPosition]
                                        // = meanDifferenceToTotalQualityMean
-    std::array<Vect<double>, 2>
+    std::array<Vect<double>, kStrands>
         base_quality_mean_per_strand_; // base_quality_mean_per_strand_[+/-][readPosition] = baseQualityMean
 
-    std::array<Vect<Vect<uintNucCount>>, 2>
+    std::array<Vect<Vect<uintNucCount>>, kTemplateSegments>
         base_quality_for_sequence_; // base_quality_for_sequence_[first/second][qualityProbabilityMeanOfSequence][baseQuality]
                                     // = #bases
-    std::array<Vect<Vect<uintNucCount>>, 2>
+    std::array<Vect<Vect<uintNucCount>>, kTemplateSegments>
         base_quality_for_preceding_quality_; // base_quality_for_preceding_quality_[first/second][qualityOfPrecedingBase][baseQuality]
                                              // = #bases
 
-    std::array<Vect<uintFragCount>, 2>
+    std::array<Vect<uintFragCount>, kTemplateSegments>
         sequence_quality_mean_; // sequence_quality_mean_[first/second][qualityMean] = #reads
-    std::array<Vect<Vect<uintFragCount>>, 2>
+    std::array<Vect<Vect<uintFragCount>>, kTemplateSegments>
         sequence_quality_mean_per_tile_; // sequence_quality_mean_per_tile_[first/second][tileId][qualityMean] = #reads
     Vect<Vect<uintFragCount>>
         sequence_quality_mean_paired_; // sequence_quality_mean_paired_[qualityMeanFirst][qualityMeanSecond] = #reads
-    std::array<Vect<uintQual>, 2>
+    std::array<Vect<uintQual>, kTemplateSegments>
         mean_sequence_quality_mean_by_fragment_length_; // mean_sequence_quality_mean_by_fragment_length_[first/second][fragmentLength]
                                                         // = meanQualityMean
-    std::array<std::array<Vect<uintQual>, 5>, 2>
+    std::array<std::array<Vect<uintQual>, kNumBasesN>, kTemplateSegments>
         average_sequence_quality_for_base_; // average_sequence_quality_for_base_[first/second][nucleotide][percentageNucleotide]
                                             // = averageSequenceQualityMean
 
@@ -337,7 +366,7 @@ class QualityStats {
 
   public:
     QualityStats() {
-        for (uintTempSeq template_segment = 2; template_segment--;) {
+        for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
             // There are no quality values below 2 for Illumina
             sequence_quality_mean_paired_per_tile_.SetOffset(2);
             sequence_quality_probability_mean_.at(template_segment).SetOffset(2);
@@ -348,7 +377,7 @@ class QualityStats {
             sequence_quality_maximum_.at(template_segment).SetOffset(2);
             sequence_quality_content_.at(template_segment).SetOffset(2);
 
-            for (auto called_base = 5; called_base--;) {
+            for (auto called_base = kNumBasesN; called_base--;) {
                 nucleotide_quality_.at(template_segment).at(called_base).SetOffset(2);
             }
         }
@@ -680,7 +709,7 @@ class QualityStats {
               .at(read_pos)
               .at(last_qual);
 
-        if (strand < 2) {
+        if (strand < kStrands) {
             ++tmp_base_quality_stats_per_strand_.at(strand).at(read_pos).at(quality);
         }
         ++tmp_nucleotide_quality_.at(template_segment).at(called_base).at(quality);

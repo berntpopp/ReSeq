@@ -5,7 +5,7 @@
 
 namespace reseq {
 
-inline constexpr uintBaseCall kNumBases = 4;       // A, C, G, T
+inline constexpr uintBaseCall kNumBases = 4;        // A, C, G, T
 inline constexpr uintBaseCall kNumBasesN = 5;       // A, C, G, T, N
 inline constexpr uintTempSeq kTemplateSegments = 2; // first, second read
 inline constexpr uintTempSeq kStrands = 2;          // forward, reverse

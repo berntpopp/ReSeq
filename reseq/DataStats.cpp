@@ -38,7 +38,7 @@ DataStats::DataStats(Reference* ref, uintSeqLen maximum_insert_length, uintQual 
                                     // at same positions was observed for lower qualities than 10
       minimum_quality_(255), maximum_quality_(0), minimum_read_length_on_reference_(numeric_limits<uintReadLen>::max()),
       maximum_read_length_on_reference_(0), total_number_reads_(0) {
-    for (uintTempSeq template_segment = 2; template_segment--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
         read_lengths_.at(template_segment).SetOffset(1); // As a read with length of 0 cannot be considered a read, this
                                                          // length can be excluded right from the start
     }
@@ -188,7 +188,7 @@ void DataStats::Shrink() {
     qualities_.Shrink();
     tiles_.Shrink();
 
-    for (uintTempSeq template_segment = 2; template_segment--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
         ShrinkVect(read_lengths_by_fragment_length_.at(template_segment));
     }
 }

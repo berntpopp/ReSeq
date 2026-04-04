@@ -26,8 +26,8 @@ using std::thread;
 // include <vector>
 using std::vector;
 
-#include "logging.hpp"
 #include "CMakeConfig.h"
+#include "logging.hpp"
 
 // include <seqan/bam_io.h>
 using seqan::atEnd;
@@ -274,8 +274,7 @@ bool BamIngestionEngine::EvalReferenceStatistics(CoverageStats::FullRecord* reco
         case 'I':
             if (record->from_ref_pos_ <= ref_pos && ref_pos < record->to_ref_pos_) {
                 if (hasFlagRC(record->record_)) {
-                    ref_base =
-                        Complement::Dna5(at(target.reference_->ReferenceSequence(record->record_.rID), ref_pos));
+                    ref_base = Complement::Dna5(at(target.reference_->ReferenceSequence(record->record_.rID), ref_pos));
                 } else {
                     ref_base = at(target.reference_->ReferenceSequence(record->record_.rID), ref_pos);
                 }
@@ -377,17 +376,17 @@ bool BamIngestionEngine::EvalRecord(pair<CoverageStats::FullRecord*, CoverageSta
                 uintSeqLen start_pos_first, end_pos_first, start_pos_second, end_pos_second;
                 target.GetReadPosOnReference(start_pos_first, end_pos_first, record.first->record_);
                 target.GetReadPosOnReference(start_pos_second, end_pos_second, record.second->record_);
-                if (target.reference_->FragmentExcluded(thread.last_exclusion_region_id_, thread.last_exclusion_ref_seq_,
-                                                        record.first->record_.rID, start_pos_first, end_pos_first) ||
-                    target.reference_->FragmentExcluded(thread.last_exclusion_region_id_, thread.last_exclusion_ref_seq_,
-                                                        record.second->record_.rID, start_pos_second,
-                                                        end_pos_second)) {
+                if (target.reference_->FragmentExcluded(thread.last_exclusion_region_id_,
+                                                        thread.last_exclusion_ref_seq_, record.first->record_.rID,
+                                                        start_pos_first, end_pos_first) ||
+                    target.reference_->FragmentExcluded(thread.last_exclusion_region_id_,
+                                                        thread.last_exclusion_ref_seq_, record.second->record_.rID,
+                                                        start_pos_second, end_pos_second)) {
                     reads_in_excluded_regions_ += 2;
                 } else {
-                    if (CheckForAdapters(record.first->record_,
-                                         record.second->record_,
+                    if (CheckForAdapters(record.first->record_, record.second->record_,
                                          target)) { // We don't trust the mapping, so look for adapters
-                                                     // like in unmapped case
+                                                    // like in unmapped case
                         reads_with_low_quality_with_adapters_ += 2;
                     } else {
                         reads_with_low_quality_without_adapters_ += 2;
@@ -428,16 +427,12 @@ bool BamIngestionEngine::EvalRecord(pair<CoverageStats::FullRecord*, CoverageSta
                     if (target.InProperDirection(record.first->record_, end_pos_second, start_pos_first,
                                                  start_pos_second) ||
                         adapter_detected) {
-                        if ((!adapter_detected &&
-                             target.reference_->FragmentExcluded(thread.last_exclusion_region_id_,
-                                                                 thread.last_exclusion_ref_seq_,
-                                                                 record.first->record_.rID, start_pos_first,
-                                                                 end_pos_second)) ||
-                            (adapter_detected &&
-                             target.reference_->FragmentExcluded(thread.last_exclusion_region_id_,
-                                                                 thread.last_exclusion_ref_seq_,
-                                                                 record.first->record_.rID, start_pos_second,
-                                                                 end_pos_first))) {
+                        if ((!adapter_detected && target.reference_->FragmentExcluded(
+                                                      thread.last_exclusion_region_id_, thread.last_exclusion_ref_seq_,
+                                                      record.first->record_.rID, start_pos_first, end_pos_second)) ||
+                            (adapter_detected && target.reference_->FragmentExcluded(
+                                                     thread.last_exclusion_region_id_, thread.last_exclusion_ref_seq_,
+                                                     record.first->record_.rID, start_pos_second, end_pos_first))) {
                             reads_in_excluded_regions_ += 2;
                         } else {
                             reads_used_ += 2;
@@ -486,8 +481,7 @@ bool BamIngestionEngine::EvalRecord(pair<CoverageStats::FullRecord*, CoverageSta
                                     record.first->record_.rID, start_pos_first, end_pos_second));
                                 target.fragment_distribution_.FillInOutskirtContent(
                                     *target.reference_, record.first->record_, start_pos_first, end_pos_second);
-                                coverage_block =
-                                    target.coverage_.FindBlock(record.first->record_.rID, start_pos_first);
+                                coverage_block = target.coverage_.FindBlock(record.first->record_.rID, start_pos_first);
 
                                 record.first->from_ref_pos_ = start_pos_first;
                                 record.second->from_ref_pos_ = start_pos_second;
@@ -556,13 +550,12 @@ bool BamIngestionEngine::SignsOfPairsWithNamesNotIdentical(const DataStats& targ
 }
 
 void BamIngestionEngine::PrepareReadIn(uintQual size_mapping_quality, uintReadLen size_indel,
-                                       uintSeqLen max_ref_seq_bin_size, uintNumThreads num_threads,
-                                       DataStats& target) {
+                                       uintSeqLen max_ref_seq_bin_size, uintNumThreads num_threads, DataStats& target) {
     uintReadLen size_pos = max(target.read_lengths_.at(0).to(), target.read_lengths_.at(1).to());
 
     uintFragCount num_reads(0);
     uintNucCount num_bases(0);
-    for (int template_segment = 2; template_segment--;) {
+    for (int template_segment = kTemplateSegments; template_segment--;) {
         for (auto len = target.read_lengths_.at(template_segment).from();
              len < target.read_lengths_.at(template_segment).to(); ++len) {
             num_reads += target.read_lengths_.at(template_segment).at(len);
@@ -587,17 +580,17 @@ void BamIngestionEngine::PrepareReadIn(uintQual size_mapping_quality, uintReadLe
     // Prepare vector in this class
     target.read_sequence_stats_.PrepareAccumulators(size_mapping_quality, size_pos);
 
-    for (auto template_segment = 2; template_segment--;) {
+    for (auto template_segment = kTemplateSegments; template_segment--;) {
         SetDimensions(target.tmp_read_lengths_by_fragment_length_.at(template_segment),
                       target.maximum_insert_length_ + 1, size_pos);
         SetDimensions(target.tmp_non_mapped_read_lengths_by_fragment_length_.at(template_segment),
                       target.maximum_insert_length_ + 1, size_pos);
 
-        target.tmp_gc_read_content_reference_.at(template_segment).resize(101);
-        target.tmp_gc_read_content_mapped_.at(template_segment).resize(101);
+        target.tmp_gc_read_content_reference_.at(template_segment).resize(kGCBins);
+        target.tmp_gc_read_content_mapped_.at(template_segment).resize(kGCBins);
 
-        for (auto strand = 2; strand--;) {
-            for (auto base = 4; base--;) {
+        for (auto strand = kStrands; strand--;) {
+            for (auto base = kNumBases; base--;) {
                 target.tmp_sequence_content_reference_.at(template_segment)
                     .at(strand)
                     .at(base)
@@ -615,7 +608,7 @@ void BamIngestionEngine::FinishReadIn(DataStats& target) {
     target.read_sequence_stats_.Finalize();
 
     // Copy vectors to final ones
-    for (auto template_segment = 2; template_segment--;) {
+    for (auto template_segment = kTemplateSegments; template_segment--;) {
         target.non_mapped_read_lengths_by_fragment_length_.at(template_segment)
             .Acquire(target.tmp_non_mapped_read_lengths_by_fragment_length_.at(template_segment));
         ShrinkVect(target.non_mapped_read_lengths_by_fragment_length_.at(template_segment));
@@ -623,8 +616,7 @@ void BamIngestionEngine::FinishReadIn(DataStats& target) {
              frag_len < target.non_mapped_read_lengths_by_fragment_length_.at(template_segment).to(); ++frag_len) {
             for (auto read_len =
                      target.non_mapped_read_lengths_by_fragment_length_.at(template_segment).at(frag_len).from();
-                 read_len <
-                 target.non_mapped_read_lengths_by_fragment_length_.at(template_segment).at(frag_len).to();
+                 read_len < target.non_mapped_read_lengths_by_fragment_length_.at(template_segment).at(frag_len).to();
                  ++read_len) {
                 target.tmp_read_lengths_by_fragment_length_.at(template_segment).at(frag_len).at(read_len) +=
                     target.non_mapped_read_lengths_by_fragment_length_.at(template_segment).at(frag_len).at(read_len);
@@ -638,8 +630,8 @@ void BamIngestionEngine::FinishReadIn(DataStats& target) {
         target.gc_read_content_mapped_.at(template_segment)
             .Acquire(target.tmp_gc_read_content_mapped_.at(template_segment));
 
-        for (auto strand = 2; strand--;) {
-            for (auto base = 4; base--;) {
+        for (auto strand = kStrands; strand--;) {
+            for (auto base = kNumBases; base--;) {
                 target.sequence_content_reference_.at(template_segment)
                     .at(strand)
                     .at(base)
@@ -663,7 +655,7 @@ bool BamIngestionEngine::Calculate(uintNumThreads num_threads, DataStats& target
     // Calculate coverage corrected for low quality sites
     uintFragCount num_reads(0);
     uintNucCount num_bases(0);
-    for (int template_segment = 2; template_segment--;) {
+    for (int template_segment = kTemplateSegments; template_segment--;) {
         for (auto len = target.read_lengths_.at(template_segment).from();
              len < target.read_lengths_.at(template_segment).to(); ++len) {
             num_reads += target.read_lengths_.at(template_segment).at(len);
@@ -693,8 +685,8 @@ bool BamIngestionEngine::OrderOfBamFileCorrect(const seqan::BamAlignmentRecord& 
     return true;
 }
 
-bool BamIngestionEngine::PreRun(BamFileIn& bam, const char* bam_file, BamHeader& header,
-                                uintQual& size_mapping_quality, uintReadLen& size_indel, DataStats& target) {
+bool BamIngestionEngine::PreRun(BamFileIn& bam, const char* bam_file, BamHeader& header, uintQual& size_mapping_quality,
+                                uintReadLen& size_indel, DataStats& target) {
     printInfo << "Starting PreRun" << std::endl;
 
     bool error = false;
@@ -726,9 +718,8 @@ bool BamIngestionEngine::PreRun(BamFileIn& bam, const char* bam_file, BamHeader&
                 if (OrderOfBamFileCorrect(record, last_record_pos)) {
                     if (!hasFlagSecondary(record) && !hasFlagSupplementary(record)) { // Ignore supplementary reads
                         if (hasFlagFirst(record)) {
-                            target.tiles_.EnterTile(
-                                record.qName); // Names of records in a pair are identical, so tile must
-                                                // only be identified once
+                            target.tiles_.EnterTile(record.qName); // Names of records in a pair are identical, so tile
+                                                                   // must only be identified once
 
                             ++target.read_lengths_.at(0)[length(record.qual)];
                         } else {
@@ -756,7 +747,7 @@ bool BamIngestionEngine::PreRun(BamFileIn& bam, const char* bam_file, BamHeader&
                                 ++cur_ref_seq;
                             }
                             ++lowq_reads_per_frag_len_bin_.at(ref_seq_start_bin +
-                                                               record.beginPos / target.maximum_insert_length_);
+                                                              record.beginPos / target.maximum_insert_length_);
                         }
 
                         // Determine quality range
@@ -778,8 +769,8 @@ bool BamIngestionEngine::PreRun(BamFileIn& bam, const char* bam_file, BamHeader&
             }
         } catch (const Exception& e) {
             error = true;
-            printErr << "Could not read record " << target.total_number_reads_ << " in " << bam_file << ": "
-                     << e.what() << std::endl;
+            printErr << "Could not read record " << target.total_number_reads_ << " in " << bam_file << ": " << e.what()
+                     << std::endl;
         }
     } while (!atEnd(bam));
 
@@ -801,19 +792,19 @@ bool BamIngestionEngine::PreRun(BamFileIn& bam, const char* bam_file, BamHeader&
         return false;
     }
 
-    for (uintTempSeq template_segment = 2; template_segment--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
         target.read_lengths_.at(template_segment).Shrink();
     }
 
-    if (target.minimum_quality_ < 64) {
-        if (target.minimum_quality_ < 33) {
+    if (target.minimum_quality_ < kPhredIlluminaOffset) {
+        if (target.minimum_quality_ < kPhredSangerOffset) {
             printErr << "Minimum quality is " << target.minimum_quality_
                      << ", which is lower than the 33 from Sanger encoding. Are those values correct?" << std::endl;
             return false;
         }
-        target.phred_quality_offset_ = 33; // Sanger format
+        target.phred_quality_offset_ = kPhredSangerOffset; // Sanger format
     } else {
-        target.phred_quality_offset_ = 64; // Old Illumina format
+        target.phred_quality_offset_ = kPhredIlluminaOffset; // Old Illumina format
     }
 
     target.minimum_quality_ -= target.phred_quality_offset_;
@@ -867,15 +858,14 @@ bool BamIngestionEngine::ReadRecords(BamFileIn& bam, bool& not_done, ThreadData&
                 // Add low q sites
                 if (!target.QualitySufficient(record->record_) && !hasFlagUnmapped(record->record_) &&
                     !target.reference_->ReferenceSequenceExcluded(record->record_.rID) && // low quality and not
-                                                                                           // excluded
+                                                                                          // excluded
                     (hasFlagNextUnmapped(record->record_) || record->record_.rID != record->record_.rNextId ||
                      (!hasFlagRC(record->record_) &&
                       (record->record_.beginPos < record->record_.pNext ||
                        record->record_.beginPos > record->record_.pNext + length(record->record_.seq))) ||
-                     (hasFlagRC(record->record_) &&
-                      (record->record_.beginPos > record->record_.pNext ||
-                       record->record_.beginPos + length(record->record_.seq) <
-                           record->record_.pNext)))) { // not in an adapter pair
+                     (hasFlagRC(record->record_) && (record->record_.beginPos > record->record_.pNext ||
+                                                     record->record_.beginPos + length(record->record_.seq) <
+                                                         record->record_.pNext)))) { // not in an adapter pair
                     uintSeqLen start_pos, end_pos;
                     target.GetReadPosOnReference(start_pos, end_pos, record->record_);
 
@@ -883,13 +873,11 @@ bool BamIngestionEngine::ReadRecords(BamFileIn& bam, bool& not_done, ThreadData&
                                                              thread_data.last_exclusion_ref_seq_, record->record_.rID,
                                                              start_pos, end_pos)) {
                         if (hasFlagRC(record->record_)) {
-                            target.fragment_distribution_.AddLowQSiteEnd(record->record_.rID, end_pos,
-                                                                         *target.reference_,
-                                                                         thread_data.fragment_distribution_);
+                            target.fragment_distribution_.AddLowQSiteEnd(
+                                record->record_.rID, end_pos, *target.reference_, thread_data.fragment_distribution_);
                         } else {
-                            target.fragment_distribution_.AddLowQSiteStart(record->record_.rID, start_pos,
-                                                                           *target.reference_,
-                                                                           thread_data.fragment_distribution_);
+                            target.fragment_distribution_.AddLowQSiteStart(
+                                record->record_.rID, start_pos, *target.reference_, thread_data.fragment_distribution_);
                         }
                     }
                 }
@@ -927,8 +915,7 @@ bool BamIngestionEngine::ReadRecords(BamFileIn& bam, bool& not_done, ThreadData&
     return true;
 }
 
-void BamIngestionEngine::ReadThread(BamIngestionEngine& engine, BamFileIn& bam, size_t thread_idx,
-                                    DataStats& target) {
+void BamIngestionEngine::ReadThread(BamIngestionEngine& engine, BamFileIn& bam, size_t thread_idx, DataStats& target) {
     CoverageStats::CoverageBlock* cov_block;
     uintFragCount processed_fragments(0);
     bool not_done(true);
@@ -1014,8 +1001,7 @@ void BamIngestionEngine::ReadThread(BamIngestionEngine& engine, BamFileIn& bam, 
 
             // This finalization might take a bit of time so do it already here
             if (!target.coverage_.Finalize(*target.reference_, target.qualities_, target.errors_,
-                                            target.phred_quality_offset_, engine.print_mutex_,
-                                            thread_data.coverage_)) {
+                                           target.phred_quality_offset_, engine.print_mutex_, thread_data.coverage_)) {
                 engine.reading_success_ = false;
             }
         } else {
@@ -1025,7 +1011,7 @@ void BamIngestionEngine::ReadThread(BamIngestionEngine& engine, BamFileIn& bam, 
 
         if (engine.reading_success_) {
             target.fragment_distribution_.FinishThreads(thread_data.fragment_distribution_, *target.reference_,
-                                                         target.duplicates_, engine.print_mutex_, thread_idx);
+                                                        target.duplicates_, engine.print_mutex_, thread_idx);
             target.fragment_distribution_.AddThreadData(thread_data.fragment_distribution_);
         }
     }
@@ -1209,8 +1195,7 @@ bool BamIngestionEngine::Run(const char* bam_file, const char* adapter_file, con
                                          reads_with_low_quality_without_adapters_ - reads_on_too_short_fragments_ -
                                          reads_in_excluded_regions_ - reads_used_;
     printInfo << "Of the " << target.total_number_reads_ << " reads in the file" << std::endl;
-    printInfo << reads_used_ << " ("
-              << static_cast<uintPercentPrint>(Percent(reads_used_, target.total_number_reads_))
+    printInfo << reads_used_ << " (" << static_cast<uintPercentPrint>(Percent(reads_used_, target.total_number_reads_))
               << "\%) could be used for all statistics" << std::endl;
     printInfo << reads_with_low_quality_with_adapters_ << " ("
               << static_cast<uintPercentPrint>(

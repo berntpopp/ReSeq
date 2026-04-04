@@ -254,7 +254,7 @@ bool AdapterStats::LoadAdapters(const char* adapter_file, const char* adapter_ma
 
     // Get adapters that are allowed for first or second
     array<vector<pair<DnaString, uintAdapterId>>, 2> adapter_list;
-    for (uintTempSeq seg = 2; seg--;) {
+    for (uintTempSeq seg = kTemplateSegments; seg--;) {
         adapter_list.at(seg).reserve(length(seqs));
     }
 
@@ -277,7 +277,7 @@ bool AdapterStats::LoadAdapters(const char* adapter_file, const char* adapter_ma
         }
     }
 
-    for (uintTempSeq seg = 2; seg--;) {
+    for (uintTempSeq seg = kTemplateSegments; seg--;) {
         // Also add reverse complement of adapters (as the direction is different depending on the sequencing machine
         // Hiseq2000 vs. 4000)
         adapter_list.at(seg).reserve(adapter_list.at(seg).size() * 2);
@@ -321,7 +321,7 @@ bool AdapterStats::LoadAdapters(const char* adapter_file, const char* adapter_ma
 
 void AdapterStats::PrepareAdapterPrediction() {
     if (0 == combinations_.size()) {
-        for (uintTempSeq template_segment = 2; template_segment--;) {
+        for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
             adapter_kmers_.at(template_segment).Prepare();
             adapter_start_kmers_.at(template_segment).resize(adapter_kmers_.at(template_segment).counts_.size(), 0);
         }
@@ -391,7 +391,7 @@ bool AdapterStats::PredictAdapters() {
             myfile << "template_segment, tries_left, position, kmer, counts" << std::endl;
         }
 
-        for (uintTempSeq template_segment = 2; template_segment--;) {
+        for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
             // Find start of adapter
             use_kmer.clear();
             use_kmer.resize(adapter_kmers_.at(template_segment).counts_.size(), true);
@@ -660,7 +660,7 @@ void AdapterStats::PrepareAdapters(uintReadLen size_read_length, uintQual phred_
         }
     }
 
-    for (uintTempSeq seg = 2; seg--;) {
+    for (uintTempSeq seg = kTemplateSegments; seg--;) {
         tmp_start_cut_.at(seg).resize(seqs_.at(seg).size());
         for (auto& dim1 : tmp_start_cut_.at(seg)) {
             dim1.resize(size_read_length);
@@ -860,7 +860,7 @@ void AdapterStats::Finalize() {
         }
     }
 
-    for (uintTempSeq seg = 2; seg--;) {
+    for (uintTempSeq seg = kTemplateSegments; seg--;) {
         start_cut_.at(seg).resize(tmp_start_cut_.at(seg).size());
         for (auto i = tmp_start_cut_.at(seg).size(); i--;) {
             start_cut_.at(seg).at(i).Acquire(tmp_start_cut_.at(seg).at(i));
@@ -875,7 +875,7 @@ void AdapterStats::Finalize() {
 }
 
 void AdapterStats::SumCounts() {
-    for (uintTempSeq seg = 2; seg--;) {
+    for (uintTempSeq seg = kTemplateSegments; seg--;) {
         count_sum_.at(seg).clear();
         count_sum_.at(seg).resize(start_cut_.at(seg).size(), 0);
     }
@@ -934,7 +934,7 @@ void AdapterStats::Shrink() {
 }
 
 void AdapterStats::PrepareSimulation() {
-    for (uintTempSeq seg = 2; seg--;) {
+    for (uintTempSeq seg = kTemplateSegments; seg--;) {
         significant_count_.at(seg).clear();
         significant_count_.at(seg).resize(count_sum_.at(seg).size(), 0);
 

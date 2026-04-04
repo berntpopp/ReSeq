@@ -78,15 +78,15 @@ constexpr double BiasCalculationVectors::kUpperBound;
 constexpr double BiasCalculationVectors::kBaseValue;
 mutex BiasCalculationVectors::file_mutex_;
 
-void BiasCalculationVectors::AddCountsFromSite(const FragmentSite& site, array<uintFragCount, 101>& gc_count,
-                                               array<uintFragCount, 4 * Surrounding::Length()>& sur_count) {
+void BiasCalculationVectors::AddCountsFromSite(const FragmentSite& site, array<uintFragCount, kGCBins>& gc_count,
+                                               array<uintFragCount, kNumBases * Surrounding::Length()>& sur_count) {
     if (0 < site.count_forward_ + site.count_reverse_) {
         gc_count.at(site.gc_) += site.count_forward_ + site.count_reverse_;
 
         for (uintSurPos sur_pos = Surrounding::Length(); sur_pos--;) {
-            sur_count.at(4 * sur_pos + site.start_surrounding_.BaseAt(sur_pos)) +=
+            sur_count.at(kNumBases * sur_pos + site.start_surrounding_.BaseAt(sur_pos)) +=
                 site.count_forward_ + site.count_reverse_;
-            sur_count.at(4 * sur_pos + site.end_surrounding_.BaseAt(sur_pos)) +=
+            sur_count.at(kNumBases * sur_pos + site.end_surrounding_.BaseAt(sur_pos)) +=
                 site.count_forward_ + site.count_reverse_;
         }
     }
@@ -117,11 +117,11 @@ void BiasCalculationVectors::RemoveUnnecessarySites() {
             zero_site = false;           // sites with zero for gc are ok as we use splines there
 
             for (uintSurPos sur_pos = Surrounding::Length(); sur_pos--;) {
-                if (!sur_count_.at(4 * sur_pos + sites_.at(cur_site).start_surrounding_.BaseAt(sur_pos))) {
+                if (!sur_count_.at(kNumBases * sur_pos + sites_.at(cur_site).start_surrounding_.BaseAt(sur_pos))) {
                     zero_site = true;
                     break;
                 }
-                if (!sur_count_.at(4 * sur_pos + sites_.at(cur_site).end_surrounding_.BaseAt(sur_pos))) {
+                if (!sur_count_.at(kNumBases * sur_pos + sites_.at(cur_site).end_surrounding_.BaseAt(sur_pos))) {
                     zero_site = true;
                     break;
                 }
@@ -133,8 +133,8 @@ void BiasCalculationVectors::RemoveUnnecessarySites() {
                 gc_sites_.at(sites_.at(cur_site).gc_) += 2;
 
                 for (uintSurPos sur_pos = Surrounding::Length(); sur_pos--;) {
-                    sur_sites_.at(4 * sur_pos + sites_.at(cur_site).start_surrounding_.BaseAt(sur_pos)) += 2;
-                    sur_sites_.at(4 * sur_pos + sites_.at(cur_site).end_surrounding_.BaseAt(sur_pos)) += 2;
+                    sur_sites_.at(kNumBases * sur_pos + sites_.at(cur_site).start_surrounding_.BaseAt(sur_pos)) += 2;
+                    sur_sites_.at(kNumBases * sur_pos + sites_.at(cur_site).end_surrounding_.BaseAt(sur_pos)) += 2;
                 }
             }
         }
@@ -204,7 +204,7 @@ void BiasCalculationVectors::DeactivateZeroCounts(vector<double>& par, double de
 
 void BiasCalculationVectors::NormGC() {
     // Sort gc by number of sites
-    array<pair<uintFragCount, uintPercent>, 101> sites;
+    array<pair<uintFragCount, uintPercent>, kGCBins> sites;
     for (uintPercent gc = gc_sites_.size(); gc--;) {
         sites.at(gc) = {gc_sites_.at(gc), gc};
     }
@@ -234,13 +234,13 @@ void BiasCalculationVectors::NormSurroundings(const vector<double>& x) {
             double sur_sum = 0.0;
             uintBaseCall valid_sur = 0;
             for (auto base = 0; base < 4; ++base) {
-                sur_sum += x.at(4 * sur_pos + base);
-                if (sur_count_.at(4 * sur_pos + base)) {
+                sur_sum += x.at(kNumBases * sur_pos + base);
+                if (sur_count_.at(kNumBases * sur_pos + base)) {
                     ++valid_sur;
                 }
             }
             for (auto base = 0; base < 4; ++base) {
-                sur_bias_.at(4 * sur_pos + base) = valid_sur * x.at(4 * sur_pos + base) / sur_sum;
+                sur_bias_.at(kNumBases * sur_pos + base) = valid_sur * x.at(kNumBases * sur_pos + base) / sur_sum;
             }
         }
     } else {
@@ -340,11 +340,11 @@ pair<double, double> BiasCalculationVectors::SurBiasAtSiteSplit(const FragmentSi
 
     for (uintSurPos sur_pos = Surrounding::Length(); sur_pos--;) {
         if (kSurMult) {
-            bias.first *= sur_bias_.at(4 * sur_pos + site.start_surrounding_.BaseAt(sur_pos));
-            bias.second *= sur_bias_.at(4 * sur_pos + site.end_surrounding_.BaseAt(sur_pos));
+            bias.first *= sur_bias_.at(kNumBases * sur_pos + site.start_surrounding_.BaseAt(sur_pos));
+            bias.second *= sur_bias_.at(kNumBases * sur_pos + site.end_surrounding_.BaseAt(sur_pos));
         } else {
-            bias.first += sur_bias_.at(4 * sur_pos + site.start_surrounding_.BaseAt(sur_pos));
-            bias.second += sur_bias_.at(4 * sur_pos + site.end_surrounding_.BaseAt(sur_pos));
+            bias.first += sur_bias_.at(kNumBases * sur_pos + site.start_surrounding_.BaseAt(sur_pos));
+            bias.second += sur_bias_.at(kNumBases * sur_pos + site.end_surrounding_.BaseAt(sur_pos));
         }
     }
 
@@ -394,7 +394,7 @@ void BiasCalculationVectors::DefineStartingKnots() {
         // Start from the first knot and assign unused gc bins with zero counts
         uintPercent next_k = 1;
         uintPercent gc = gc_knots_.at(0) + 1;
-        while (k < gc_knots_.size() && gc < 101) {
+        while (k < gc_knots_.size() && gc < kGCBins) {
             if (gc == gc_knots_.at(next_k)) {
                 // GC bin is already a knot, go to next
                 ++gc;
@@ -860,8 +860,8 @@ double BiasCalculationVectors::LogLikelihoodPoisson(const vector<double>& x, vec
             auto cur_grad_end = 1 - bias_split.second / 2;
 
             for (uintSurPos sur_pos = Surrounding::Length(); sur_pos--;) {
-                auto i_start = 4 * sur_pos + site.start_surrounding_.BaseAt(sur_pos);
-                auto i_end = 4 * sur_pos + site.end_surrounding_.BaseAt(sur_pos);
+                auto i_start = kNumBases * sur_pos + site.start_surrounding_.BaseAt(sur_pos);
+                auto i_end = kNumBases * sur_pos + site.end_surrounding_.BaseAt(sur_pos);
 
                 if (BiasCalculationVectors::kSurMult) {
                     calc.grad_gc_bias_sum_.at(site.gc_).at(i_start).first += bias / calc.sur_bias_.at(i_start);
@@ -970,12 +970,13 @@ void BiasCalculationVectors::LogLikelihoodNbinomSite(double& loglike, double& a,
 
         for (uintSurPos sur_pos = Surrounding::Length(); sur_pos--;) {
             if (kSurMult) {
-                sur_grad_.at(4 * sur_pos + site.start_surrounding_.BaseAt(sur_pos)) +=
+                sur_grad_.at(kNumBases * sur_pos + site.start_surrounding_.BaseAt(sur_pos)) +=
                     grad_term1; // Division by bias later
-                sur_grad_.at(4 * sur_pos + site.end_surrounding_.BaseAt(sur_pos)) += grad_term1;
+                sur_grad_.at(kNumBases * sur_pos + site.end_surrounding_.BaseAt(sur_pos)) += grad_term1;
             } else {
-                sur_grad_.at(4 * sur_pos + site.start_surrounding_.BaseAt(sur_pos)) += grad_term1 * cur_grad_start;
-                sur_grad_.at(4 * sur_pos + site.end_surrounding_.BaseAt(sur_pos)) += grad_term1 * cur_grad_end;
+                sur_grad_.at(kNumBases * sur_pos + site.start_surrounding_.BaseAt(sur_pos)) +=
+                    grad_term1 * cur_grad_start;
+                sur_grad_.at(kNumBases * sur_pos + site.end_surrounding_.BaseAt(sur_pos)) += grad_term1 * cur_grad_end;
             }
         }
     }
@@ -1098,7 +1099,7 @@ double BiasCalculationVectors::LogLikelihoodConstDispersion(const std::vector<do
 void BiasCalculationVectors::WriteOutParameterInfo(const char* context) {
     stringstream output;
 
-    std::array<double, 101> unnormalized_gc;
+    std::array<double, kGCBins> unnormalized_gc;
     for (auto gc = unnormalized_gc.size(); gc--;) {
         unnormalized_gc.at(gc) = gc_bias_.at(gc);
     }
@@ -1907,7 +1908,7 @@ void FragmentDistributionStats::PrepareBiasCalculation(const Reference& ref, uin
         ofstream myfile;
         myfile.open(BiasCalculationVectors::kParameterInfoFile);
         myfile << "Fit, RefSeqBin, InsertLength, Counts, Sites, FunctionCalls, LogLikelihood, DispersionA, DispersionB";
-        for (auto gc = 0; gc < 101; ++gc) {
+        for (auto gc = 0; gc < kGCBins; ++gc) {
             myfile << ", " << "RawGCbias" << gc << ", " << "GCbias" << gc << ", " << "GCcount" << gc << ", "
                    << "GCsites" << gc;
         }
@@ -2611,7 +2612,7 @@ void FragmentDistributionStats::AcquireBiases(const BiasCalculationVectors& calc
         uintNumFits cur_res = current_bias_result_++;
 
         // Store biases in vectors from where a single value will be chosen later
-        for (uintPercent gc = 101; gc--;) {
+        for (uintPercent gc = kGCBins; gc--;) {
             tmp_gc_bias_.at(gc).at(cur_res).first = calc.gc_bias_.at(gc);
             tmp_gc_bias_.at(gc).at(cur_res).second = calc.gc_weights_.at(gc);
             // tmp_gc_bias_.at(gc).at(cur_res).second = 1.0;
@@ -3122,7 +3123,7 @@ void FragmentDistributionStats::SetUniformBias() {
     ref_seq_bias_.resize(abundance_.size(), 1.0);
 
     gc_fragment_content_bias_.Clear();
-    gc_fragment_content_bias_.Set(0, 101, 1.0);
+    gc_fragment_content_bias_.Set(0, kGCBins, 1.0);
 
     fragment_surroundings_bias_.SetUniform();
 
@@ -3186,10 +3187,10 @@ void FragmentDistributionStats::Prepare(const Reference& ref, uintSeqLen maximum
                                         uintNumThreads num_threads) {
     tmp_abundance_.resize(ref.NumberSequences());
     tmp_insert_lengths_.resize(maximum_insert_length + 1);
-    tmp_gc_fragment_content_.resize(101);
+    tmp_gc_fragment_content_.resize(kGCBins);
 
-    for (auto strand = 2; strand--;) {
-        for (auto nuc = 4; nuc--;) {
+    for (auto strand = kStrands; strand--;) {
+        for (auto nuc = kNumBases; nuc--;) {
             tmp_outskirt_content_.at(strand).at(nuc).resize(2 * kOutskirtRange);
         }
     }
@@ -3312,8 +3313,8 @@ void FragmentDistributionStats::Finalize() {
 
     fragment_surroundings_.Acquire(tmp_fragment_surroundings_);
 
-    for (auto strand = 2; strand--;) {
-        for (auto nuc = 4; nuc--;) {
+    for (auto strand = kStrands; strand--;) {
+        for (auto nuc = kNumBases; nuc--;) {
             outskirt_content_.at(strand).at(nuc).Acquire(tmp_outskirt_content_.at(strand).at(nuc));
         }
     }

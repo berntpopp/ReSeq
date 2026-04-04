@@ -11,18 +11,18 @@ using std::min;
 using reseq::utilities::getConst;
 
 void ErrorStats::Prepare(uintTileId num_tiles, uintQual size_qual, uintReadLen size_pos, uintReadLen size_indel) {
-    for (auto template_segment = 2; template_segment--;) {
-        for (auto ref_base = 4; ref_base--;) {
-            for (auto dom_error = 5; dom_error--;) {
+    for (auto template_segment = kTemplateSegments; template_segment--;) {
+        for (auto ref_base = kNumBases; ref_base--;) {
+            for (auto dom_error = kNumBasesN; dom_error--;) {
                 SetDimensions(
                     tmp_called_bases_by_base_quality_per_tile_.at(template_segment).at(ref_base).at(dom_error),
-                    num_tiles, 5, size_qual);
+                    num_tiles, kNumBasesN, size_qual);
                 SetDimensions(tmp_called_bases_by_position_per_tile_.at(template_segment).at(ref_base).at(dom_error),
-                              num_tiles, 5, size_pos);
+                              num_tiles, kNumBasesN, size_pos);
                 SetDimensions(tmp_called_bases_by_error_num_per_tile_.at(template_segment).at(ref_base).at(dom_error),
-                              num_tiles, 5, size_pos);
+                              num_tiles, kNumBasesN, size_pos);
                 SetDimensions(tmp_called_bases_by_error_rate_per_tile_.at(template_segment).at(ref_base).at(dom_error),
-                              num_tiles, 5, 101);
+                              num_tiles, kNumBasesN, 101);
 
                 SetDimensions(tmp_error_num_by_quality_per_tile_.at(template_segment).at(ref_base).at(dom_error),
                               num_tiles, size_pos, size_qual);
@@ -32,7 +32,7 @@ void ErrorStats::Prepare(uintTileId num_tiles, uintQual size_qual, uintReadLen s
                               num_tiles, size_pos, 101);
             }
 
-            for (auto prev_base = 5; prev_base--;) {
+            for (auto prev_base = kNumBasesN; prev_base--;) {
                 for (auto prev_called_base = 6; prev_called_base--;) {
                     tmp_called_bases_by_base_quality_per_previous_called_base_.at(template_segment)
                         .at(ref_base)
@@ -50,18 +50,18 @@ void ErrorStats::Prepare(uintTileId num_tiles, uintQual size_qual, uintReadLen s
         for (auto last_call = 6; last_call--;) {
             SetDimensions(tmp_indel_by_indel_pos_.at(indel_type).at(last_call), size_indel, 7);
             SetDimensions(tmp_indel_by_position_.at(indel_type).at(last_call), size_pos, 7);
-            SetDimensions(tmp_indel_by_gc_.at(indel_type).at(last_call), 101, 7);
+            SetDimensions(tmp_indel_by_gc_.at(indel_type).at(last_call), kGCBins, 7);
             SetDimensions(tmp_indel_pos_by_position_.at(indel_type).at(last_call), size_pos, size_indel);
-            SetDimensions(tmp_indel_pos_by_gc_.at(indel_type).at(last_call), 101, size_indel);
-            SetDimensions(tmp_gc_by_position_.at(indel_type).at(last_call), size_pos, 101);
+            SetDimensions(tmp_indel_pos_by_gc_.at(indel_type).at(last_call), kGCBins, size_indel);
+            SetDimensions(tmp_gc_by_position_.at(indel_type).at(last_call), size_pos, kGCBins);
         }
     }
 }
 
 void ErrorStats::Finalize() {
-    for (auto template_segment = 2; template_segment--;) {
-        for (auto ref_base = 4; ref_base--;) {
-            for (auto dom_error = 5; dom_error--;) {
+    for (auto template_segment = kTemplateSegments; template_segment--;) {
+        for (auto ref_base = kNumBases; ref_base--;) {
+            for (auto dom_error = kNumBasesN; dom_error--;) {
                 called_bases_by_base_quality_per_tile_.at(template_segment)
                     .at(ref_base)
                     .at(dom_error)
@@ -94,7 +94,7 @@ void ErrorStats::Finalize() {
                     .Acquire(tmp_error_num_by_error_rate_per_tile_.at(template_segment).at(ref_base).at(dom_error));
             }
 
-            for (auto prev_base = 5; prev_base--;) {
+            for (auto prev_base = kNumBasesN; prev_base--;) {
                 for (auto prev_called_base = 6; prev_called_base--;) {
                     called_bases_by_base_quality_per_previous_called_base_.at(template_segment)
                         .at(ref_base)
@@ -130,9 +130,9 @@ void ErrorStats::Finalize() {
 }
 
 void ErrorStats::Shrink() {
-    for (uintTempSeq template_segment = 2; template_segment--;) {
-        for (auto ref_base = 4; ref_base--;) {
-            for (auto dom_error = 5; dom_error--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
+        for (auto ref_base = kNumBases; ref_base--;) {
+            for (auto dom_error = kNumBasesN; dom_error--;) {
                 ShrinkVect(called_bases_by_base_quality_per_tile_.at(template_segment).at(ref_base).at(dom_error));
                 ShrinkVect(called_bases_by_position_per_tile_.at(template_segment).at(ref_base).at(dom_error));
                 ShrinkVect(called_bases_by_error_num_per_tile_.at(template_segment).at(ref_base).at(dom_error));
@@ -143,7 +143,7 @@ void ErrorStats::Shrink() {
                 ShrinkVect(error_num_by_error_rate_per_tile_.at(template_segment).at(ref_base).at(dom_error));
             }
 
-            for (auto called_base = 5; called_base--;) {
+            for (auto called_base = kNumBasesN; called_base--;) {
                 for (auto prev_base = 6;
                      prev_base--;) { // Previously called base here, therefore size of 6 and not 5 like before
                     ShrinkVect(called_bases_by_base_quality_per_previous_called_base_.at(template_segment)
@@ -168,7 +168,7 @@ void ErrorStats::Shrink() {
 }
 
 void ErrorStats::PreparePlotting() {
-    for (uintTempSeq template_segment = 2; template_segment--;) {
+    for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
         for (auto ref_base = called_bases_by_base_quality_.at(template_segment).size(); ref_base--;) {
             for (auto called_base = called_bases_by_base_quality_.at(template_segment).at(ref_base).size();
                  called_base--;) {

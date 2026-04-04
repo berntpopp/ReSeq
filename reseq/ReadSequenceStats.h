@@ -7,6 +7,7 @@
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/vector.hpp>
 
+#include "constants.hpp"
 #include "CoverageStats.h"
 #include "QualityStats.h"
 #include "utilities.hpp"
@@ -21,20 +22,21 @@ class ReadSequenceStats {
     std::vector<utilities::VectorAtomic<uintFragCount>> tmp_improper_pair_mapping_quality_;
     std::vector<utilities::VectorAtomic<uintFragCount>> tmp_single_read_mapping_quality_;
 
-    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, 2> tmp_gc_read_content_;
-    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, 2> tmp_n_content_;
-    std::array<std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, 5>, 2> tmp_sequence_content_;
-    std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, 5> tmp_homopolymer_distribution_;
+    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, kTemplateSegments> tmp_gc_read_content_;
+    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, kTemplateSegments> tmp_n_content_;
+    std::array<std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, kNumBasesN>, kTemplateSegments>
+        tmp_sequence_content_;
+    std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, kNumBasesN> tmp_homopolymer_distribution_;
 
     // Final histograms (serialized)
     Vect<uintFragCount> proper_pair_mapping_quality_;
     Vect<uintFragCount> improper_pair_mapping_quality_;
     Vect<uintFragCount> single_read_mapping_quality_;
 
-    std::array<Vect<uintFragCount>, 2> gc_read_content_;
-    std::array<Vect<uintFragCount>, 2> n_content_;
-    std::array<std::array<Vect<uintNucCount>, 5>, 2> sequence_content_;
-    std::array<Vect<uintNucCount>, 5> homopolymer_distribution_;
+    std::array<Vect<uintFragCount>, kTemplateSegments> gc_read_content_;
+    std::array<Vect<uintFragCount>, kTemplateSegments> n_content_;
+    std::array<std::array<Vect<uintNucCount>, kNumBasesN>, kTemplateSegments> sequence_content_;
+    std::array<Vect<uintNucCount>, kNumBasesN> homopolymer_distribution_;
 
     // Boost serialization
     friend class boost::serialization::access;
