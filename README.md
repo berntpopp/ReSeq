@@ -1,4 +1,6 @@
-# ReSeq
+# ReSeq (Archived)
+
+> **This repository has been archived.** Development continues at **[berntpopp/ReSeq2](https://github.com/berntpopp/ReSeq2)**.
 
 [![codecov](https://codecov.io/gh/berntpopp/ReSeq/graph/badge.svg)](https://codecov.io/gh/berntpopp/ReSeq)
 
