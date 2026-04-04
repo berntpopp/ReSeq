@@ -154,6 +154,33 @@ jobs:
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  test-isolation:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13 \
+            libboost-all-dev libbz2-dev zlib1g-dev
+
+      - name: Download test data
+        run: ./test/download_test_data.sh
+
+      - name: Configure
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Run tests in shuffled order
+        run: build/bin/reseq_test --gtest_shuffle --gtest_random_seed=0
+
   format-check:
     runs-on: ubuntu-24.04
     steps:
