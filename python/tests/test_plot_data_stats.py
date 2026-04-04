@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = REPO_ROOT / "python" / "plotDataStats.py"
+SCRIPT = REPO_ROOT / "python" / "reseq" / "plot_data_stats.py"
 
 
 class PlotDataStatsTest(unittest.TestCase):

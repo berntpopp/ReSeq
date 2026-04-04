@@ -17,13 +17,30 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.colorbar import ColorbarBase
 from matplotlib.colors import LinearSegmentedColormap, LogNorm, Normalize
 
-if "RESEQ_PYMODS" in os.environ and os.path.isdir(os.path.realpath(os.environ["RESEQ_PYMODS"])):
-    sys.path.append(os.path.realpath(os.environ["RESEQ_PYMODS"]))
-elif os.path.isdir(os.path.dirname(os.path.realpath(__file__)) + "/../build/pyMods/"):
-    sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../build/pyMods/")
-elif os.path.isdir(os.path.dirname(os.path.realpath(__file__)) + "/../lib/"):
-    sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../lib/")
-import DataStats
+try:
+    import DataStats
+except ImportError:
+    # Fall back to common build locations when SWIG module is not installed
+    _script_dir = os.path.dirname(os.path.realpath(__file__))
+    for _candidate in [
+        os.environ.get("RESEQ_PYMODS", ""),
+        os.path.join(_script_dir, "..", "..", "build", "pyMods"),
+        os.path.join(_script_dir, "..", "..", "lib"),
+    ]:
+        if _candidate and os.path.isdir(_candidate):
+            sys.path.append(os.path.realpath(_candidate))
+            try:
+                import DataStats
+
+                break
+            except ImportError:
+                sys.path.pop()
+                continue
+    else:
+        raise ImportError(
+            "Cannot find DataStats SWIG module. Build with -DRESEQ_BUILD_PYTHON=ON "
+            "or set RESEQ_PYMODS to the module directory."
+        )
 
 text_size = 20
 colour_scheme = ["#D92120", "#488BC2", "#7FB972", "#E6642C", "#781C81", "#D9AD3C", "#BBBBBB", "#4065B1"]
@@ -1874,10 +1891,12 @@ def parse_args(argv):
     return args
 
 
-def main(argv):
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
     args = parse_args(argv)
     plotDataStats(args.files, args.output, not args.nolegend, args.title, args.markers)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()

@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = REPO_ROOT / "python" / "reseq-prepare-names.py"
+SCRIPT = REPO_ROOT / "python" / "reseq" / "prepare_names.py"
 
 
 def run_script(*args):

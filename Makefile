@@ -3,7 +3,7 @@ BUILD_TYPE ?= RelWithDebInfo
 CMAKE_FLAGS ?=
 
 CXX_SOURCES = $(shell git ls-files 'reseq/*.cpp' 'reseq/*.h' 'reseq/*.hpp')
-PY_RUNTIME_SOURCES = $(wildcard python/*.py)
+PY_RUNTIME_SOURCES = $(wildcard python/reseq/*.py)
 
 .PHONY: all configure build test test-data coverage format format-check lint \
 	python-format python-format-check python-lint python-typecheck python-test python-verify \

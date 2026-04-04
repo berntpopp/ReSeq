@@ -90,11 +90,12 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def main(argv):
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
     args = parse_args(argv)
     prepareNames(args.file1, args.file2)
-    return
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()

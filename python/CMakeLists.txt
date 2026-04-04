@@ -74,14 +74,9 @@ install(TARGETS DataStats DESTINATION lib)
 install(FILES "${PYTHON_MODULE_DIRECTORY}/DataStats.py" DESTINATION lib)
 
 install(
-  FILES
-    "${PROJECT_SOURCE_DIR}/python/plotDataStats.py"
-    "${PROJECT_SOURCE_DIR}/python/reseq-prepare-names.py"
-  DESTINATION bin
-  PERMISSIONS
-    OWNER_READ OWNER_WRITE OWNER_EXECUTE
-    GROUP_READ GROUP_EXECUTE
-    WORLD_READ WORLD_EXECUTE
+  DIRECTORY "${PROJECT_SOURCE_DIR}/python/reseq/"
+  DESTINATION lib/python/reseq
+  FILES_MATCHING PATTERN "*.py"
 )
 
 add_test(
