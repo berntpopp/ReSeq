@@ -674,8 +674,8 @@ class QualityStats {
         ++tmp_homoquality_distribution_.at(quality).at(length);
     }
     inline void AddRawRead(uintQual& paired_seq_qual, const SeqQualityStats<uintNucCount>& seq_qual_stats,
-                           uintTempSeq template_segment, uintTileId tile_id, std::array<uintSeqLen, 5>& read_bases,
-                           uintSeqLen read_length) {
+                           uintTempSeq template_segment, uintTileId tile_id,
+                           std::array<uintSeqLen, kNumBasesN>& read_bases, uintSeqLen read_length) {
         for (auto qual = seq_qual_stats.from(); qual < seq_qual_stats.to(); ++qual) {
             if (seq_qual_stats.at(qual)) { // So that qualities that do not exist are not filled in
                 ++tmp_sequence_quality_content_.at(template_segment).at(qual).at(seq_qual_stats.at(qual));
