@@ -136,7 +136,7 @@ jobs:
           lcov --capture --directory build --output-file build/coverage.info \
             --ignore-errors mismatch --gcov-tool gcov-13
           lcov --remove build/coverage.info \
-            '*/seqan/*' '*/skewer/*' '*/2016-05-15_ROOTPWA/*' \
+            '*/skewer/*' \
             '/usr/*' '*/build/*' \
             --output-file build/coverage.info --ignore-errors unused
           lcov --list build/coverage.info

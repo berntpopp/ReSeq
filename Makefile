@@ -36,7 +36,7 @@ coverage:
 	lcov --capture --directory $(BUILD_DIR) --output-file $(BUILD_DIR)/coverage.info \
 		--ignore-errors mismatch
 	lcov --remove $(BUILD_DIR)/coverage.info \
-		'*/seqan/*' '*/skewer/*' \
+		'*/skewer/*' \
 		'/usr/*' '*/build/*' \
 		--output-file $(BUILD_DIR)/coverage.info --ignore-errors unused
 	genhtml $(BUILD_DIR)/coverage.info --output-directory $(BUILD_DIR)/coverage-report
