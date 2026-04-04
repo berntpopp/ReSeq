@@ -280,4 +280,90 @@ TEST_F(RegressionTest, UnsupportedVersionError) {
     EXPECT_NE(std::string::npos, err.find("Unsupported")) << "Error should mention unsupported version, got:\n" << err;
 }
 
+// --- E2E edge-case error path tests ---
+
+TEST_F(RegressionTest, InvalidBamPath) {
+    auto ref = test_dir_ / "ecoli-GCF_000005845.2_ASM584v2_genomic.fa";
+    auto adapter_fa = adapter_dir_ / "TruSeq_single.fa";
+    auto adapter_mat = adapter_dir_ / "TruSeq_single.mat";
+    auto output = tmp_dir_ / "should-not-exist.reseq";
+
+    std::string args = "illuminaPE"
+                       " -r " +
+                       ref.string() +
+                       " -b /nonexistent/path/to/file.bam"
+                       " --adapterFile " +
+                       adapter_fa.string() + " --adapterMatrix " + adapter_mat.string() +
+                       " --statsOnly --noBias"
+                       " -S " +
+                       output.string() + " -j 1";
+
+    int rc = RunReseqExitOnly(args);
+    EXPECT_NE(0, rc) << "illuminaPE should fail with non-existent BAM path";
+    EXPECT_FALSE(std::filesystem::exists(output)) << "Output should not be created on failure";
+}
+
+TEST_F(RegressionTest, MissingReference) {
+    auto bam = test_dir_ / "ecoli-SRR490124-4pairs.bam";
+    auto adapter_fa = adapter_dir_ / "TruSeq_single.fa";
+    auto adapter_mat = adapter_dir_ / "TruSeq_single.mat";
+    auto output = tmp_dir_ / "should-not-exist.reseq";
+
+    std::string args = "illuminaPE"
+                       " -r /nonexistent/path/to/reference.fa"
+                       " -b " +
+                       bam.string() + " --adapterFile " + adapter_fa.string() + " --adapterMatrix " +
+                       adapter_mat.string() +
+                       " --statsOnly --noBias"
+                       " -S " +
+                       output.string() + " -j 1";
+
+    int rc = RunReseqExitOnly(args);
+    EXPECT_NE(0, rc) << "illuminaPE should fail with non-existent reference path";
+}
+
+TEST_F(RegressionTest, CorruptReseqFile) {
+    auto corrupt_file = tmp_dir_ / "corrupt.reseq";
+    {
+        std::ofstream f(corrupt_file, std::ios::binary);
+        f << "THIS_IS_NOT_A_VALID_RESEQ_FILE_HEADER_GARBAGE_DATA_1234567890";
+    }
+
+    std::string args = "queryProfile -s " + corrupt_file.string() + " --maxReadLength";
+
+    int rc = RunReseqExitOnly(args);
+    EXPECT_NE(0, rc) << "queryProfile should fail on corrupt .reseq file";
+}
+
+TEST_F(RegressionTest, EmptyBam) {
+    auto ref = test_dir_ / "ecoli-GCF_000005845.2_ASM584v2_genomic.fa";
+    auto adapter_fa = adapter_dir_ / "TruSeq_single.fa";
+    auto adapter_mat = adapter_dir_ / "TruSeq_single.mat";
+    auto output = tmp_dir_ / "empty-result.reseq";
+
+    // Create empty BAM using samtools (header only)
+    auto empty_bam = tmp_dir_ / "empty.bam";
+    std::string create_cmd =
+        "samtools view -bT " + ref.string() + " /dev/null > " + empty_bam.string() + " 2>/dev/null";
+    std::system(create_cmd.c_str());
+
+    if (!std::filesystem::exists(empty_bam) || std::filesystem::file_size(empty_bam) == 0) {
+        GTEST_SKIP() << "samtools not available to create empty BAM";
+    }
+
+    std::string args = "illuminaPE"
+                       " -r " +
+                       ref.string() + " -b " + empty_bam.string() + " --adapterFile " + adapter_fa.string() +
+                       " --adapterMatrix " + adapter_mat.string() +
+                       " --statsOnly --noBias"
+                       " -S " +
+                       output.string() + " -j 1";
+
+    int rc = RunReseqExitOnly(args);
+    // The spec pins the contract: empty input is an error.
+    // If the current code silently succeeds (rc==0), change this to EXPECT_EQ(0, rc)
+    // and add a comment documenting it as a known behavioral issue.
+    EXPECT_NE(0, rc) << "illuminaPE should report an error for empty BAM input";
+}
+
 } // namespace reseq
