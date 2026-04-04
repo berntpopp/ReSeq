@@ -203,7 +203,9 @@ jobs:
           ruff format --check python/*.py
 
   lint:
-    # Informational: pre-existing warnings cause non-zero exit from clang-tidy
+    # Informational: pre-existing warnings in user code (push_back→emplace_back,
+    # loop variable width, etc.) cause non-zero exit. Vendored headers (seqan,
+    # skewer, ROOTPWA) are excluded via --extra-arg=-isystem.
     continue-on-error: true
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -226,7 +228,10 @@ jobs:
         run: |
           git ls-files 'reseq/*.cpp' \
             | grep -v Test | grep -v test_main \
-            | xargs clang-tidy-17 -p build
+            | xargs clang-tidy-17 -p build \
+                --extra-arg=-isystem"${{ github.workspace }}/seqan/include" \
+                --extra-arg=-isystem"${{ github.workspace }}/skewer" \
+                --extra-arg=-isystem"${{ github.workspace }}/2016-05-15_ROOTPWA"
 
   version-check:
     if: startsWith(github.ref, 'refs/tags/v')
