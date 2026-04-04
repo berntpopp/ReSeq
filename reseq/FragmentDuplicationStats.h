@@ -38,8 +38,6 @@ class FragmentDuplicationStats {
 
     // Google test
     friend class FragmentDuplicationStatsTest;
-    FRIEND_TEST(FragmentDuplicationStatsTest, DispersionCalculation);
-    FRIEND_TEST(FragmentDistributionStatsTest, BiasBinningAndFragmentCounts);
 
   public:
     // Getter functions

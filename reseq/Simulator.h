@@ -15,6 +15,7 @@
 #include <seqan/bam_io.h>
 #include <seqan/seq_io.h>
 
+#include "constants.hpp"
 #include "DataStats.h"
 #include "FragmentDistributionStats.h"
 #include "ProbabilityEstimates.h"
@@ -148,11 +149,11 @@ class Simulator {
         std::discrete_distribution<uintTileId> tile_;
 
         // Adapter probabilities
-        std::array<std::discrete_distribution<uintAdapterId>, 2> adapter_;
+        std::array<std::discrete_distribution<uintAdapterId>, kTemplateSegments> adapter_;
         std::discrete_distribution<uintReadLen> polya_tail_length_;
         std::discrete_distribution<uintBaseCall> overrun_bases_;
 
-        std::array<std::discrete_distribution<uintReadLen>, 2> read_length_;
+        std::array<std::discrete_distribution<uintReadLen>, kTemplateSegments> read_length_;
 
         // General probability
         std::uniform_real_distribution<double> zero_to_one_;
@@ -164,7 +165,7 @@ class Simulator {
               overrun_bases_(stats.Adapters().OverrunBases().begin(),
                              stats.Adapters().OverrunBases().end() - 1), // We don't want the N at the end
               zero_to_one_(0, 1) {
-            for (uintTempSeq template_segment = 2; template_segment--;) {
+            for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
                 adapter_.at(template_segment) = std::discrete_distribution<uintAdapterId>(
                     stats.Adapters().SignificantCounts(template_segment).begin(),
                     stats.Adapters().SignificantCounts(template_segment).end());
@@ -210,7 +211,7 @@ class Simulator {
             overrun_bases_.reset();
             zero_to_one_.reset();
 
-            for (uintTempSeq template_segment = 2; template_segment--;) {
+            for (uintTempSeq template_segment = kTemplateSegments; template_segment--;) {
                 adapter_.at(template_segment).reset();
                 read_length_.at(template_segment).reset();
             }
@@ -245,7 +246,7 @@ class Simulator {
         utilities::CigarString cigar_;
     };
 
-    typedef std::array<SimRead, 2> SimPair;
+    typedef std::array<SimRead, kTemplateSegments> SimPair;
 
     // Definitions
     const uintFragCount kBatchSize =
@@ -258,14 +259,14 @@ class Simulator {
     // Mutex
     std::mutex print_mutex_;
     std::mutex output_mutex_;
-    std::array<std::mutex, 2> flush_mutex_;
+    std::array<std::mutex, kTemplateSegments> flush_mutex_;
 
     std::mutex block_creation_mutex_;
     std::mutex var_read_mutex_;
     std::mutex methylation_read_mutex_;
 
     // private variables
-    std::array<seqan::SeqFileOut, 2> dest_;
+    std::array<seqan::SeqFileOut, kTemplateSegments> dest_;
     std::atomic<uintFragCount> written_records_;
     std::string record_base_identifier_;
 
@@ -299,7 +300,7 @@ class Simulator {
     uintReadLen sys_gc_range_;
     uintSeqLen distance_to_start_of_error_region_;
     uintPercent start_error_rate_;
-    std::array<std::vector<std::vector<std::pair<seqan::Dna5, uintPercent>>>, 2> adapter_sys_error_;
+    std::array<std::vector<std::vector<std::pair<seqan::Dna5, uintPercent>>>, kTemplateSegments> adapter_sys_error_;
 
     double bias_normalization_;
     std::vector<uintRefSeqId> coverage_groups_; // coverage_groups_[RefSeqId] = CoverageGroup
@@ -311,9 +312,9 @@ class Simulator {
     uintFragCount num_adapter_only_pairs_;
     std::atomic_flag adapter_only_simulated_; // Int instead of bool so atomic increment works
 
-    std::array<std::unique_ptr<seqan::StringSet<seqan::CharString>>, 2> output_ids_;
-    std::array<std::unique_ptr<seqan::StringSet<seqan::Dna5String>>, 2> output_seqs_;
-    std::array<std::unique_ptr<seqan::StringSet<seqan::CharString>>, 2> output_quals_;
+    std::array<std::unique_ptr<seqan::StringSet<seqan::CharString>>, kTemplateSegments> output_ids_;
+    std::array<std::unique_ptr<seqan::StringSet<seqan::Dna5String>>, kTemplateSegments> output_seqs_;
+    std::array<std::unique_ptr<seqan::StringSet<seqan::CharString>>, kTemplateSegments> output_quals_;
 
     std::vector<double> tmp_probabilities_;
     std::uniform_real_distribution<double> rdist_zero_to_one_;

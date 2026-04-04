@@ -7,6 +7,7 @@
 
 #include <seqan/basic.h>
 
+#include "container_types.hpp"
 #include "utilities.hpp"
 #include "Vect.hpp"
 
@@ -17,62 +18,50 @@ class ErrorStats {
 
   private:
     // Temporary variables
-    std::array<
-        std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<std::vector<std::vector<AtomicVec<uintNucCount>>>>>
         tmp_called_bases_by_base_quality_per_tile_;
-    std::array<
-        std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<std::vector<std::vector<AtomicVec<uintNucCount>>>>>
         tmp_called_bases_by_position_per_tile_;
-    std::array<
-        std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<std::vector<std::vector<AtomicVec<uintNucCount>>>>>
         tmp_called_bases_by_error_num_per_tile_;
-    std::array<
-        std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<std::vector<std::vector<AtomicVec<uintNucCount>>>>>
         tmp_called_bases_by_error_rate_per_tile_;
-    std::array<
-        std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 4>, 2>
-        tmp_error_num_by_quality_per_tile_;
-    std::array<
-        std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 4>, 2>
-        tmp_error_num_by_position_per_tile_;
-    std::array<
-        std::array<std::array<std::vector<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<std::vector<std::vector<AtomicVec<uintNucCount>>>>> tmp_error_num_by_quality_per_tile_;
+    PerSegmentPerBase<PerBaseN<std::vector<std::vector<AtomicVec<uintNucCount>>>>> tmp_error_num_by_position_per_tile_;
+    PerSegmentPerBase<PerBaseN<std::vector<std::vector<AtomicVec<uintNucCount>>>>>
         tmp_error_num_by_error_rate_per_tile_;
 
-    std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 6>, 2>
-        tmp_indel_by_indel_pos_;
-    std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 6>, 2>
-        tmp_indel_by_position_;
-    std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 6>, 2> tmp_indel_by_gc_;
-    std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 6>, 2>
-        tmp_indel_pos_by_position_;
-    std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 6>, 2> tmp_indel_pos_by_gc_;
-    std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 6>, 2> tmp_gc_by_position_;
+    std::array<std::array<std::vector<AtomicVec<uintNucCount>>, 6>, 2> tmp_indel_by_indel_pos_;
+    std::array<std::array<std::vector<AtomicVec<uintNucCount>>, 6>, 2> tmp_indel_by_position_;
+    std::array<std::array<std::vector<AtomicVec<uintNucCount>>, 6>, 2> tmp_indel_by_gc_;
+    std::array<std::array<std::vector<AtomicVec<uintNucCount>>, 6>, 2> tmp_indel_pos_by_position_;
+    std::array<std::array<std::vector<AtomicVec<uintNucCount>>, 6>, 2> tmp_indel_pos_by_gc_;
+    std::array<std::array<std::vector<AtomicVec<uintNucCount>>, 6>, 2> tmp_gc_by_position_;
 
-    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, 2> tmp_errors_per_read_;
-    std::array<std::array<std::array<std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, 6>, 5>, 4>, 2>
+    PerSegment<AtomicVec<uintFragCount>> tmp_errors_per_read_;
+    PerSegmentPerBase<PerBaseN<std::array<AtomicVec<uintNucCount>, 6>>>
         tmp_called_bases_by_base_quality_per_previous_called_base_;
 
     // Collected variables for estimation
-    std::array<std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<Vect<Vect<Vect<uintNucCount>>>>>
         called_bases_by_base_quality_per_tile_; // called_bases_by_base_quality_per_tile_[first/second][refBase][domError][tileId][calledBase][baseQuality]
                                                 // = #bases
-    std::array<std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<Vect<Vect<Vect<uintNucCount>>>>>
         called_bases_by_position_per_tile_; // called_bases_by_position_per_tile_[first/second][refBase][domError][tileId][calledBase][position]
                                             // = #bases
-    std::array<std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<Vect<Vect<Vect<uintNucCount>>>>>
         called_bases_by_error_num_per_tile_; // called_bases_by_error_num_per_tile_[first/second][refBase][domError][tileId][calledBase][numErrors]
                                              // = #bases
-    std::array<std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<Vect<Vect<Vect<uintNucCount>>>>>
         called_bases_by_error_rate_per_tile_; // called_bases_by_error_rate_per_tile_[first/second][refBase][domError][tileId][calledBase][errorRate]
                                               // = #bases
-    std::array<std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<Vect<Vect<Vect<uintNucCount>>>>>
         error_num_by_quality_per_tile_; // error_num_by_quality_per_tile_[first/second][refBase][domError][tileId][numErrors][baseQuality]
                                         // = #bases
-    std::array<std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<Vect<Vect<Vect<uintNucCount>>>>>
         error_num_by_position_per_tile_; // error_num_by_position_per_tile_[first/second][refBase][domError][tileId][numErrors][position]
                                          // = #bases
-    std::array<std::array<std::array<Vect<Vect<Vect<uintNucCount>>>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<Vect<Vect<Vect<uintNucCount>>>>>
         error_num_by_error_rate_per_tile_; // error_num_by_error_rate_per_tile_[first/second][refBase][domError][tileId][numErrors][errorRate]
                                            // = #bases
 
@@ -90,8 +79,8 @@ class ErrorStats {
         gc_by_position_; // position_by_gc_[Insertion/DeletionBefore][PreviousRegularCall][Position][GC]
 
     // Collected variables for plotting
-    std::array<Vect<uintFragCount>, 2> errors_per_read_; // errors_per_read_[first/second][#errors] = #reads
-    std::array<std::array<std::array<std::array<Vect<uintNucCount>, 6>, 5>, 4>, 2>
+    PerSegment<Vect<uintFragCount>> errors_per_read_; // errors_per_read_[first/second][#errors] = #reads
+    PerSegmentPerBase<PerBaseN<std::array<Vect<uintNucCount>, 6>>>
         called_bases_by_base_quality_per_previous_called_base_; // called_bases_by_base_quality_per_previous_called_base_[first/second][refBase][calledBase][previouslyCalledBase][baseQuality]
                                                                 // = #bases
 
@@ -99,10 +88,10 @@ class ErrorStats {
     uintReadLen max_len_deletion_; // max_deletion_[first/second] = Maximum length of deletion
 
     // Calculated variables for plotting from variables for estimation
-    std::array<std::array<std::array<Vect<uintNucCount>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<Vect<uintNucCount>>>
         called_bases_by_base_quality_; // called_bases_by_base_quality_[first/second][refBase][calledBase][baseQuality]
                                        // = #bases
-    std::array<std::array<std::array<Vect<uintNucCount>, 5>, 4>, 2>
+    PerSegmentPerBase<PerBaseN<Vect<uintNucCount>>>
         called_bases_by_position_; // called_bases_by_position_[first/second][refBase][calledBase][position] = #bases
 
     std::array<Vect<uintNucCount>, 2>

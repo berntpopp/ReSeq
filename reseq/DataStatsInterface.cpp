@@ -31,15 +31,6 @@ const vector<uintFragCount>& DataStatsInterface::AdapterCount(uintTempSeq templa
     return stats_.Adapters().Counts(template_segment);
 }
 
-const pair<vector<uintFragCount>::size_type, vector<uintFragCount>>&
-DataStatsInterface::AdapterPolyATailLength() const {
-    return stats_.Adapters().PolyATailLength().std();
-}
-
-uintNucCount DataStatsInterface::AdapterOverrunBases(uintBaseCall nucleotide) const {
-    return stats_.Adapters().OverrunBases().at(nucleotide);
-}
-
 uintSeqLen DataStatsInterface::ErrorRatesByDistanceStart() const {
     return stats_.Coverage().ErrorRatesByDistanceSum().from();
 }
@@ -245,11 +236,6 @@ DataStatsInterface::NucleotideQuality(uintTempSeq template_segment, uintBaseCall
     return stats_.Qualities().NucleotideQuality(template_segment, nucleotide).stdQualities();
 }
 
-const std::pair<std::vector<uintNucCount>::size_type, std::vector<uintNucCount>>&
-DataStatsInterface::BaseQualityStatsReference(uintTempSeq template_segment, uintReadLen read_position) const {
-    return stats_.Qualities().BaseQualityStatsReference(template_segment)[read_position].stdQualities();
-}
-
 const pair<vector<double>::size_type, vector<double>>&
 DataStatsInterface::BaseQualityMeanReference(uintTempSeq template_segment) const {
     return stats_.Qualities().BaseQualityMeanReference(template_segment).std();
@@ -283,11 +269,6 @@ DataStatsInterface::BaseQualityMaximumReference(uintTempSeq template_segment) co
 const pair<vector<uintQual>::size_type, vector<uintQual>>&
 DataStatsInterface::AverageSequenceQualityForGC(uintTempSeq template_segment) const {
     return stats_.Qualities().AverageSequenceQualityForGC(template_segment).std();
-}
-
-const std::pair<std::vector<uintNucCount>::size_type, std::vector<uintNucCount>>&
-DataStatsInterface::BaseQualityStats(uintTempSeq template_segment, uintReadLen read_position) const {
-    return stats_.Qualities().BaseQualityStats(template_segment)[read_position].stdQualities();
 }
 
 const pair<vector<double>::size_type, vector<double>>&
@@ -392,13 +373,6 @@ const vector<uintFragCount>& DataStatsInterface::TileAbundance() const {
     return stats_.Tiles().Abundance();
 }
 
-uintQual DataStatsInterface::PhredQualityOffset() const {
-    return stats_.PhredQualityOffset();
-}
-uintFragCount DataStatsInterface::TotalNumberReads() const {
-    return stats_.TotalNumberReads();
-}
-
 const pair<vector<uintFragCount>::size_type, vector<uintFragCount>>&
 DataStatsInterface::ReadLengths(uintTempSeq template_segment) const {
     return stats_.ReadLengths(template_segment).std();
@@ -455,15 +429,6 @@ DataStatsInterface::HomopolymerDistribution(uintBaseCall nucleotide) const {
     return stats_.HomopolymerDistribution(nucleotide).std();
 }
 
-// Deactivation of pcr calculation only for speeding up of tests
-bool DataStatsInterface::ReadBam(const char* bam_file, const char* adapter_file, const char* adapter_matrix,
-                                 const char* variant_file, uintNumThreads num_threads, bool calculate_bias) {
-    bool success =
-        stats_.ReadBam(bam_file, adapter_file, adapter_matrix, string(variant_file), num_threads, calculate_bias);
-    stats_.PreparePlotting();
-    return success;
-}
-
 bool DataStatsInterface::Load(const char* archive_file) {
     if (!stats_.Load(archive_file)) {
         return false;
@@ -471,8 +436,4 @@ bool DataStatsInterface::Load(const char* archive_file) {
 
     stats_.PreparePlotting();
     return true;
-}
-
-bool DataStatsInterface::Save(const char* archive_file, bool text_format) const {
-    return stats_.Save(archive_file, text_format);
 }

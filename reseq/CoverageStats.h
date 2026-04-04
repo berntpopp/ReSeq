@@ -15,6 +15,7 @@
 
 #include <seqan/bam_io.h>
 
+#include "container_types.hpp"
 #include "ErrorStats.h"
 #include "QualityStats.h"
 #include "Reference.h"
@@ -40,17 +41,17 @@ class CoverageStats {
     };
 
     struct CoveragePosition {
-        std::array<std::atomic<uintCovCount>, 5> coverage_forward_;
-        std::array<std::atomic<uintCovCount>, 5> coverage_reverse_;
+        std::array<std::atomic<uintCovCount>, kNumBasesN> coverage_forward_;
+        std::array<std::atomic<uintCovCount>, kNumBasesN> coverage_reverse_;
 
-        std::array<seqan::Dna5, 2> dom_error_;  // dom_error_[strand] = domError
-        std::array<uintPercent, 2> error_rate_; // error_rate[strand] = errorRate
+        std::array<seqan::Dna5, kStrands> dom_error_;  // dom_error_[strand] = domError
+        std::array<uintPercent, kStrands> error_rate_; // error_rate[strand] = errorRate
 
         bool valid_;
-        std::array<bool, 2> coverage_sufficient_;
+        std::array<bool, kStrands> coverage_sufficient_;
 
         CoveragePosition() : dom_error_({4, 4}), error_rate_({0, 0}), valid_(true), coverage_sufficient_({true, true}) {
-            for (int i = 5; i--;) {
+            for (int i = kNumBasesN; i--;) {
                 coverage_forward_.at(i) = 0;
                 coverage_reverse_.at(i) = 0;
             }
@@ -62,7 +63,7 @@ class CoverageStats {
         CoveragePosition(CoveragePosition&& other) noexcept
             : dom_error_(other.dom_error_), error_rate_(other.error_rate_), valid_(other.valid_),
               coverage_sufficient_(other.coverage_sufficient_) {
-            for (int i = 5; i--;) {
+            for (int i = kNumBasesN; i--;) {
                 coverage_forward_.at(i).store(other.coverage_forward_.at(i).load(std::memory_order_relaxed),
                                               std::memory_order_relaxed);
                 coverage_reverse_.at(i).store(other.coverage_reverse_.at(i).load(std::memory_order_relaxed),
@@ -72,11 +73,11 @@ class CoverageStats {
     };
 
     struct ProcessedCoveragePosition {
-        std::array<seqan::Dna5, 2> dom_error_;  // dom_error_[strand] = domError
-        std::array<uintPercent, 2> error_rate_; // error_rate[strand] = errorRate
+        std::array<seqan::Dna5, kStrands> dom_error_;  // dom_error_[strand] = domError
+        std::array<uintPercent, kStrands> error_rate_; // error_rate[strand] = errorRate
 
         bool valid_;
-        std::array<bool, 2> coverage_sufficient_;
+        std::array<bool, kStrands> coverage_sufficient_;
 
         ProcessedCoveragePosition()
             : dom_error_({4, 4}), error_rate_({0, 0}), valid_(false), coverage_sufficient_({false, false}) {}
@@ -112,10 +113,10 @@ class CoverageStats {
 
     class ThreadData {
       private:
-        std::vector<std::array<uintCovCount, 2>>
+        std::vector<std::array<uintCovCount, kStrands>>
             block_coverage_; // block_coverage_[BlockPos][forward/reverse] = coverage
         std::vector<std::pair<double, uintCovCount>> error_rates_sorted_;
-        std::vector<std::array<double, 2>>
+        std::vector<std::array<double, kStrands>>
             non_sytematic_probability_; // block_coverage_[BlockPos][forward/reverse] = prob
         std::vector<double> non_sytematic_probability_sorted_;
 
@@ -152,87 +153,73 @@ class CoverageStats {
     std::mutex variant_loading_mutex_;
 
     // Temporary variables
-    std::array<std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 4>, 5>, 4>
-        tmp_dominant_errors_by_distance_;
-    std::array<std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 4>, 5>, 4>
-        tmp_dominant_errors_by_gc_;
-    std::array<std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 4>, 5>, 4>
-        tmp_gc_by_distance_de_;
-    std::array<std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 4>, 5>, 4>
-        tmp_dominant_errors_by_start_rates_;
-    std::array<std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 4>, 5>, 4>
-        tmp_start_rates_by_distance_de_;
-    std::array<std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 4>, 5>, 4>
-        tmp_start_rates_by_gc_de_;
+    PerBase<PerBaseN<PerBase<std::vector<AtomicVec<uintNucCount>>>>> tmp_dominant_errors_by_distance_;
+    PerBase<PerBaseN<PerBase<std::vector<AtomicVec<uintNucCount>>>>> tmp_dominant_errors_by_gc_;
+    PerBase<PerBaseN<PerBase<std::vector<AtomicVec<uintNucCount>>>>> tmp_gc_by_distance_de_;
+    PerBase<PerBaseN<PerBase<std::vector<AtomicVec<uintNucCount>>>>> tmp_dominant_errors_by_start_rates_;
+    PerBase<PerBaseN<PerBase<std::vector<AtomicVec<uintNucCount>>>>> tmp_start_rates_by_distance_de_;
+    PerBase<PerBaseN<PerBase<std::vector<AtomicVec<uintNucCount>>>>> tmp_start_rates_by_gc_de_;
 
-    std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 5>, 4>
-        tmp_error_rates_by_distance_;
-    std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 5>, 4>
-        tmp_error_rates_by_gc_;
-    std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 5>, 4>
-        tmp_gc_by_distance_er_;
-    std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 5>, 4>
-        tmp_error_rates_by_start_rates_;
-    std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 5>, 4>
-        tmp_start_rates_by_distance_er_;
-    std::array<std::array<std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>, 5>, 4>
-        tmp_start_rates_by_gc_er_;
+    PerBase<PerBaseN<std::vector<AtomicVec<uintNucCount>>>> tmp_error_rates_by_distance_;
+    PerBase<PerBaseN<std::vector<AtomicVec<uintNucCount>>>> tmp_error_rates_by_gc_;
+    PerBase<PerBaseN<std::vector<AtomicVec<uintNucCount>>>> tmp_gc_by_distance_er_;
+    PerBase<PerBaseN<std::vector<AtomicVec<uintNucCount>>>> tmp_error_rates_by_start_rates_;
+    PerBase<PerBaseN<std::vector<AtomicVec<uintNucCount>>>> tmp_start_rates_by_distance_er_;
+    PerBase<PerBaseN<std::vector<AtomicVec<uintNucCount>>>> tmp_start_rates_by_gc_er_;
 
-    std::vector<utilities::VectorAtomic<uintSurBlockId>> tmp_block_error_rate_;
-    std::vector<utilities::VectorAtomic<uintSurBlockId>> tmp_block_percent_systematic_;
-    std::vector<utilities::VectorAtomic<uintNucCount>> tmp_systematic_error_p_values_;
+    AtomicVec<uintSurBlockId> tmp_block_error_rate_;
+    AtomicVec<uintSurBlockId> tmp_block_percent_systematic_;
+    AtomicVec<uintNucCount> tmp_systematic_error_p_values_;
 
-    std::vector<utilities::VectorAtomic<uintNucCount>> tmp_coverage_;
-    std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, 2> tmp_coverage_stranded_;
-    std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, 2> tmp_coverage_stranded_percent_;
-    std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, 2> tmp_coverage_stranded_percent_min_cov_10_;
-    std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, 2> tmp_coverage_stranded_percent_min_cov_20_;
-    std::vector<utilities::VectorAtomic<uintNucCount>> tmp_error_coverage_;
-    std::vector<utilities::VectorAtomic<uintNucCount>> tmp_error_coverage_percent_;
-    std::vector<utilities::VectorAtomic<uintNucCount>> tmp_error_coverage_percent_min_cov_10_;
-    std::vector<utilities::VectorAtomic<uintNucCount>> tmp_error_coverage_percent_min_cov_20_;
-    std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>> tmp_error_coverage_percent_stranded_;
-    std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>
-        tmp_error_coverage_percent_stranded_min_strand_cov_10_;
-    std::vector<std::vector<utilities::VectorAtomic<uintNucCount>>>
-        tmp_error_coverage_percent_stranded_min_strand_cov_20_;
+    AtomicVec<uintNucCount> tmp_coverage_;
+    PerStrand<AtomicVec<uintNucCount>> tmp_coverage_stranded_;
+    PerStrand<AtomicVec<uintNucCount>> tmp_coverage_stranded_percent_;
+    PerStrand<AtomicVec<uintNucCount>> tmp_coverage_stranded_percent_min_cov_10_;
+    PerStrand<AtomicVec<uintNucCount>> tmp_coverage_stranded_percent_min_cov_20_;
+    AtomicVec<uintNucCount> tmp_error_coverage_;
+    AtomicVec<uintNucCount> tmp_error_coverage_percent_;
+    AtomicVec<uintNucCount> tmp_error_coverage_percent_min_cov_10_;
+    AtomicVec<uintNucCount> tmp_error_coverage_percent_min_cov_20_;
+    std::vector<AtomicVec<uintNucCount>> tmp_error_coverage_percent_stranded_;
+    std::vector<AtomicVec<uintNucCount>> tmp_error_coverage_percent_stranded_min_strand_cov_10_;
+    std::vector<AtomicVec<uintNucCount>> tmp_error_coverage_percent_stranded_min_strand_cov_20_;
 
     // Collected variables for simulation
-    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4>
+    PerBase<PerBaseN<PerBase<Vect<Vect<uintNucCount>>>>>
         dominant_errors_by_distance_; // dominant_errors_by_distance_[refBase][previousRefBase][domRefBaseLast5][(distanceToStartOfErrorRegion+9)/10][dominantError]
                                       // = #refBases
-    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4>
+    PerBase<PerBaseN<PerBase<Vect<Vect<uintNucCount>>>>>
         dominant_errors_by_gc_; // dominant_errors_by_gc_[refBase][previousRefBase][domRefBaseLast5][GClastHalfAverageReadLength][dominantError]
                                 // = #refBases
-    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4>
+    PerBase<PerBaseN<PerBase<Vect<Vect<uintNucCount>>>>>
         gc_by_distance_de_; // gc_by_distance_de_[refBase][previousRefBase][domRefBaseLast5][(distanceToStartOfErrorRegion+9)/10][GClastHalfAverageReadLength]
                             // = #refBases
-    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4>
+    PerBase<PerBaseN<PerBase<Vect<Vect<uintNucCount>>>>>
         dominant_errors_by_start_rates_; // dominant_errors_by_start_rates_[refBase][previousRefBase][domRefBaseLast5][errorRateStart][dominantError]
                                          // = #refBases
-    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4>
+    PerBase<PerBaseN<PerBase<Vect<Vect<uintNucCount>>>>>
         start_rates_by_distance_de_; // start_rates_by_distance_de_[refBase][previousRefBase][domRefBaseLast5][(distanceToStartOfErrorRegion+9)/10][errorRateStart]
                                      // = #refBases
-    std::array<std::array<std::array<Vect<Vect<uintNucCount>>, 4>, 5>, 4>
+    PerBase<PerBaseN<PerBase<Vect<Vect<uintNucCount>>>>>
         start_rates_by_gc_de_; // start_rates_by_gc_de_[refBase][previousRefBase][domRefBaseLast5][(distanceToStartOfErrorRegion+9)/10][errorRateStart]
                                // = #refBases
 
-    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4>
+    PerBase<PerBaseN<Vect<Vect<uintNucCount>>>>
         error_rates_by_distance_; // error_rates_by_distance_[refBase][dominantError][(distanceToStartOfErrorRegion+9)/10][errorRate]
                                   // = #refBases
-    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4>
+    PerBase<PerBaseN<Vect<Vect<uintNucCount>>>>
         error_rates_by_gc_; // error_rates_by_gc_[refBase][dominantError][GClastHalfAverageReadLength][errorRate]
                             // = #refBases
-    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4>
+    PerBase<PerBaseN<Vect<Vect<uintNucCount>>>>
         gc_by_distance_er_; // gc_by_distance_er_[refBase][dominantError][(distanceToStartOfErrorRegion+9)/10][GClastHalfAverageReadLength]
                             // = #refBases
-    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4>
+    PerBase<PerBaseN<Vect<Vect<uintNucCount>>>>
         error_rates_by_start_rates_; // error_rates_by_start_rates_[refBase][dominantError][errorRateStart][errorRate]
                                      // = #refBases
-    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4>
+    PerBase<PerBaseN<Vect<Vect<uintNucCount>>>>
         start_rates_by_distance_er_; // start_rates_by_distance_[refBase][dominantError][(distanceToStartOfErrorRegion+9)/10][errorRateStart]
                                      // = #refBases
-    std::array<std::array<Vect<Vect<uintNucCount>>, 5>, 4>
+    PerBase<PerBaseN<Vect<Vect<uintNucCount>>>>
         start_rates_by_gc_er_; // start_rates_by_gc_[refBase][dominantError][GClastHalfAverageReadLength][errorRateStart]
                                // = #refBases
 
@@ -242,14 +229,14 @@ class CoverageStats {
     Vect<uintNucCount> systematic_error_p_values_;
 
     Vect<uintNucCount> coverage_; // coverage_[ coverageDepth ] = #bases
-    std::array<Vect<uintNucCount>, 2>
+    PerStrand<Vect<uintNucCount>>
         coverage_stranded_; // coverage_stranded_[forward/reverse][ coverageDepthOnStrand ] = #bases
-    std::array<Vect<uintNucCount>, 2> coverage_stranded_percent_; // coverage_stranded_percent_[forward/reverse][
-                                                                  // coverageDepthOnStrand/coverageDepth*100 ] = #bases
-    std::array<Vect<uintNucCount>, 2>
+    PerStrand<Vect<uintNucCount>> coverage_stranded_percent_; // coverage_stranded_percent_[forward/reverse][
+                                                              // coverageDepthOnStrand/coverageDepth*100 ] = #bases
+    PerStrand<Vect<uintNucCount>>
         coverage_stranded_percent_min_cov_10_; // coverage_stranded_percent_min_cov_10_[forward/reverse][
                                                // coverageDepthOnStrand/coverageDepth*100 ] = #bases
-    std::array<Vect<uintNucCount>, 2>
+    PerStrand<Vect<uintNucCount>>
         coverage_stranded_percent_min_cov_20_; // coverage_stranded_percent_min_cov_20_[forward/reverse][
                                                // coverageDepthOnStrand/coverageDepth*100 ] = #bases
     Vect<uintNucCount> error_coverage_;        // error_coverage_[ #errorsAtReferencePosition ] = #bases

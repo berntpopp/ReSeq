@@ -7,6 +7,7 @@
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/vector.hpp>
 
+#include "container_types.hpp"
 #include "CoverageStats.h"
 #include "QualityStats.h"
 #include "utilities.hpp"
@@ -17,24 +18,24 @@ namespace reseq {
 class ReadSequenceStats {
   private:
     // Atomic accumulators (thread-safe, filled during multi-threaded BAM pass)
-    std::vector<utilities::VectorAtomic<uintFragCount>> tmp_proper_pair_mapping_quality_;
-    std::vector<utilities::VectorAtomic<uintFragCount>> tmp_improper_pair_mapping_quality_;
-    std::vector<utilities::VectorAtomic<uintFragCount>> tmp_single_read_mapping_quality_;
+    AtomicVec<uintFragCount> tmp_proper_pair_mapping_quality_;
+    AtomicVec<uintFragCount> tmp_improper_pair_mapping_quality_;
+    AtomicVec<uintFragCount> tmp_single_read_mapping_quality_;
 
-    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, 2> tmp_gc_read_content_;
-    std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, 2> tmp_n_content_;
-    std::array<std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, 5>, 2> tmp_sequence_content_;
-    std::array<std::vector<utilities::VectorAtomic<uintNucCount>>, 5> tmp_homopolymer_distribution_;
+    PerSegment<AtomicVec<uintFragCount>> tmp_gc_read_content_;
+    PerSegment<AtomicVec<uintFragCount>> tmp_n_content_;
+    PerSegmentPerBaseN<AtomicVec<uintNucCount>> tmp_sequence_content_;
+    PerBaseN<AtomicVec<uintNucCount>> tmp_homopolymer_distribution_;
 
     // Final histograms (serialized)
     Vect<uintFragCount> proper_pair_mapping_quality_;
     Vect<uintFragCount> improper_pair_mapping_quality_;
     Vect<uintFragCount> single_read_mapping_quality_;
 
-    std::array<Vect<uintFragCount>, 2> gc_read_content_;
-    std::array<Vect<uintFragCount>, 2> n_content_;
-    std::array<std::array<Vect<uintNucCount>, 5>, 2> sequence_content_;
-    std::array<Vect<uintNucCount>, 5> homopolymer_distribution_;
+    PerSegment<Vect<uintFragCount>> gc_read_content_;
+    PerSegment<Vect<uintFragCount>> n_content_;
+    PerSegmentPerBaseN<Vect<uintNucCount>> sequence_content_;
+    PerBaseN<Vect<uintNucCount>> homopolymer_distribution_;
 
     // Boost serialization
     friend class boost::serialization::access;
@@ -55,7 +56,6 @@ class ReadSequenceStats {
 
     // Google test
     friend class DataStatsTest;
-    FRIEND_TEST(DataStatsTest, Construction);
 
   public:
     // Accumulator lifecycle

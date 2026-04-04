@@ -987,10 +987,10 @@ void ProbabilityEstimates::IterativeProportionalFitting(const DataStats& stats, 
 }
 
 void ProbabilityEstimates::PrepareResult() {
-    for (auto template_segment = 2; template_segment--;) {
+    for (auto template_segment = kTemplateSegments; template_segment--;) {
         quality_result_.at(template_segment).resize(quality_.at(template_segment).size());
         for (auto tile_id = quality_.at(template_segment).size(); tile_id--;) {
-            for (auto ref_base = 4; ref_base--;) {
+            for (auto ref_base = kNumBases; ref_base--;) {
                 quality_.at(template_segment).at(tile_id).at(ref_base).FullExpansion();
                 quality_result_.at(template_segment)
                     .at(tile_id)
@@ -1017,8 +1017,8 @@ void ProbabilityEstimates::PrepareResult() {
 
         base_call_result_.at(template_segment).resize(base_call_.at(template_segment).size());
         for (auto tile_id = base_call_.at(template_segment).size(); tile_id--;) {
-            for (auto ref_base = 4; ref_base--;) {
-                for (auto dom_error = 5; dom_error--;) {
+            for (auto ref_base = kNumBases; ref_base--;) {
+                for (auto dom_error = kNumBasesN; dom_error--;) {
                     base_call_.at(template_segment).at(tile_id).at(ref_base).at(dom_error).FullExpansion();
                     base_call_result_.at(template_segment)
                         .at(tile_id)
@@ -1035,9 +1035,9 @@ void ProbabilityEstimates::PrepareResult() {
         base_call_.at(template_segment).shrink_to_fit();
     }
 
-    for (auto ref_base = 4; ref_base--;) {
-        for (auto last_base = 5; last_base--;) {
-            for (auto dom_last5 = 5; dom_last5--;) {
+    for (auto ref_base = kNumBases; ref_base--;) {
+        for (auto last_base = kNumBasesN; last_base--;) {
+            for (auto dom_last5 = kNumBasesN; dom_last5--;) {
                 dom_error_.at(ref_base).at(last_base).at(dom_last5).FullExpansion();
                 dom_error_result_.at(ref_base).at(last_base).at(dom_last5).GetResults(
                     dom_error_.at(ref_base).at(last_base).at(dom_last5).estimates_,
@@ -1161,14 +1161,14 @@ bool ProbabilityEstimates::Estimate(const DataStats& stats, uintNumFits max_iter
     // Collect the different parameters determining the different matrices that have to be calculated
     vector<IPFThreadParams> params;
     params.reserve((2 * 4 + 2 * 4 * 5 + 2) * stats.Tiles().NumTiles() + 4 * 4 + 4 * 4 * 5 + 2 * 6);
-    for (uintTempSeq template_segment = 0; template_segment < 2; ++template_segment) {
+    for (uintTempSeq template_segment = 0; template_segment < kTemplateSegments; ++template_segment) {
         for (uintTileId tile_id = 0; tile_id < stats.Tiles().NumTiles(); ++tile_id) {
             for (uintBaseCall ref_base = base_call_.at(template_segment).at(tile_id).size(); ref_base--;) {
                 params.push_back({IPFDataSelector::kIPFQuality, template_segment, tile_id, ref_base, 0, 0});
             }
         }
     }
-    for (uintTempSeq template_segment = 0; template_segment < 2; ++template_segment) {
+    for (uintTempSeq template_segment = 0; template_segment < kTemplateSegments; ++template_segment) {
         for (uintTileId tile_id = 0; tile_id < stats.Tiles().NumTiles(); ++tile_id) {
             for (uintBaseCall ref_base = base_call_.at(template_segment).at(tile_id).size(); ref_base--;) {
                 for (uintBaseCall dom_error = base_call_.at(template_segment).at(tile_id).at(ref_base).size();
@@ -1180,20 +1180,20 @@ bool ProbabilityEstimates::Estimate(const DataStats& stats, uintNumFits max_iter
         }
     }
 
-    for (uintTempSeq template_segment = 0; template_segment < 2; ++template_segment) {
+    for (uintTempSeq template_segment = 0; template_segment < kTemplateSegments; ++template_segment) {
         for (uintTileId tile_id = 0; tile_id < stats.Tiles().NumTiles(); ++tile_id) {
             params.push_back({IPFDataSelector::kIPFSequenceQuality, template_segment, tile_id, 0, 0, 0});
         }
     }
 
-    for (uintBaseCall ref_base = 4; ref_base--;) {
-        for (uintBaseCall dom_error = 5; dom_error--;) {
+    for (uintBaseCall ref_base = kNumBases; ref_base--;) {
+        for (uintBaseCall dom_error = kNumBasesN; dom_error--;) {
             if (ref_base != dom_error) {
                 params.push_back({IPFDataSelector::kIPFErrorRate, 0, 0, ref_base, dom_error, 0});
             }
         }
-        for (uintBaseCall dom_base = 4; dom_base--;) {
-            for (uintBaseCall last_ref_base = 5; last_ref_base--;) {
+        for (uintBaseCall dom_base = kNumBases; dom_base--;) {
+            for (uintBaseCall last_ref_base = kNumBasesN; last_ref_base--;) {
                 params.push_back({IPFDataSelector::kIPFDominantError, 0, 0, ref_base, dom_base, last_ref_base});
             }
         }

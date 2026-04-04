@@ -16,6 +16,7 @@
 #include "nlopt.hpp"
 
 #include "BoundedWorkQueue.h"
+#include "container_types.hpp"
 #include "FragmentDuplicationStats.h"
 #include "Reference.h"
 #include "utilities.hpp"
@@ -106,19 +107,19 @@ class BiasCalculationVectors {
     uintFragCount total_counts_;
     uintFragCount total_sites_;
 
-    std::array<uintFragCount, 101> gc_count_;
-    std::array<uintFragCount, 4 * Surrounding::Length()> sur_count_;
+    std::array<uintFragCount, kGCBins> gc_count_;
+    std::array<uintFragCount, kNumBases * Surrounding::Length()> sur_count_;
 
-    std::array<uintFragCount, 101> gc_sites_;
-    std::array<uintFragCount, 4 * Surrounding::Length()> sur_sites_;
+    std::array<uintFragCount, kGCBins> gc_sites_;
+    std::array<uintFragCount, kNumBases * Surrounding::Length()> sur_sites_;
 
-    std::array<double, 101> gc_weights_;
+    std::array<double, kGCBins> gc_weights_;
 
     // Results
     std::array<uintPercent, kGCSplineDf> gc_knots_;
-    std::array<double, 101> gc_bias_;
+    std::array<double, kGCBins> gc_bias_;
 
-    std::array<double, 4 * Surrounding::Length()> sur_bias_;
+    std::array<double, kNumBases * Surrounding::Length()> sur_bias_;
 
     std::vector<double> dispersion_;
 
@@ -128,11 +129,11 @@ class BiasCalculationVectors {
     // Temporary calculation variables
     double loglike_pois_base_;
 
-    std::array<double, 101> gc_bias_no_logit_;
-    std::array<double, 101> gc_bias_grad_;
-    std::array<std::pair<double, double>, 101> gc_bias_sum_;
-    std::array<std::array<std::pair<double, double>, 4 * Surrounding::Length()>, 101> grad_gc_bias_sum_;
-    std::array<double, 4 * Surrounding::Length()> sur_grad_;
+    std::array<double, kGCBins> gc_bias_no_logit_;
+    std::array<double, kGCBins> gc_bias_grad_;
+    std::array<std::pair<double, double>, kGCBins> gc_bias_sum_;
+    std::array<std::array<std::pair<double, double>, kNumBases * Surrounding::Length()>, kGCBins> grad_gc_bias_sum_;
+    std::array<double, kNumBases * Surrounding::Length()> sur_grad_;
 
     std::array<std::array<std::array<double, kGCSplineDf>, kGCSplineDf - 1>, 3> lin_comb_gc_splines_;
 
@@ -159,12 +160,13 @@ class BiasCalculationVectors {
 
     // Functions for fit
     BiasCalculationVectors()
-        : optimizer_poisson_(nlopt::LD_LBFGS, 4 * Surrounding::Length() + (!kSurMult ? 1 : 0)),
-          optimizer_nbinom_(nlopt::LD_LBFGS, 4 * Surrounding::Length() + (!kSurMult ? 1 : 0) + kGCSplineDf + 1 + 2),
+        : optimizer_poisson_(nlopt::LD_LBFGS, kNumBases * Surrounding::Length() + (!kSurMult ? 1 : 0)),
+          optimizer_nbinom_(nlopt::LD_LBFGS,
+                            kNumBases * Surrounding::Length() + (!kSurMult ? 1 : 0) + kGCSplineDf + 1 + 2),
           optimizer_spline_(nlopt::LD_LBFGS, kGCSplineDf + 1) {
         dispersion_.reserve(2);
 
-        fit_pars_.reserve(4 * Surrounding::Length() + (!kSurMult ? 1 : 0) + kGCSplineDf + 1 + 2);
+        fit_pars_.reserve(kNumBases * Surrounding::Length() + (!kSurMult ? 1 : 0) + kGCSplineDf + 1 + 2);
         bounds_.reserve(fit_pars_.capacity());
         gc_spline_pars_.resize(1 + kGCSplineDf);
 
@@ -186,8 +188,8 @@ class BiasCalculationVectors {
         optimizer_spline_.set_lower_bounds(bounds_);
     }
 
-    void AddCountsFromSite(const FragmentSite& site, std::array<uintFragCount, 101>& gc_count,
-                           std::array<uintFragCount, 4 * Surrounding::Length()>& sur_count);
+    void AddCountsFromSite(const FragmentSite& site, std::array<uintFragCount, kGCBins>& gc_count,
+                           std::array<uintFragCount, kNumBases * Surrounding::Length()>& sur_count);
     void GetCounts();
     void RemoveUnnecessarySites();
     void CalculateGCWeights();
@@ -330,18 +332,18 @@ class FragmentDistributionStats {
     bool calculate_bias_; // Only deactivated to speed up tests
 
     // Temporary variables
-    std::vector<utilities::VectorAtomic<uintFragCount>> tmp_abundance_;
-    std::vector<utilities::VectorAtomic<uintFragCount>> tmp_insert_lengths_;
-    std::vector<utilities::VectorAtomic<uintFragCount>> tmp_gc_fragment_content_;
+    AtomicVec<uintFragCount> tmp_abundance_;
+    AtomicVec<uintFragCount> tmp_insert_lengths_;
+    AtomicVec<uintFragCount> tmp_gc_fragment_content_;
     SurroundingCountAtomic tmp_fragment_surroundings_;
 
-    std::array<std::array<std::vector<utilities::VectorAtomic<uintFragCount>>, 4>, 2> tmp_outskirt_content_;
+    PerStrand<PerBase<AtomicVec<uintFragCount>>> tmp_outskirt_content_;
 
     std::vector<std::vector<std::pair<uintSeqLen, uintSeqLen>>>
         fragment_sites_by_ref_seq_bin_; // fragment_sites_by_ref_seq_bin_[ReferenceSequenceBinId][UniqueId] =
                                         // {startPositionCorrectedForExcludedRegionsRelativeToBinStart*2 +
                                         // 0/1(forward/reverse),fragment_length}
-    std::vector<utilities::VectorAtomic<uintFragCount>>
+    AtomicVec<uintFragCount>
         fragment_sites_by_ref_seq_bin_cur_id_; // fragment_sites_by_ref_seq_bin_cur_id_[ReferenceSequenceBinId]
                                                // = CurrentUniqueId
 
@@ -357,13 +359,13 @@ class FragmentDistributionStats {
     std::vector<std::vector<uintSeqLen>>
         lowq_site_start_by_ref_seq_bin_; // lowq_site_start_by_ref_seq_bin_[ReferenceSequenceBinId][UniqueId] =
                                          // startPositionCorrectedForExcludedRegionsRelativeToBinStart
-    std::vector<utilities::VectorAtomic<uintFragCount>>
+    AtomicVec<uintFragCount>
         lowq_site_start_by_ref_seq_bin_cur_id_; // lowq_site_start_by_ref_seq_bin_cur_id_[ReferenceSequenceBinId]
                                                 // = CurrentUniqueId
     std::vector<std::vector<uintSeqLen>>
         lowq_site_end_by_ref_seq_bin_; // lowq_site_end_by_ref_seq_bin_[ReferenceSequenceBinId][UniqueId] =
                                        // endPositionCorrectedForExcludedRegionsRelativeToBinStart
-    std::vector<utilities::VectorAtomic<uintFragCount>>
+    AtomicVec<uintFragCount>
         lowq_site_end_by_ref_seq_bin_cur_id_; // lowq_site_end_by_ref_seq_bin_cur_id_[ReferenceSequenceBinId]
                                               // = CurrentUniqueId
     std::vector<std::vector<std::pair<uintSeqLen, uintSeqLen>>> lowq_site_start_exclusion_;
@@ -371,21 +373,19 @@ class FragmentDistributionStats {
 
     std::atomic<uintRefLenCalc> excluded_lowq_positions_;
     std::atomic<uintRefLenCalc> excluded_lowq_regions_;
-    std::vector<utilities::VectorAtomic<uintFragCount>>
+    AtomicVec<uintFragCount>
         corrected_abundance_; // corrected_abundance_[RefSeqId] = AbundanceCorrectedForSitesWithLowQualityReads
-    std::vector<utilities::VectorAtomic<uintFragCount>>
-        filtered_sites_; // filtered_sites_[RefSeqId] = SitesWithoutLowQualityReads
-    std::vector<utilities::VectorAtomic<uintSeqLen>>
-        fragment_lengths_used_for_correction_; // fragment_lengths_used_for_correction_[RefSeqId] =
-                                               // FragmentLengthsThatWereUsedForLowQualityCorrection
+    AtomicVec<uintFragCount> filtered_sites_; // filtered_sites_[RefSeqId] = SitesWithoutLowQualityReads
+    AtomicVec<uintSeqLen> fragment_lengths_used_for_correction_; // fragment_lengths_used_for_correction_[RefSeqId] =
+                                                                 // FragmentLengthsThatWereUsedForLowQualityCorrection
 
     std::vector<bool> ref_seq_in_nxx_;
     std::vector<uintRefSeqBin> ref_seq_start_bin_; // ref_seq_start_bin_[RefSeqId] = First RefSeqBin
     std::vector<std::pair<uintRefSeqId, uintSeqLen>>
         ref_seq_bin_def_; // ref_seq_bin_def_[RefSeqBin] = {RefSeqId,StartPos}
-    std::array<std::vector<std::pair<double, double>>, 101>
+    std::array<std::vector<std::pair<double, double>>, kGCBins>
         tmp_gc_bias_; // tmp_gc_bias_[GC][#Fit] = {FittedBiasValue, WeightOfFit}
-    std::array<std::vector<double>, 4 * Surrounding::Length()> tmp_sur_bias_; // tmp_sur_bias_[SurBase][#Fit]
+    std::array<std::vector<double>, kNumBases * Surrounding::Length()> tmp_sur_bias_; // tmp_sur_bias_[SurBase][#Fit]
     std::array<std::vector<double>, 2> tmp_dispersion_parameters_; // tmp_dispersion_parameters_[dispPar][#Fit]
 
     BoundedWorkQueue<kMaxBinsQueuedForBiasCalc> bias_queue_;
@@ -408,7 +408,7 @@ class FragmentDistributionStats {
     Vect<Vect<uintFragCount>> site_count_; // site_count_[GCcontent(%)][FragmentLength] = #SitesInReference
 
     // Collected variables for plotting
-    std::array<std::array<Vect<uintFragCount>, 4>, 2>
+    PerStrand<PerBase<Vect<uintFragCount>>>
         outskirt_content_; // outskirt_content_[forward/reverse][refBase][position] = #(reads with given reference
                            // content at given position before or after read)
 
@@ -421,7 +421,7 @@ class FragmentDistributionStats {
     std::array<double, 2> dispersion_parameters_;
 
     // Calculated variables for plotting
-    std::array<std::vector<double>, 4> fragment_surrounding_bias_by_base_;
+    PerBase<std::vector<double>> fragment_surrounding_bias_by_base_;
 
     // Helper functions
     uintSeqLen RefSeqSplitLength(uintRefSeqId ref_seq_id, const Reference& reference) {
@@ -515,7 +515,6 @@ class FragmentDistributionStats {
 
     // Google test
     friend class FragmentDistributionStatsTest;
-    FRIEND_TEST(FragmentDistributionStatsTest, UpdateRefSeqBias);
     friend class SimulatorTest;
 
   public:

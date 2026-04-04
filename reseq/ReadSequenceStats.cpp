@@ -19,15 +19,15 @@ void ReadSequenceStats::PrepareAccumulators(uintQual size_mapping_quality, uintR
     tmp_improper_pair_mapping_quality_.resize(size_mapping_quality);
     tmp_single_read_mapping_quality_.resize(size_mapping_quality);
 
-    for (auto template_segment = 2; template_segment--;) {
-        tmp_gc_read_content_.at(template_segment).resize(101);
+    for (auto template_segment = kTemplateSegments; template_segment--;) {
+        tmp_gc_read_content_.at(template_segment).resize(kGCBins);
         tmp_n_content_.at(template_segment).resize(101);
-        for (auto base = 5; base--;) {
+        for (auto base = kNumBasesN; base--;) {
             tmp_sequence_content_.at(template_segment).at(base).resize(size_pos);
         }
     }
 
-    for (auto base = 5; base--;) {
+    for (auto base = kNumBasesN; base--;) {
         tmp_homopolymer_distribution_.at(base).resize(size_pos);
     }
 }
@@ -125,10 +125,10 @@ void ReadSequenceStats::Finalize() {
     improper_pair_mapping_quality_.Acquire(tmp_improper_pair_mapping_quality_);
     single_read_mapping_quality_.Acquire(tmp_single_read_mapping_quality_);
 
-    for (auto template_segment = 2; template_segment--;) {
+    for (auto template_segment = kTemplateSegments; template_segment--;) {
         gc_read_content_.at(template_segment).Acquire(tmp_gc_read_content_.at(template_segment));
         n_content_.at(template_segment).Acquire(tmp_n_content_.at(template_segment));
-        for (auto base = 5; base--;) {
+        for (auto base = kNumBasesN; base--;) {
             sequence_content_.at(template_segment)
                 .at(base)
                 .Acquire(tmp_sequence_content_.at(template_segment).at(base));
@@ -136,7 +136,7 @@ void ReadSequenceStats::Finalize() {
     }
 
     tmp_homopolymer_distribution_.at(0).at(0) = 0; // Remove homopolymers introduced by initialization values
-    for (auto base = 5; base--;) {
+    for (auto base = kNumBasesN; base--;) {
         homopolymer_distribution_.at(base).Acquire(tmp_homopolymer_distribution_.at(base));
     }
 }
